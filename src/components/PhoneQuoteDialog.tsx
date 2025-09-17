@@ -65,9 +65,13 @@ export function PhoneQuoteDialog({ onQuoteCreated }: PhoneQuoteDialogProps) {
       const { data: contractorData, error: contractorError } = await supabase
         .from("contractors")
         .select("id")
-        .single();
+        .maybeSingle();
 
       if (contractorError) throw contractorError;
+
+      if (!contractorData) {
+        throw new Error("Please set up your contractor profile first by going to Settings");
+      }
 
       // Create or find customer
       let customerId: string;
