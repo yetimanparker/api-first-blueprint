@@ -148,6 +148,36 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_notes: {
+        Row: {
+          contractor_id: string
+          created_at: string
+          customer_id: string
+          id: string
+          note_text: string
+          note_type: string
+          updated_at: string
+        }
+        Insert: {
+          contractor_id: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          note_text: string
+          note_type?: string
+          updated_at?: string
+        }
+        Update: {
+          contractor_id?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          note_text?: string
+          note_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
@@ -523,15 +553,47 @@ export type Database = {
           },
         ]
       }
+      quote_status_history: {
+        Row: {
+          changed_by: string
+          created_at: string
+          id: string
+          new_status: string
+          notes: string | null
+          old_status: string | null
+          quote_id: string
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          id?: string
+          new_status: string
+          notes?: string | null
+          old_status?: string | null
+          quote_id: string
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          id?: string
+          new_status?: string
+          notes?: string | null
+          old_status?: string | null
+          quote_id?: string
+        }
+        Relationships: []
+      }
       quotes: {
         Row: {
           accepted_at: string | null
+          access_token: string | null
           contractor_id: string
           created_at: string
           customer_id: string
           expires_at: string | null
           id: string
           notes: string | null
+          parent_quote_id: string | null
           project_address: string | null
           project_city: string | null
           project_state: string | null
@@ -540,15 +602,18 @@ export type Database = {
           status: string
           total_amount: number
           updated_at: string
+          version_number: number | null
         }
         Insert: {
           accepted_at?: string | null
+          access_token?: string | null
           contractor_id: string
           created_at?: string
           customer_id: string
           expires_at?: string | null
           id?: string
           notes?: string | null
+          parent_quote_id?: string | null
           project_address?: string | null
           project_city?: string | null
           project_state?: string | null
@@ -557,15 +622,18 @@ export type Database = {
           status?: string
           total_amount?: number
           updated_at?: string
+          version_number?: number | null
         }
         Update: {
           accepted_at?: string | null
+          access_token?: string | null
           contractor_id?: string
           created_at?: string
           customer_id?: string
           expires_at?: string | null
           id?: string
           notes?: string | null
+          parent_quote_id?: string | null
           project_address?: string | null
           project_city?: string | null
           project_state?: string | null
@@ -574,6 +642,7 @@ export type Database = {
           status?: string
           total_amount?: number
           updated_at?: string
+          version_number?: number | null
         }
         Relationships: [
           {
@@ -592,11 +661,63 @@ export type Database = {
           },
         ]
       }
+      tasks: {
+        Row: {
+          completed_at: string | null
+          contractor_id: string
+          created_at: string
+          customer_id: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          quote_id: string | null
+          status: string
+          task_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          contractor_id: string
+          created_at?: string
+          customer_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          quote_id?: string | null
+          status?: string
+          task_type?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          contractor_id?: string
+          created_at?: string
+          customer_id?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          quote_id?: string | null
+          status?: string
+          task_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      generate_quote_access_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_current_contractor_id: {
         Args: Record<PropertyKey, never>
         Returns: string
