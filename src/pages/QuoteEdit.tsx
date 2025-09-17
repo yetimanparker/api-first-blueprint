@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Copy, Save, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { ProductForm } from "@/components/ProductForm";
+import { QuoteItemForm } from "@/components/QuoteItemForm";
 import { useGlobalSettings } from "@/hooks/useGlobalSettings";
 import { displayPrice } from "@/lib/priceUtils";
 
@@ -379,20 +379,10 @@ export default function QuoteEdit() {
         </Card>
 
         {/* Add New Items Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Add Items to Quote</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ProductForm 
-              onProductSubmit={() => {
-                // Refresh the quote data after adding items
-                fetchQuoteData();
-              }}
-              existingQuoteId={quote.id}
-            />
-          </CardContent>
-        </Card>
+        <QuoteItemForm 
+          quoteId={quote.id}
+          onItemAdded={fetchQuoteData}
+        />
       </div>
     </div>
   );
