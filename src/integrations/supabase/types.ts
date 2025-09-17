@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      contractor_settings: {
+        Row: {
+          contact_capture_timing: string
+          contractor_id: string
+          created_at: string
+          id: string
+          pricing_visibility: string
+          require_address: boolean
+          require_email: boolean
+          require_phone: boolean
+          updated_at: string
+          widget_theme_color: string | null
+        }
+        Insert: {
+          contact_capture_timing?: string
+          contractor_id: string
+          created_at?: string
+          id?: string
+          pricing_visibility?: string
+          require_address?: boolean
+          require_email?: boolean
+          require_phone?: boolean
+          updated_at?: string
+          widget_theme_color?: string | null
+        }
+        Update: {
+          contact_capture_timing?: string
+          contractor_id?: string
+          created_at?: string
+          id?: string
+          pricing_visibility?: string
+          require_address?: boolean
+          require_email?: boolean
+          require_phone?: boolean
+          updated_at?: string
+          widget_theme_color?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_settings_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: true
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contractors: {
         Row: {
           address: string | null
@@ -121,6 +168,53 @@ export type Database = {
           },
         ]
       }
+      product_addons: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean
+          name: string
+          price_type: string
+          price_value: number
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price_type: string
+          price_value: number
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_type?: string
+          price_value?: number
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_addons_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           color_hex: string
@@ -131,6 +225,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          show_pricing_before_submit: boolean
           unit_price: number
           unit_type: string
           updated_at: string
@@ -144,6 +239,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          show_pricing_before_submit?: boolean
           unit_price: number
           unit_type?: string
           updated_at?: string
@@ -157,6 +253,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          show_pricing_before_submit?: boolean
           unit_price?: number
           unit_type?: string
           updated_at?: string

@@ -186,7 +186,7 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <Button className="w-full">
+              <Button className="w-full" onClick={() => navigate("/products")}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Products
               </Button>
@@ -225,7 +225,7 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={() => navigate("/settings")}>
                 Customize Widget
               </Button>
             </CardContent>
