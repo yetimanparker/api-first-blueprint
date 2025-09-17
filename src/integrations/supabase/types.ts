@@ -270,6 +270,7 @@ export type Database = {
       }
       products: {
         Row: {
+          category: string | null
           color_hex: string
           contractor_id: string
           created_at: string
@@ -280,11 +281,13 @@ export type Database = {
           name: string
           photo_url: string | null
           show_pricing_before_submit: boolean
+          subcategory: string | null
           unit_price: number
           unit_type: string
           updated_at: string
         }
         Insert: {
+          category?: string | null
           color_hex?: string
           contractor_id: string
           created_at?: string
@@ -295,11 +298,13 @@ export type Database = {
           name: string
           photo_url?: string | null
           show_pricing_before_submit?: boolean
+          subcategory?: string | null
           unit_price: number
           unit_type?: string
           updated_at?: string
         }
         Update: {
+          category?: string | null
           color_hex?: string
           contractor_id?: string
           created_at?: string
@@ -310,6 +315,7 @@ export type Database = {
           name?: string
           photo_url?: string | null
           show_pricing_before_submit?: boolean
+          subcategory?: string | null
           unit_price?: number
           unit_type?: string
           updated_at?: string

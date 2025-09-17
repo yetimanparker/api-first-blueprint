@@ -25,6 +25,8 @@ const productSchema = z.object({
   show_pricing_before_submit: z.boolean(),
   display_order: z.number().optional(),
   photo_url: z.string().optional(),
+  category: z.string().min(1, "Category is required"),
+  subcategory: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -62,6 +64,8 @@ interface Product {
   show_pricing_before_submit: boolean;
   display_order: number | null;
   photo_url?: string | null;
+  category?: string | null;
+  subcategory?: string | null;
   product_addons?: ProductAddon[];
   product_variations?: ProductVariation[];
 }
@@ -92,6 +96,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       show_pricing_before_submit: product?.show_pricing_before_submit ?? true,
       display_order: product?.display_order || 0,
       photo_url: product?.photo_url || "",
+      category: product?.category || "",
+      subcategory: product?.subcategory || "",
     },
   });
 
@@ -198,6 +204,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         show_pricing_before_submit: data.show_pricing_before_submit,
         display_order: data.display_order || 0,
         photo_url: data.photo_url || null,
+        category: data.category,
+        subcategory: data.subcategory || null,
         contractor_id: contractorData.id,
       };
 
@@ -308,6 +316,54 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
     { value: "each", label: "Each" },
   ];
 
+  const categoryOptions = [
+    { value: "fencing", label: "Fencing" },
+    { value: "flooring", label: "Flooring" },
+    { value: "roofing", label: "Roofing" },
+    { value: "painting", label: "Painting" },
+    { value: "landscaping", label: "Landscaping" },
+    { value: "plumbing", label: "Plumbing" },
+    { value: "electrical", label: "Electrical" },
+    { value: "hvac", label: "HVAC" },
+    { value: "concrete", label: "Concrete" },
+    { value: "other", label: "Other" },
+  ];
+
+  const subcategoryOptions: Record<string, { value: string; label: string }[]> = {
+    fencing: [
+      { value: "wood_fence", label: "Wood Fence" },
+      { value: "vinyl_fence", label: "Vinyl Fence" },
+      { value: "chain_link", label: "Chain Link" },
+      { value: "iron_fence", label: "Iron Fence" },
+      { value: "fence_staining", label: "Fence Staining" },
+    ],
+    flooring: [
+      { value: "hardwood", label: "Hardwood" },
+      { value: "tile", label: "Tile" },
+      { value: "carpet", label: "Carpet" },
+      { value: "laminate", label: "Laminate" },
+      { value: "vinyl", label: "Vinyl" },
+    ],
+    roofing: [
+      { value: "shingles", label: "Shingles" },
+      { value: "metal_roofing", label: "Metal Roofing" },
+      { value: "tile_roof", label: "Tile Roof" },
+      { value: "roof_repair", label: "Roof Repair" },
+    ],
+    painting: [
+      { value: "interior", label: "Interior Painting" },
+      { value: "exterior", label: "Exterior Painting" },
+      { value: "deck_staining", label: "Deck Staining" },
+      { value: "fence_staining", label: "Fence Staining" },
+    ],
+    landscaping: [
+      { value: "lawn_care", label: "Lawn Care" },
+      { value: "tree_service", label: "Tree Service" },
+      { value: "irrigation", label: "Irrigation" },
+      { value: "hardscaping", label: "Hardscaping" },
+    ],
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -340,6 +396,58 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                   </FormControl>
                   <SelectContent>
                     {unitTypeOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categoryOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="subcategory"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Subcategory (Optional)</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select subcategory" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {form.watch("category") && subcategoryOptions[form.watch("category")]?.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
