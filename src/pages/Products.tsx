@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Package, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit, Trash2, Package, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductForm } from "@/components/ProductForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -144,41 +144,51 @@ export default function Products() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Products</h1>
-          <p className="text-muted-foreground">Manage your product catalog</p>
-        </div>
-        <div className="flex gap-2">
-          <PhoneQuoteDialog onQuoteCreated={(quoteId) => {
-            toast({
-              title: "Quote Created",
-              description: "Customer added to CRM and quote generated successfully",
-            });
-          }} />
-          <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditingProduct(null)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/dashboard")}
+                className="mr-4"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingProduct ? "Edit Product" : "Add New Product"}
-                </DialogTitle>
-              </DialogHeader>
-              <ProductForm
-                product={editingProduct}
-                onSaved={handleProductSaved}
-                onCancel={() => setShowProductForm(false)}
-              />
-            </DialogContent>
-          </Dialog>
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">Products</h1>
+                <p className="text-sm text-muted-foreground">Manage your product catalog</p>
+              </div>
+            </div>
+            <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setEditingProduct(null)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Product
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingProduct ? "Edit Product" : "Add New Product"}
+                  </DialogTitle>
+                </DialogHeader>
+                <ProductForm
+                  product={editingProduct}
+                  onSaved={handleProductSaved}
+                  onCancel={() => setShowProductForm(false)}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
-      </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
       {products.length === 0 ? (
         <Card>
@@ -322,6 +332,7 @@ export default function Products() {
           ))}
         </div>
       )}
+      </main>
     </div>
   );
 }

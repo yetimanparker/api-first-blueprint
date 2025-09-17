@@ -206,7 +206,7 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={() => navigate("/crm")}>
                 View Customers
               </Button>
             </CardContent>
