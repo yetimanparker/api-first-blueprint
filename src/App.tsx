@@ -8,6 +8,8 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import CRM from "./pages/CRM";
+import CustomerDetail from "./pages/CustomerDetail";
+import QuoteEdit from "./pages/QuoteEdit";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -25,6 +27,9 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/products" element={<Products />} />
           <Route path="/crm" element={<CRM />} />
+          <Route path="/customer/:customerId" element={<CustomerDetail />} />
+          <Route path="/quote/edit/:quoteId" element={<QuoteEdit />} />
+          <Route path="/quote/edit/:quoteId/:accessToken" element={<QuoteEdit />} />
           <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
