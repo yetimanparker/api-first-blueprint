@@ -170,6 +170,8 @@ export type Database = {
       }
       product_addons: {
         Row: {
+          calculation_formula: string | null
+          calculation_type: string
           created_at: string
           description: string | null
           display_order: number | null
@@ -182,6 +184,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          calculation_formula?: string | null
+          calculation_type?: string
           created_at?: string
           description?: string | null
           display_order?: number | null
@@ -194,6 +198,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          calculation_formula?: string | null
+          calculation_type?: string
           created_at?: string
           description?: string | null
           display_order?: number | null
@@ -215,6 +221,53 @@ export type Database = {
           },
         ]
       }
+      product_variations: {
+        Row: {
+          adjustment_type: string
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean
+          name: string
+          price_adjustment: number
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          adjustment_type?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price_adjustment?: number
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          adjustment_type?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_adjustment?: number
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           color_hex: string
@@ -225,6 +278,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          photo_url: string | null
           show_pricing_before_submit: boolean
           unit_price: number
           unit_type: string
@@ -239,6 +293,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          photo_url?: string | null
           show_pricing_before_submit?: boolean
           unit_price: number
           unit_type?: string
@@ -253,6 +308,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          photo_url?: string | null
           show_pricing_before_submit?: boolean
           unit_price?: number
           unit_type?: string

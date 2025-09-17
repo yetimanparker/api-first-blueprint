@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProductForm } from "@/components/ProductForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { PhoneQuoteDialog } from "@/components/PhoneQuoteDialog";
 
 interface Product {
   id: string;
@@ -20,7 +21,19 @@ interface Product {
   is_active: boolean;
   show_pricing_before_submit: boolean;
   display_order: number | null;
+  photo_url?: string | null;
   product_addons?: ProductAddon[];
+  product_variations?: ProductVariation[];
+}
+
+interface ProductVariation {
+  id: string;
+  name: string;
+  description: string | null;
+  price_adjustment: number;
+  adjustment_type: "fixed" | "percentage";
+  display_order: number;
+  is_active: boolean;
 }
 
 interface ProductAddon {
@@ -31,6 +44,8 @@ interface ProductAddon {
   price_value: number;
   display_order: number;
   is_active: boolean;
+  calculation_type: "total" | "per_unit" | "area_calculation";
+  calculation_formula?: string | null;
 }
 
 export default function Products() {
@@ -58,7 +73,8 @@ export default function Products() {
         .from("products")
         .select(`
           *,
-          product_addons(*)
+          product_addons(*),
+          product_variations(*)
         `)
         .order("display_order", { ascending: true })
         .order("name", { ascending: true });
@@ -68,7 +84,12 @@ export default function Products() {
         ...product,
         product_addons: product.product_addons?.map(addon => ({
           ...addon,
-          price_type: addon.price_type as "fixed" | "percentage"
+          price_type: addon.price_type as "fixed" | "percentage",
+          calculation_type: addon.calculation_type as "total" | "per_unit" | "area_calculation" || "total"
+        })),
+        product_variations: product.product_variations?.map(variation => ({
+          ...variation,
+          adjustment_type: variation.adjustment_type as "fixed" | "percentage"
         }))
       })));
     } catch (error: any) {
@@ -129,26 +150,34 @@ export default function Products() {
           <h1 className="text-3xl font-bold">Products</h1>
           <p className="text-muted-foreground">Manage your product catalog</p>
         </div>
-        <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setEditingProduct(null)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Product
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingProduct ? "Edit Product" : "Add New Product"}
-              </DialogTitle>
-            </DialogHeader>
-            <ProductForm
-              product={editingProduct}
-              onSaved={handleProductSaved}
-              onCancel={() => setShowProductForm(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <PhoneQuoteDialog onQuoteCreated={(quoteId) => {
+            toast({
+              title: "Quote Created",
+              description: "Customer added to CRM and quote generated successfully",
+            });
+          }} />
+          <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingProduct(null)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Product
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingProduct ? "Edit Product" : "Add New Product"}
+                </DialogTitle>
+              </DialogHeader>
+              <ProductForm
+                product={editingProduct}
+                onSaved={handleProductSaved}
+                onCancel={() => setShowProductForm(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {products.length === 0 ? (
@@ -182,6 +211,13 @@ export default function Products() {
                     <CardDescription>{product.description}</CardDescription>
                   </div>
                   <div className="flex gap-1">
+                    {product.photo_url && (
+                      <img 
+                        src={product.photo_url} 
+                        alt={product.name}
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                    )}
                     {product.show_pricing_before_submit ? (
                       <Eye className="h-4 w-4 text-muted-foreground" />
                     ) : (
@@ -206,18 +242,36 @@ export default function Products() {
                     </Badge>
                   </div>
 
+                  {product.product_variations && product.product_variations.length > 0 && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">Variations:</span>
+                      <div className="mt-1 space-y-1">
+                        {product.product_variations.slice(0, 2).map((variation) => (
+                          <div key={variation.id} className="text-xs text-muted-foreground">
+                            • {variation.name} ({variation.adjustment_type === 'fixed' ? `+$${variation.price_adjustment}` : `+${variation.price_adjustment}%`})
+                          </div>
+                        ))}
+                        {product.product_variations.length > 2 && (
+                          <div className="text-xs text-muted-foreground">
+                            +{product.product_variations.length - 2} more variations
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {product.product_addons && product.product_addons.length > 0 && (
                     <div>
                       <span className="text-sm text-muted-foreground">Add-ons:</span>
                       <div className="mt-1 space-y-1">
                         {product.product_addons.slice(0, 2).map((addon) => (
                           <div key={addon.id} className="text-xs text-muted-foreground">
-                            • {addon.name} (+{addon.price_type === 'fixed' ? `$${addon.price_value}` : `${addon.price_value}%`})
+                            • {addon.name} ({(addon.calculation_type || 'total') === 'per_unit' ? 'per unit' : (addon.calculation_type || 'total') === 'area_calculation' ? 'area calc' : 'total'}) - {addon.price_type === 'fixed' ? `$${addon.price_value}` : `${addon.price_value}%`}
                           </div>
                         ))}
                         {product.product_addons.length > 2 && (
                           <div className="text-xs text-muted-foreground">
-                            +{product.product_addons.length - 2} more
+                            +{product.product_addons.length - 2} more add-ons
                           </div>
                         )}
                       </div>

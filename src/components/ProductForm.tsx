@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, Upload, Image } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const productSchema = z.object({
@@ -24,6 +24,7 @@ const productSchema = z.object({
   is_active: z.boolean(),
   show_pricing_before_submit: z.boolean(),
   display_order: z.number().optional(),
+  photo_url: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -34,6 +35,18 @@ interface ProductAddon {
   description: string;
   price_type: "fixed" | "percentage";
   price_value: number;
+  display_order: number;
+  is_active: boolean;
+  calculation_type: "total" | "per_unit" | "area_calculation";
+  calculation_formula?: string;
+}
+
+interface ProductVariation {
+  id?: string;
+  name: string;
+  description: string;
+  price_adjustment: number;
+  adjustment_type: "fixed" | "percentage";
   display_order: number;
   is_active: boolean;
 }
@@ -48,7 +61,9 @@ interface Product {
   is_active: boolean;
   show_pricing_before_submit: boolean;
   display_order: number | null;
+  photo_url?: string | null;
   product_addons?: ProductAddon[];
+  product_variations?: ProductVariation[];
 }
 
 interface ProductFormProps {
@@ -59,7 +74,10 @@ interface ProductFormProps {
 
 export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const [addons, setAddons] = useState<ProductAddon[]>([]);
+  const [variations, setVariations] = useState<ProductVariation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<ProductFormData>({
@@ -73,6 +91,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       is_active: product?.is_active ?? true,
       show_pricing_before_submit: product?.show_pricing_before_submit ?? true,
       display_order: product?.display_order || 0,
+      photo_url: product?.photo_url || "",
     },
   });
 
@@ -81,7 +100,18 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       setAddons(product.product_addons.map((addon, index) => ({
         ...addon,
         display_order: addon.display_order || index,
+        calculation_type: addon.calculation_type || "total",
+        calculation_formula: addon.calculation_formula || "",
       })));
+    }
+    if (product?.product_variations) {
+      setVariations(product.product_variations.map((variation, index) => ({
+        ...variation,
+        display_order: variation.display_order || index,
+      })));
+    }
+    if (product?.photo_url) {
+      setPhotoPreview(product.photo_url);
     }
   }, [product]);
 
@@ -93,8 +123,22 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       price_value: 0,
       display_order: addons.length,
       is_active: true,
+      calculation_type: "total",
+      calculation_formula: "",
     };
     setAddons([...addons, newAddon]);
+  };
+
+  const addNewVariation = () => {
+    const newVariation: ProductVariation = {
+      name: "",
+      description: "",
+      price_adjustment: 0,
+      adjustment_type: "fixed",
+      display_order: variations.length,
+      is_active: true,
+    };
+    setVariations([...variations, newVariation]);
   };
 
   const updateAddon = (index: number, field: keyof ProductAddon, value: any) => {
@@ -105,6 +149,28 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
 
   const removeAddon = (index: number) => {
     setAddons(addons.filter((_, i) => i !== index));
+  };
+
+  const updateVariation = (index: number, field: keyof ProductVariation, value: any) => {
+    const updatedVariations = [...variations];
+    updatedVariations[index] = { ...updatedVariations[index], [field]: value };
+    setVariations(updatedVariations);
+  };
+
+  const removeVariation = (index: number) => {
+    setVariations(variations.filter((_, i) => i !== index));
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPhotoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const onSubmit = async (data: ProductFormData) => {
@@ -127,6 +193,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         is_active: data.is_active,
         show_pricing_before_submit: data.show_pricing_before_submit,
         display_order: data.display_order || 0,
+        photo_url: data.photo_url || null,
         contractor_id: contractorData.id,
       };
 
@@ -174,6 +241,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             price_value: Number(addon.price_value),
             display_order: index,
             is_active: addon.is_active,
+            calculation_type: addon.calculation_type,
+            calculation_formula: addon.calculation_formula?.trim() || null,
           }));
 
           const { error: addonError } = await supabase
@@ -181,6 +250,33 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             .insert(addonsToInsert);
 
           if (addonError) throw addonError;
+        }
+
+        // Handle variations
+        if (product) {
+          await supabase
+            .from("product_variations")
+            .delete()
+            .eq("product_id", productId);
+        }
+
+        const validVariations = variations.filter(variation => variation.name.trim());
+        if (validVariations.length > 0) {
+          const variationsToInsert = validVariations.map((variation, index) => ({
+            product_id: productId,
+            name: variation.name.trim(),
+            description: variation.description.trim() || null,
+            price_adjustment: Number(variation.price_adjustment),
+            adjustment_type: variation.adjustment_type,
+            display_order: index,
+            is_active: variation.is_active,
+          }));
+
+          const { error: variationError } = await supabase
+            .from("product_variations")
+            .insert(variationsToInsert);
+
+          if (variationError) throw variationError;
         }
       }
 
@@ -372,6 +468,147 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           />
         </div>
 
+        {/* Product Photo */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Product Photo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="cursor-pointer"
+                  />
+                </div>
+                {photoPreview && (
+                  <div className="relative">
+                    <img
+                      src={photoPreview}
+                      alt="Product preview"
+                      className="w-20 h-20 object-cover rounded border"
+                    />
+                  </div>
+                )}
+              </div>
+              <FormField
+                control={form.control}
+                name="photo_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Photo URL (optional)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="https://example.com/photo.jpg" 
+                        {...field} 
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      You can also provide a direct URL to the product photo
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Product Variations */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              Product Variations
+              <Button type="button" variant="outline" size="sm" onClick={addNewVariation}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Variation
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {variations.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">
+                No variations yet. Add variations like different heights, sizes, or materials.
+              </p>
+            ) : (
+              variations.map((variation, index) => (
+                <Card key={index} className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <Label htmlFor={`variation-name-${index}`}>Name</Label>
+                      <Input
+                        id={`variation-name-${index}`}
+                        value={variation.name}
+                        onChange={(e) => updateVariation(index, "name", e.target.value)}
+                        placeholder="e.g., 6 inch height"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`variation-description-${index}`}>Description</Label>
+                      <Input
+                        id={`variation-description-${index}`}
+                        value={variation.description}
+                        onChange={(e) => updateVariation(index, "description", e.target.value)}
+                        placeholder="Optional description"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`variation-adjustment-type-${index}`}>Price Type</Label>
+                      <Select
+                        value={variation.adjustment_type}
+                        onValueChange={(value) => updateVariation(index, "adjustment_type", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fixed">Fixed ($)</SelectItem>
+                          <SelectItem value="percentage">Percentage (%)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Label htmlFor={`variation-price-${index}`}>Price Adjustment</Label>
+                        <Input
+                          id={`variation-price-${index}`}
+                          type="number"
+                          step="0.01"
+                          value={variation.price_adjustment}
+                          onChange={(e) => updateVariation(index, "price_adjustment", parseFloat(e.target.value) || 0)}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeVariation(index)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Switch
+                      checked={variation.is_active}
+                      onCheckedChange={(checked) => updateVariation(index, "is_active", checked)}
+                    />
+                    <Label>Active</Label>
+                  </div>
+                </Card>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
         {/* Add-ons Section */}
         <Card>
           <CardHeader>
@@ -450,6 +687,38 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Enhanced Add-on Options */}
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor={`addon-calculation-type-${index}`}>Calculation Type</Label>
+                      <Select
+                        value={addon.calculation_type}
+                        onValueChange={(value) => updateAddon(index, "calculation_type", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="total">Apply to Total</SelectItem>
+                          <SelectItem value="per_unit">Per Unit (e.g., per cubic yard)</SelectItem>
+                          <SelectItem value="area_calculation">Area Calculation (height × linear ft)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {addon.calculation_type === "area_calculation" && (
+                      <div>
+                        <Label htmlFor={`addon-formula-${index}`}>Formula</Label>
+                        <Input
+                          id={`addon-formula-${index}`}
+                          value={addon.calculation_formula || ""}
+                          onChange={(e) => updateAddon(index, "calculation_formula", e.target.value)}
+                          placeholder="e.g., height * linear_ft"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="mt-3 flex items-center gap-2">
                     <Switch
                       checked={addon.is_active}
