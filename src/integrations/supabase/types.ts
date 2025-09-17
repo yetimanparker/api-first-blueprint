@@ -16,39 +16,72 @@ export type Database = {
     Tables: {
       contractor_settings: {
         Row: {
+          auto_activate_products: boolean
           contact_capture_timing: string
           contractor_id: string
           created_at: string
+          currency_symbol: string
+          decimal_precision: number
+          default_product_color: string
+          default_unit_type: string
+          global_markup_percentage: number
+          global_tax_rate: number
           id: string
+          price_range_display_format: string
+          price_range_percentage: number
           pricing_visibility: string
           require_address: boolean
           require_email: boolean
           require_phone: boolean
+          require_product_photos: boolean
           updated_at: string
+          use_price_ranges: boolean
           widget_theme_color: string | null
         }
         Insert: {
+          auto_activate_products?: boolean
           contact_capture_timing?: string
           contractor_id: string
           created_at?: string
+          currency_symbol?: string
+          decimal_precision?: number
+          default_product_color?: string
+          default_unit_type?: string
+          global_markup_percentage?: number
+          global_tax_rate?: number
           id?: string
+          price_range_display_format?: string
+          price_range_percentage?: number
           pricing_visibility?: string
           require_address?: boolean
           require_email?: boolean
           require_phone?: boolean
+          require_product_photos?: boolean
           updated_at?: string
+          use_price_ranges?: boolean
           widget_theme_color?: string | null
         }
         Update: {
+          auto_activate_products?: boolean
           contact_capture_timing?: string
           contractor_id?: string
           created_at?: string
+          currency_symbol?: string
+          decimal_precision?: number
+          default_product_color?: string
+          default_unit_type?: string
+          global_markup_percentage?: number
+          global_tax_rate?: number
           id?: string
+          price_range_display_format?: string
+          price_range_percentage?: number
           pricing_visibility?: string
           require_address?: boolean
           require_email?: boolean
           require_phone?: boolean
+          require_product_photos?: boolean
           updated_at?: string
+          use_price_ranges?: boolean
           widget_theme_color?: string | null
         }
         Relationships: [
@@ -217,6 +250,85 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_categories: {
+        Row: {
+          color_hex: string
+          contractor_id: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          color_hex?: string
+          contractor_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          color_hex?: string
+          contractor_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_categories_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_subcategories: {
+        Row: {
+          category_id: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_subcategories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
             referencedColumns: ["id"]
           },
         ]

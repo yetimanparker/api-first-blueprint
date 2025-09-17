@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useGlobalSettings, useProductCategories } from "@/hooks/useGlobalSettings";
+import { displayPrice, calculateFinalPrice } from "@/lib/priceUtils";
 import { Plus, Trash2, GripVertical, Upload, Image } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -19,7 +21,7 @@ const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().optional(),
   unit_price: z.number().min(0, "Price must be positive"),
-  unit_type: z.enum(["sq_ft", "linear_ft", "cu_ft", "each"]),
+  unit_type: z.enum(["sq_ft", "linear_ft", "each", "hour", "cubic_yard"]),
   color_hex: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color"),
   is_active: z.boolean(),
   show_pricing_before_submit: z.boolean(),
@@ -83,6 +85,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const { toast } = useToast();
+  const { settings: globalSettings } = useGlobalSettings();
+  const { categories, getSubcategoriesForCategory } = useProductCategories();
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -90,9 +94,9 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       name: product?.name || "",
       description: product?.description || "",
       unit_price: product?.unit_price || 0,
-      unit_type: (product?.unit_type as any) || "sq_ft",
-      color_hex: product?.color_hex || "#3B82F6",
-      is_active: product?.is_active ?? true,
+      unit_type: (product?.unit_type as any) || globalSettings?.default_unit_type || "sq_ft",
+      color_hex: product?.color_hex || globalSettings?.default_product_color || "#3B82F6",
+      is_active: product?.is_active ?? (globalSettings?.auto_activate_products ?? true),
       show_pricing_before_submit: product?.show_pricing_before_submit ?? true,
       display_order: product?.display_order || 0,
       photo_url: product?.photo_url || "",
