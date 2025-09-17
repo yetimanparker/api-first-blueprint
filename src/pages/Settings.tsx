@@ -85,9 +85,11 @@ export default function Settings() {
       const { data: contractor, error: contractorError } = await supabase
         .from("contractors")
         .select("*")
-        .single();
+        .maybeSingle();
 
-      if (contractorError) throw contractorError;
+      if (contractorError && contractorError.code !== 'PGRST116') {
+        throw contractorError;
+      }
 
       if (contractor) {
         setContractorId(contractor.id);
@@ -124,6 +126,24 @@ export default function Settings() {
             widget_theme_color: settings.widget_theme_color || "#3B82F6",
           });
         }
+      } else {
+        // No contractor profile exists, set default values
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          contractorForm.reset({
+            business_name: user.user_metadata?.business_name || "",
+            email: user.email,
+            phone: "",
+            website: "",
+            address: "",
+            city: "",
+            state: "",
+            zip_code: "",
+            brand_color: "#3B82F6",
+            secondary_color: "#64748B",
+            logo_url: "",
+          });
+        }
       }
     } catch (error: any) {
       toast({
@@ -137,20 +157,49 @@ export default function Settings() {
   };
 
   const onContractorSubmit = async (data: ContractorFormData) => {
-    if (!contractorId) return;
-    
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("contractors")
-        .update(data)
-        .eq("id", contractorId);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
 
-      if (error) throw error;
+      if (contractorId) {
+        // Update existing contractor
+        const { error } = await supabase
+          .from("contractors")
+          .update(data)
+          .eq("id", contractorId);
+
+        if (error) throw error;
+      } else {
+        // Create new contractor profile
+        const contractorData = {
+          user_id: user.id,
+          business_name: data.business_name,
+          email: data.email,
+          phone: data.phone || null,
+          website: data.website || null,
+          address: data.address || null,
+          city: data.city || null,
+          state: data.state || null,
+          zip_code: data.zip_code || null,
+          brand_color: data.brand_color,
+          secondary_color: data.secondary_color,
+          logo_url: data.logo_url || null,
+        };
+
+        const { data: newContractor, error } = await supabase
+          .from("contractors")
+          .insert(contractorData)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setContractorId(newContractor.id);
+      }
 
       toast({
         title: "Success",
-        description: "Business information updated successfully",
+        description: "Business information saved successfully",
       });
     } catch (error: any) {
       toast({
@@ -404,7 +453,7 @@ export default function Settings() {
 
                 <div className="flex justify-end">
                   <Button type="submit" disabled={saving}>
-                    {saving ? "Saving..." : "Save Business Info"}
+                    {saving ? "Saving..." : contractorId ? "Update Business Info" : "Create Business Profile"}
                   </Button>
                 </div>
               </form>
