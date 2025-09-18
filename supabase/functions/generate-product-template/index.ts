@@ -47,9 +47,7 @@ serve(async (req) => {
       .from('products')
       .select(`
         id, name, description, unit_price, unit_type, category, subcategory,
-        color_hex, photo_url, is_active, show_pricing_before_submit, display_order,
-        category_data:product_categories(name),
-        subcategory_data:product_subcategories(name)
+        color_hex, photo_url, is_active, show_pricing_before_submit, display_order
       `)
       .eq('contractor_id', contractor.id)
       .eq('is_active', true)
@@ -105,17 +103,14 @@ serve(async (req) => {
 
       if (products && products.length > 0) {
         products.forEach(product => {
-          const categoryName = product.category_data?.name || product.category || '';
-          const subcategoryName = product.subcategory_data?.name || product.subcategory || '';
-          
           csvContent += [
             product.id || '',
             `"${product.name}"`,
             `"${product.description || ''}"`,
             product.unit_price,
             product.unit_type,
-            `"${categoryName}"`,
-            `"${subcategoryName}"`,
+            `"${product.category || ''}"`,
+            `"${product.subcategory || ''}"`,
             product.color_hex,
             `"${product.photo_url || ''}"`,
             product.is_active ? 'TRUE' : 'FALSE',
