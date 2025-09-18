@@ -6,6 +6,16 @@ export interface PriceRangeSettings {
   decimal_precision: number;
 }
 
+export interface PricingTier {
+  id: string;
+  tier_name: string;
+  min_quantity: number;
+  max_quantity: number | null;
+  tier_price: number;
+  is_active: boolean;
+  display_order: number;
+}
+
 export interface PriceRange {
   lower: number;
   upper: number;
@@ -151,6 +161,98 @@ export function calculateAddonWithAreaData(
   
   // For "total" calculation type
   return addonPrice;
+}
+
+export function calculateTieredPrice(
+  quantity: number,
+  tiers: PricingTier[],
+  fallbackPrice: number
+): number {
+  if (!tiers.length) return fallbackPrice;
+  
+  const applicableTier = tiers
+    .filter(tier => tier.is_active)
+    .sort((a, b) => a.min_quantity - b.min_quantity)
+    .find(tier => 
+      quantity >= tier.min_quantity && 
+      (tier.max_quantity === null || quantity <= tier.max_quantity)
+    );
+  
+  return applicableTier ? applicableTier.tier_price : fallbackPrice;
+}
+
+export function getTierForQuantity(
+  quantity: number,
+  tiers: PricingTier[]
+): PricingTier | null {
+  if (!tiers.length) return null;
+  
+  return tiers
+    .filter(tier => tier.is_active)
+    .sort((a, b) => a.min_quantity - b.min_quantity)
+    .find(tier => 
+      quantity >= tier.min_quantity && 
+      (tier.max_quantity === null || quantity <= tier.max_quantity)
+    ) || null;
+}
+
+export function formatTierInfo(
+  tier: PricingTier,
+  settings: Pick<PriceRangeSettings, 'currency_symbol' | 'decimal_precision'>
+): string {
+  const { currency_symbol, decimal_precision } = settings;
+  const price = `${currency_symbol}${tier.tier_price.toLocaleString(undefined, {
+    minimumFractionDigits: decimal_precision,
+    maximumFractionDigits: decimal_precision
+  })}`;
+  
+  const range = tier.max_quantity 
+    ? `${tier.min_quantity}-${tier.max_quantity}`
+    : `${tier.min_quantity}+`;
+    
+  return `${tier.tier_name}: ${range} @ ${price}`;
+}
+
+export function validateTiers(tiers: PricingTier[]): string[] {
+  const errors: string[] = [];
+  const sortedTiers = [...tiers].sort((a, b) => a.min_quantity - b.min_quantity);
+  
+  for (let i = 0; i < sortedTiers.length; i++) {
+    const tier = sortedTiers[i];
+    
+    // Check for gaps or overlaps
+    if (i > 0) {
+      const prevTier = sortedTiers[i - 1];
+      if (prevTier.max_quantity !== null && prevTier.max_quantity < tier.min_quantity - 1) {
+        errors.push(`Gap between ${prevTier.tier_name} and ${tier.tier_name}`);
+      }
+      if (prevTier.max_quantity !== null && prevTier.max_quantity >= tier.min_quantity) {
+        errors.push(`Overlap between ${prevTier.tier_name} and ${tier.tier_name}`);
+      }
+    }
+    
+    // Check for invalid ranges
+    if (tier.max_quantity !== null && tier.max_quantity <= tier.min_quantity) {
+      errors.push(`${tier.tier_name}: max quantity must be greater than min quantity`);
+    }
+  }
+  
+  return errors;
+}
+
+export function displayTieredPrice(
+  quantity: number,
+  basePrice: number,
+  tiers: PricingTier[],
+  useTieredPricing: boolean,
+  settings: PriceRangeSettings
+): string {
+  if (useTieredPricing && tiers.length > 0) {
+    const tieredPrice = calculateTieredPrice(quantity, tiers, basePrice);
+    return formatExactPrice(tieredPrice, settings);
+  } else {
+    return displayPrice(basePrice, settings);
+  }
 }
 
 export function calculateFinalPrice(

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { useGlobalSettings } from "@/hooks/useGlobalSettings";
-import { formatExactPrice } from "@/lib/priceUtils";
+import { formatExactPrice, calculateTieredPrice, PricingTier, displayTieredPrice } from "@/lib/priceUtils";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const quoteItemSchema = z.object({
@@ -42,7 +42,9 @@ interface Product {
   unit_price: number;
   unit_type: string;
   category?: string;
+  use_tiered_pricing?: boolean;
   product_variations?: ProductVariation[];
+  pricing_tiers?: PricingTier[];
 }
 
 interface QuoteItemFormProps {
@@ -83,6 +85,7 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
           unit_price, 
           unit_type, 
           category,
+          use_tiered_pricing,
           product_variations!inner(
             id,
             name,
@@ -94,6 +97,15 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
             height_value,
             unit_of_measurement,
             affects_area_calculation
+          ),
+          product_pricing_tiers(
+            id,
+            tier_name,
+            min_quantity,
+            max_quantity,
+            tier_price,
+            is_active,
+            display_order
           )
         `)
         .eq('is_active', true)
@@ -136,6 +148,25 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
     if (selectedProduct) {
       let basePrice = selectedProduct.unit_price;
       
+      // Apply variation price adjustment if selected
+      if (selectedVariation) {
+        if (selectedVariation.adjustment_type === "percentage") {
+          basePrice = basePrice * (1 + selectedVariation.price_adjustment / 100);
+        } else {
+          basePrice = basePrice + selectedVariation.price_adjustment;
+        }
+      }
+
+      // Apply tiered pricing if enabled
+      if (selectedProduct.use_tiered_pricing && selectedProduct.pricing_tiers && quantity > 0) {
+        const tieredPrice = calculateTieredPrice(quantity, selectedProduct.pricing_tiers, basePrice);
+        form.setValue("unit_price", tieredPrice);
+      } else {
+        form.setValue("unit_price", basePrice);
+      }
+    }
+  }, [selectedProduct, selectedVariation, quantity, form]);
+      
       if (selectedVariation) {
         if (selectedVariation.adjustment_type === "fixed") {
           basePrice += selectedVariation.price_adjustment;
@@ -143,10 +174,16 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
           basePrice *= (1 + selectedVariation.price_adjustment / 100);
         }
       }
-      
-      form.setValue("unit_price", basePrice);
+
+      // Apply tiered pricing if enabled
+      if (selectedProduct.use_tiered_pricing && selectedProduct.pricing_tiers && quantity > 0) {
+        const tieredPrice = calculateTieredPrice(quantity, selectedProduct.pricing_tiers, basePrice);
+        form.setValue("unit_price", tieredPrice);
+      } else {
+        form.setValue("unit_price", basePrice);
+      }
     }
-  }, [selectedProductId, selectedVariationId, products, form]);
+  }, [selectedProduct, selectedVariation, quantity, form]);
 
   const lineTotal = quantity * unitPrice;
 

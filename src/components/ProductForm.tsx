@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobalSettings, useProductCategories } from "@/hooks/useGlobalSettings";
-import { displayPrice, calculateFinalPrice } from "@/lib/priceUtils";
+import { displayPrice, calculateFinalPrice, PricingTier, validateTiers } from "@/lib/priceUtils";
 import { Plus, Trash2, GripVertical, Upload, Image } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -21,10 +21,11 @@ const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().optional(),
   unit_price: z.number().min(0, "Price must be positive"),
-  unit_type: z.enum(["sq_ft", "linear_ft", "each", "hour", "cubic_yard"]),
+  unit_type: z.enum(["sq_ft", "linear_ft", "each", "hour", "cubic_yard", "pound", "ton", "pallet"]),
   color_hex: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color"),
   is_active: z.boolean(),
   show_pricing_before_submit: z.boolean(),
+  use_tiered_pricing: z.boolean(),
   display_order: z.number().optional(),
   photo_url: z.string().optional(),
   category: z.string().min(1, "Category is required"),
@@ -67,12 +68,14 @@ interface Product {
   color_hex: string;
   is_active: boolean;
   show_pricing_before_submit: boolean;
+  use_tiered_pricing?: boolean;
   display_order: number | null;
   photo_url?: string | null;
   category?: string | null;
   subcategory?: string | null;
   product_addons?: ProductAddon[];
   product_variations?: ProductVariation[];
+  pricing_tiers?: PricingTier[];
 }
 
 interface ProductFormProps {
@@ -84,6 +87,7 @@ interface ProductFormProps {
 export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const [addons, setAddons] = useState<ProductAddon[]>([]);
   const [variations, setVariations] = useState<ProductVariation[]>([]);
+  const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -101,6 +105,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       color_hex: product?.color_hex || globalSettings?.default_product_color || "#3B82F6",
       is_active: product?.is_active ?? (globalSettings?.auto_activate_products ?? true),
       show_pricing_before_submit: product?.show_pricing_before_submit ?? true,
+      use_tiered_pricing: product?.use_tiered_pricing ?? false,
       display_order: product?.display_order || 0,
       photo_url: product?.photo_url || "",
       category: product?.category || "",
@@ -121,6 +126,12 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       setVariations(product.product_variations.map((variation, index) => ({
         ...variation,
         display_order: variation.display_order || index,
+      })));
+    }
+    if (product?.pricing_tiers) {
+      setPricingTiers(product.pricing_tiers.map((tier, index) => ({
+        ...tier,
+        display_order: tier.display_order || index,
       })));
     }
     if (product?.photo_url) {
@@ -177,6 +188,29 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
     setVariations(variations.filter((_, i) => i !== index));
   };
 
+  const addNewPricingTier = () => {
+    const newTier: PricingTier = {
+      id: `temp-${Date.now()}`,
+      tier_name: "",
+      min_quantity: 1,
+      max_quantity: null,
+      tier_price: 0,
+      is_active: true,
+      display_order: pricingTiers.length,
+    };
+    setPricingTiers([...pricingTiers, newTier]);
+  };
+
+  const updatePricingTier = (index: number, field: keyof PricingTier, value: any) => {
+    const updatedTiers = [...pricingTiers];
+    updatedTiers[index] = { ...updatedTiers[index], [field]: value };
+    setPricingTiers(updatedTiers);
+  };
+
+  const removePricingTier = (index: number) => {
+    setPricingTiers(pricingTiers.filter((_, i) => i !== index));
+  };
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -212,6 +246,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         color_hex: data.color_hex,
         is_active: data.is_active,
         show_pricing_before_submit: data.show_pricing_before_submit,
+        use_tiered_pricing: data.use_tiered_pricing,
         display_order: data.display_order || 0,
         photo_url: data.photo_url || null,
         category: data.category,
@@ -303,6 +338,40 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
 
           if (variationError) throw variationError;
         }
+
+        // Handle pricing tiers
+        if (product) {
+          await supabase
+            .from("product_pricing_tiers")
+            .delete()
+            .eq("product_id", productId);
+        }
+
+        const validTiers = pricingTiers.filter(tier => tier.tier_name.trim() && tier.min_quantity > 0 && tier.tier_price >= 0);
+        if (validTiers.length > 0) {
+          // Validate tiers before inserting
+          const tierErrors = validateTiers(validTiers);
+          if (tierErrors.length > 0) {
+            throw new Error(`Pricing tier validation errors: ${tierErrors.join(', ')}`);
+          }
+
+          const tiersToInsert = validTiers.map((tier, index) => ({
+            product_id: productId,
+            contractor_id: contractorData.id,
+            tier_name: tier.tier_name.trim(),
+            min_quantity: Number(tier.min_quantity),
+            max_quantity: tier.max_quantity ? Number(tier.max_quantity) : null,
+            tier_price: Number(tier.tier_price),
+            is_active: tier.is_active,
+            display_order: index,
+          }));
+
+          const { error: tierError } = await supabase
+            .from("product_pricing_tiers")
+            .insert(tiersToInsert);
+
+          if (tierError) throw tierError;
+        }
       }
 
       toast({
@@ -325,8 +394,12 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const unitTypeOptions = [
     { value: "sq_ft", label: "Square Feet" },
     { value: "linear_ft", label: "Linear Feet" },
-    { value: "cu_ft", label: "Cubic Feet" },
+    { value: "cubic_yard", label: "Cubic Yards" },
     { value: "each", label: "Each" },
+    { value: "hour", label: "Hours" },
+    { value: "pound", label: "Pounds" },
+    { value: "ton", label: "Tons" },
+    { value: "pallet", label: "Pallets" },
   ];
 
 
@@ -503,7 +576,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <FormField
             control={form.control}
             name="is_active"
@@ -534,6 +607,27 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                   <FormLabel className="text-base">Show Pricing</FormLabel>
                   <FormDescription>
                     Show pricing before quote submission
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="use_tiered_pricing"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Tiered Pricing</FormLabel>
+                  <FormDescription>
+                    Use quantity-based pricing tiers
                   </FormDescription>
                 </div>
                 <FormControl>
@@ -849,6 +943,110 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             )}
           </CardContent>
         </Card>
+
+        {/* Tiered Pricing Section */}
+        {form.watch("use_tiered_pricing") && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                Pricing Tiers
+                <Button type="button" variant="outline" size="sm" onClick={addNewPricingTier}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Tier
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {pricingTiers.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                  No pricing tiers yet. Add tiers to set different prices based on quantity ranges.
+                </p>
+              ) : (
+                <>
+                  {validateTiers(pricingTiers).length > 0 && (
+                    <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                      <p className="text-sm text-destructive font-medium mb-2">Tier Validation Errors:</p>
+                      <ul className="text-sm text-destructive space-y-1">
+                        {validateTiers(pricingTiers).map((error, i) => (
+                          <li key={i}>• {error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {pricingTiers.map((tier, index) => (
+                    <Card key={index} className="p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div>
+                          <Label htmlFor={`tier-name-${index}`}>Tier Name</Label>
+                          <Input
+                            id={`tier-name-${index}`}
+                            value={tier.tier_name}
+                            onChange={(e) => updatePricingTier(index, "tier_name", e.target.value)}
+                            placeholder="e.g., Bulk Discount"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`tier-min-${index}`}>Min Quantity</Label>
+                          <Input
+                            id={`tier-min-${index}`}
+                            type="number"
+                            min="1"
+                            value={tier.min_quantity}
+                            onChange={(e) => updatePricingTier(index, "min_quantity", parseInt(e.target.value) || 1)}
+                            placeholder="1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`tier-max-${index}`}>Max Quantity</Label>
+                          <Input
+                            id={`tier-max-${index}`}
+                            type="number"
+                            value={tier.max_quantity || ""}
+                            onChange={(e) => updatePricingTier(index, "max_quantity", e.target.value ? parseInt(e.target.value) : null)}
+                            placeholder="Leave empty for unlimited"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`tier-price-${index}`}>Price per Unit</Label>
+                          <Input
+                            id={`tier-price-${index}`}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={tier.tier_price}
+                            onChange={(e) => updatePricingTier(index, "tier_price", parseFloat(e.target.value) || 0)}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div className="flex items-end gap-2">
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={tier.is_active}
+                              onCheckedChange={(checked) => updatePricingTier(index, "is_active", checked)}
+                            />
+                            <Label className="text-sm">Active</Label>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removePricingTier(index)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Range: {tier.min_quantity}{tier.max_quantity ? `-${tier.max_quantity}` : '+'} units @ ${tier.tier_price || 0}/unit
+                      </div>
+                    </Card>
+                  ))}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onCancel}>

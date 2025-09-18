@@ -373,6 +373,56 @@ export type Database = {
           },
         ]
       }
+      product_pricing_tiers: {
+        Row: {
+          contractor_id: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          max_quantity: number | null
+          min_quantity: number
+          product_id: string
+          tier_name: string
+          tier_price: number
+          updated_at: string
+        }
+        Insert: {
+          contractor_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          max_quantity?: number | null
+          min_quantity: number
+          product_id: string
+          tier_name: string
+          tier_price: number
+          updated_at?: string
+        }
+        Update: {
+          contractor_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          max_quantity?: number | null
+          min_quantity?: number
+          product_id?: string
+          tier_name?: string
+          tier_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_product_pricing_tiers_product_id"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_subcategories: {
         Row: {
           category_id: string
@@ -484,6 +534,7 @@ export type Database = {
           unit_price: number
           unit_type: string
           updated_at: string
+          use_tiered_pricing: boolean
         }
         Insert: {
           category?: string | null
@@ -501,6 +552,7 @@ export type Database = {
           unit_price: number
           unit_type?: string
           updated_at?: string
+          use_tiered_pricing?: boolean
         }
         Update: {
           category?: string | null
@@ -518,6 +570,7 @@ export type Database = {
           unit_price?: number
           unit_type?: string
           updated_at?: string
+          use_tiered_pricing?: boolean
         }
         Relationships: [
           {
