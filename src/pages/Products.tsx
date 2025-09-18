@@ -14,7 +14,7 @@ import { CategoryManagement } from "@/components/CategoryManagement";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobalSettings, useProductCategories } from "@/hooks/useGlobalSettings";
-import { displayPrice } from "@/lib/priceUtils";
+import { displayPrice, formatExactPrice } from "@/lib/priceUtils";
 import { ArrowLeft, Plus, Search, Eye, EyeOff, Edit2, Trash2, ShoppingBag, Package, Settings, Tag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -401,7 +401,10 @@ export default function Products() {
                             </TableCell>
                             <TableCell>
                               <div className="font-medium">
-                                {displayPrice(product.unit_price, settings?.currency_symbol || '$')}
+                                {formatExactPrice(product.unit_price, { 
+                                  currency_symbol: settings?.currency_symbol || '$',
+                                  decimal_precision: settings?.decimal_precision || 2 
+                                })}
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 per {product.unit_type.replace('_', ' ')}

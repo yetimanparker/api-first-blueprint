@@ -168,7 +168,17 @@ const Settings = () => {
       } else {
         const contractorData = {
           user_id: user.id,
-          ...data,
+          business_name: data.business_name,
+          email: data.email,
+          phone: data.phone || null,
+          website: data.website || null,
+          address: data.address || null,
+          city: data.city || null,
+          state: data.state || null,
+          zip_code: data.zip_code || null,
+          brand_color: data.brand_color,
+          secondary_color: data.secondary_color,
+          logo_url: data.logo_url || null,
         };
         const { data: newContractor, error } = await supabase
           .from("contractors")
