@@ -98,8 +98,9 @@ serve(async (req) => {
     // Get existing products and categories for validation
     const { data: existingProducts, error: productsError } = await supabaseClient
       .from('products')
-      .select('id, name, unit_price, category, subcategory')
-      .eq('contractor_id', contractor.id);
+      .select('id, name, unit_price, category, subcategory, display_order')
+      .eq('contractor_id', contractor.id)
+      .order('display_order', { ascending: true });
 
     if (productsError) {
       throw new Error(`Error fetching products: ${productsError.message}`);
@@ -114,9 +115,25 @@ serve(async (req) => {
       console.warn('Could not fetch categories:', categoriesError.message);
     }
 
+    const { data: existingSubcategories, error: subcategoriesError } = await supabaseClient
+      .from('product_subcategories')
+      .select('id, name, category_id')
+      .eq('is_active', true);
+
+    if (subcategoriesError) {
+      console.warn('Could not fetch subcategories:', subcategoriesError.message);
+    }
+
+    // Create lookup maps
     const productMap = new Map(existingProducts?.map(p => [p.id, p]) || []);
     const productNameMap = new Map(existingProducts?.map(p => [p.name.toLowerCase(), p]) || []);
     const categoryMap = new Map(existingCategories?.map(c => [c.name.toLowerCase(), c]) || []);
+    const categoryNameToIdMap = new Map(existingCategories?.map(c => [c.name.toLowerCase(), c.id]) || []);
+    const subcategoryMap = new Map(existingSubcategories?.map(s => [s.name.toLowerCase(), s]) || []);
+    const subcategoryNameToIdMap = new Map(existingSubcategories?.map(s => [s.name.toLowerCase(), s.id]) || []);
+    
+    // Create sequential ID to product mapping (for shortened IDs)
+    const sequentialIdToProduct = new Map(existingProducts?.map((p, index) => [(index + 1).toString(), p]) || []);
 
     const errors: ValidationError[] = [];
     const preview: ProductManagementItem[] = [];
@@ -147,7 +164,8 @@ serve(async (req) => {
         let existingProduct: any = null;
         
         if (productId) {
-          existingProduct = productMap.get(productId);
+          // Try UUID first, then sequential ID
+          existingProduct = productMap.get(productId) || sequentialIdToProduct.get(productId);
           if (!existingProduct) {
             rowErrors.push({ row: i, field: 'Product ID', message: 'Product not found' });
           }
@@ -223,18 +241,40 @@ serve(async (req) => {
         }
 
         if (rowErrors.length === 0) {
-          const isExisting = productId && productMap.has(productId);
-          const existingProduct = isExisting ? productMap.get(productId) : null;
+          // Handle product ID resolution (UUID or sequential)
+          let resolvedProductId = productId;
+          let existingProduct = null;
+          
+          if (productId) {
+            existingProduct = productMap.get(productId) || sequentialIdToProduct.get(productId);
+            if (existingProduct) {
+              resolvedProductId = existingProduct.id; // Always use UUID internally
+            }
+          }
+          
+          const isExisting = !!existingProduct;
+          
+          // Convert category and subcategory names to UUIDs if needed
+          let categoryId = category;
+          let subcategoryId = subcategory;
+          
+          if (category && !category.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            categoryId = categoryNameToIdMap.get(category.toLowerCase()) || category;
+          }
+          
+          if (subcategory && !subcategory.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            subcategoryId = subcategoryNameToIdMap.get(subcategory.toLowerCase()) || subcategory;
+          }
 
           item = {
-            productId: productId || undefined,
+            productId: resolvedProductId || undefined,
             name: productName,
             description,
             unitPrice,
             oldPrice: existingProduct?.unit_price,
             unitType,
-            category,
-            subcategory,
+            category: categoryId,
+            subcategory: subcategoryId,
             colorHex: colorHex || '#3B82F6',
             photoUrl,
             isActive: isActiveStr.toLowerCase() === 'true',

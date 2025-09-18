@@ -51,7 +51,7 @@ serve(async (req) => {
       `)
       .eq('contractor_id', contractor.id)
       .eq('is_active', true)
-      .order('name');
+      .order('display_order', { ascending: true });
 
     if (productsError) {
       throw new Error(`Error fetching products: ${productsError.message}`);
@@ -59,7 +59,7 @@ serve(async (req) => {
 
     const { data: categories, error: categoriesError } = await supabaseClient
       .from('product_categories')
-      .select('name, color_hex')
+      .select('id, name, color_hex')
       .eq('contractor_id', contractor.id)
       .eq('is_active', true)
       .order('name');
@@ -67,6 +67,19 @@ serve(async (req) => {
     if (categoriesError) {
       console.warn('Could not fetch categories:', categoriesError.message);
     }
+
+    const { data: subcategories, error: subcategoriesError } = await supabaseClient
+      .from('product_subcategories')
+      .select('id, name, category_id')
+      .eq('is_active', true);
+
+    if (subcategoriesError) {
+      console.warn('Could not fetch subcategories:', subcategoriesError.message);
+    }
+
+    // Create lookup maps for category and subcategory UUIDs to names
+    const categoryMap = new Map(categories?.map(c => [c.id, c.name]) || []);
+    const subcategoryMap = new Map(subcategories?.map(s => [s.id, s.name]) || []);
 
     console.log(`Found ${products?.length || 0} products for template`);
 
@@ -77,12 +90,13 @@ serve(async (req) => {
       csvContent = 'Product ID,Product Name,Current Price,New Price\n';
       
       if (products && products.length > 0) {
-        products.forEach(product => {
-          csvContent += `${product.id},"${product.name}",${product.unit_price},${product.unit_price}\n`;
+        products.forEach((product, index) => {
+          const shortId = (index + 1).toString(); // Simple sequential ID
+          csvContent += `${shortId},"${product.name}",${product.unit_price},${product.unit_price}\n`;
         });
       } else {
         // Sample row
-        csvContent += 'sample-id,"Sample Product",10.00,12.00\n';
+        csvContent += '1,"Sample Product",10.00,12.00\n';
       }
     } else {
       // Full management template
@@ -102,15 +116,19 @@ serve(async (req) => {
       ].join(',') + '\n';
 
       if (products && products.length > 0) {
-        products.forEach(product => {
+        products.forEach((product, index) => {
+          const shortId = (index + 1).toString(); // Simple sequential ID
+          const categoryName = categoryMap.get(product.category) || product.category || '';
+          const subcategoryName = subcategoryMap.get(product.subcategory) || product.subcategory || '';
+          
           csvContent += [
-            product.id || '',
+            shortId,
             `"${product.name}"`,
             `"${product.description || ''}"`,
             product.unit_price,
             product.unit_type,
-            `"${product.category || ''}"`,
-            `"${product.subcategory || ''}"`,
+            `"${categoryName}"`,
+            `"${subcategoryName}"`,
             product.color_hex,
             `"${product.photo_url || ''}"`,
             product.is_active ? 'TRUE' : 'FALSE',
