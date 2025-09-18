@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductForm } from "@/components/ProductForm";
 import { ProductSettings } from "@/components/ProductSettings";
 import { CategoryManagement } from "@/components/CategoryManagement";
-import { BulkPricingUpload } from "@/components/BulkPricingUpload";
+import { BulkProductManagement } from "@/components/BulkProductManagement";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobalSettings, useProductCategories } from "@/hooks/useGlobalSettings";
@@ -58,6 +58,8 @@ interface Product {
   photo_url?: string | null;
   category?: string | null;
   subcategory?: string | null;
+  categoryName?: string;
+  subcategoryName?: string;
   product_addons?: ProductAddon[];
   product_variations?: ProductVariation[];
 }
@@ -91,8 +93,8 @@ export default function Products() {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.subcategory?.toLowerCase().includes(searchTerm.toLowerCase())
+        product.categoryName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.subcategoryName?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -124,8 +126,23 @@ export default function Products() {
         .order("name", { ascending: true });
 
       if (error) throw error;
+
+      // Get categories separately for lookup
+      const { data: categories } = await supabase
+        .from("product_categories")
+        .select("id, name, color_hex");
+
+      const { data: subcategories } = await supabase
+        .from("product_subcategories")  
+        .select("id, name, category_id");
+
+      const categoryMap = new Map(categories?.map(c => [c.id, c]) || []);
+      const subcategoryMap = new Map(subcategories?.map(s => [s.id, s]) || []);
+
       setProducts((products || []).map(product => ({
         ...product,
+        categoryName: product.category ? categoryMap.get(product.category)?.name || product.category : undefined,
+        subcategoryName: product.subcategory ? subcategoryMap.get(product.subcategory)?.name || product.subcategory : undefined,
         product_addons: product.product_addons?.map(addon => ({
           ...addon,
           price_type: addon.price_type as "fixed" | "percentage",
@@ -391,20 +408,20 @@ export default function Products() {
                             </TableCell>
                             <TableCell>
                               <div className="space-y-1">
-                                <Badge 
-                                  variant="secondary" 
-                                  style={{ 
-                                    backgroundColor: categories.find(c => c.name === product.category)?.color_hex + '20',
-                                    color: categories.find(c => c.name === product.category)?.color_hex
-                                  }}
-                                >
-                                  {product.category || 'Uncategorized'}
-                                </Badge>
-                                {product.subcategory && (
-                                  <div className="text-xs text-muted-foreground">
-                                    {product.subcategory}
-                                  </div>
-                                )}
+                                 <Badge 
+                                   variant="secondary" 
+                                   style={{ 
+                                     backgroundColor: categories.find(c => c.name === product.categoryName)?.color_hex + '20',
+                                     color: categories.find(c => c.name === product.categoryName)?.color_hex
+                                   }}
+                                 >
+                                   {product.categoryName || 'Uncategorized'}
+                                 </Badge>
+                                 {product.subcategoryName && (
+                                   <div className="text-xs text-muted-foreground">
+                                     {product.subcategoryName}
+                                   </div>
+                                 )}
                               </div>
                             </TableCell>
                             <TableCell>
@@ -489,7 +506,7 @@ export default function Products() {
           </TabsContent>
 
           <TabsContent value="bulk-pricing">
-            <BulkPricingUpload />
+            <BulkProductManagement />
           </TabsContent>
 
           <TabsContent value="settings">

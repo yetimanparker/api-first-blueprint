@@ -60,14 +60,14 @@ port = 54321
 [analytics]
 enabled = false
 
-[functions.generate-pricing-template]
+[functions.generate-product-template]
 verify_jwt = true
 
-[functions.process-pricing-file]
+[functions.process-product-file]
 verify_jwt = true
 
-[functions.apply-bulk-pricing]
+[functions.apply-bulk-products]
 verify_jwt = true
 
-[functions.undo-pricing-batch]
+[functions.undo-product-batch]
 verify_jwt = true
