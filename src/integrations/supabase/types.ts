@@ -187,9 +187,12 @@ export type Database = {
           email: string
           first_name: string
           id: string
+          last_activity_at: string | null
           last_name: string
+          lead_source: string | null
           phone: string | null
           state: string | null
+          status: string | null
           updated_at: string
           zip_code: string | null
         }
@@ -201,9 +204,12 @@ export type Database = {
           email: string
           first_name: string
           id?: string
+          last_activity_at?: string | null
           last_name: string
+          lead_source?: string | null
           phone?: string | null
           state?: string | null
+          status?: string | null
           updated_at?: string
           zip_code?: string | null
         }
@@ -215,9 +221,12 @@ export type Database = {
           email?: string
           first_name?: string
           id?: string
+          last_activity_at?: string | null
           last_name?: string
+          lead_source?: string | null
           phone?: string | null
           state?: string | null
+          status?: string | null
           updated_at?: string
           zip_code?: string | null
         }
