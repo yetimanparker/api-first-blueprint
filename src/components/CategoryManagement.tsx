@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit2, Trash2, Tag, Palette } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -78,18 +79,24 @@ export function CategoryManagement() {
         throw new Error("Please set up your contractor profile first by going to Settings");
       }
 
+      // Prepare data without id for new items, or with id for updates
       const dataToSave = {
-        ...categoryData,
+        name: categoryData.name,
+        color_hex: categoryData.color_hex,
+        display_order: categoryData.display_order,
+        is_active: categoryData.is_active,
         contractor_id: contractorData.id,
       };
 
-      if (categoryData.id) {
+      if (categoryData.id && categoryData.id !== '') {
+        // Update existing category
         const { error } = await supabase
           .from("product_categories")
           .update(dataToSave)
           .eq("id", categoryData.id);
         if (error) throw error;
       } else {
+        // Create new category (let database generate UUID)
         const { error } = await supabase
           .from("product_categories")
           .insert(dataToSave);
@@ -98,7 +105,7 @@ export function CategoryManagement() {
 
       toast({
         title: "Success",
-        description: `Category ${categoryData.id ? 'updated' : 'created'} successfully`,
+        description: `Category ${categoryData.id && categoryData.id !== '' ? 'updated' : 'created'} successfully`,
       });
       
       setEditingCategory(null);
@@ -114,22 +121,32 @@ export function CategoryManagement() {
 
   const saveSubcategory = async (subcategoryData: Omit<Subcategory, 'id'> & { id?: string }) => {
     try {
-      if (subcategoryData.id) {
+      // Prepare data without id for new items, or with id for updates
+      const dataToSave = {
+        category_id: subcategoryData.category_id,
+        name: subcategoryData.name,
+        display_order: subcategoryData.display_order,
+        is_active: subcategoryData.is_active,
+      };
+
+      if (subcategoryData.id && subcategoryData.id !== '') {
+        // Update existing subcategory
         const { error } = await supabase
           .from("product_subcategories")
-          .update(subcategoryData)
+          .update(dataToSave)
           .eq("id", subcategoryData.id);
         if (error) throw error;
       } else {
+        // Create new subcategory (let database generate UUID)
         const { error } = await supabase
           .from("product_subcategories")
-          .insert(subcategoryData);
+          .insert(dataToSave);
         if (error) throw error;
       }
 
       toast({
         title: "Success",
-        description: `Subcategory ${subcategoryData.id ? 'updated' : 'created'} successfully`,
+        description: `Subcategory ${subcategoryData.id && subcategoryData.id !== '' ? 'updated' : 'created'} successfully`,
       });
       
       setEditingSubcategory(null);
@@ -145,11 +162,16 @@ export function CategoryManagement() {
 
   const deleteCategory = async (categoryId: string) => {
     try {
-      // Check if any products use this category
+      // Check if any products use this category (by name, not ID)
+      const categoryToDelete = categories.find(c => c.id === categoryId);
+      if (!categoryToDelete) {
+        throw new Error("Category not found");
+      }
+
       const { data: products, error: productError } = await supabase
         .from("products")
         .select("id")
-        .eq("category", categoryId)
+        .eq("category", categoryToDelete.name)
         .limit(1);
 
       if (productError) throw productError;
@@ -187,11 +209,16 @@ export function CategoryManagement() {
 
   const deleteSubcategory = async (subcategoryId: string) => {
     try {
-      // Check if any products use this subcategory
+      // Check if any products use this subcategory (by name, not ID)
+      const subcategoryToDelete = subcategories.find(s => s.id === subcategoryId);
+      if (!subcategoryToDelete) {
+        throw new Error("Subcategory not found");
+      }
+
       const { data: products, error: productError } = await supabase
         .from("products")
         .select("id")
-        .eq("subcategory", subcategoryId)
+        .eq("subcategory", subcategoryToDelete.name)
         .limit(1);
 
       if (productError) throw productError;
@@ -243,7 +270,7 @@ export function CategoryManagement() {
             </CardTitle>
             <Dialog>
               <DialogTrigger asChild>
-                <Button onClick={() => setEditingCategory({ id: '', name: '', color_hex: '#3B82F6', display_order: categories.length, is_active: true })}>
+                <Button onClick={() => setEditingCategory({ id: undefined, name: '', color_hex: '#3B82F6', display_order: categories.length, is_active: true } as any)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Category
                 </Button>
@@ -325,12 +352,12 @@ export function CategoryManagement() {
               <DialogTrigger asChild>
                 <Button 
                   onClick={() => setEditingSubcategory({ 
-                    id: '', 
+                    id: undefined, 
                     category_id: '', 
                     name: '', 
                     display_order: subcategories.length, 
                     is_active: true 
-                  })}
+                  } as any)}
                   disabled={categories.length === 0}
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -486,7 +513,7 @@ function CategoryForm({
       <div className="flex gap-2">
         <Button onClick={onCancel} variant="outline">Cancel</Button>
         <Button 
-          onClick={() => onSave({ ...category, ...formData })}
+          onClick={() => onSave(category?.id && category.id !== '' ? { ...formData, id: category.id } : formData)}
           disabled={!formData.name.trim()}
         >
           Save
@@ -528,19 +555,24 @@ function SubcategoryForm({
       
       <div>
         <Label htmlFor="category">Category</Label>
-        <select
-          id="category"
-          value={formData.category_id}
-          onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-          className="w-full p-2 border rounded"
-        >
-          <option value="">Select a category</option>
-          {categories.filter(cat => cat.is_active).map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+        <Select value={formData.category_id} onValueChange={(value) => setFormData({ ...formData, category_id: value })}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select a category" />
+          </SelectTrigger>
+          <SelectContent>
+            {categories.filter(cat => cat.is_active).map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: category.color_hex }}
+                  />
+                  {category.name}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div>
@@ -565,7 +597,7 @@ function SubcategoryForm({
       <div className="flex gap-2">
         <Button onClick={onCancel} variant="outline">Cancel</Button>
         <Button 
-          onClick={() => onSave({ ...subcategory, ...formData })}
+          onClick={() => onSave(subcategory?.id && subcategory.id !== '' ? { ...formData, id: subcategory.id } : formData)}
           disabled={!formData.name.trim() || !formData.category_id}
         >
           Save
