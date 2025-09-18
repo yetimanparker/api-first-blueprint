@@ -38,6 +38,14 @@ const settingsSchema = z.object({
   use_price_ranges: z.boolean(),
   price_range_percentage: z.number().min(1).max(50),
   price_range_display_format: z.enum(['percentage', 'dollar_amounts']),
+  currency_symbol: z.string().min(1),
+  decimal_precision: z.number().min(0).max(4),
+  default_product_color: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color"),
+  default_unit_type: z.enum(["sq_ft", "linear_ft", "sq_m", "linear_m", "each", "hour"]),
+  global_markup_percentage: z.number().min(0).max(100),
+  global_tax_rate: z.number().min(0).max(100),
+  require_product_photos: z.boolean(),
+  auto_activate_products: z.boolean(),
 });
 
 type ContractorFormData = z.infer<typeof contractorSchema>;
@@ -86,6 +94,14 @@ const Settings = () => {
       use_price_ranges: false,
       price_range_percentage: 15,
       price_range_display_format: 'percentage',
+      currency_symbol: "$",
+      decimal_precision: 2,
+      default_product_color: "#3B82F6",
+      default_unit_type: "sq_ft",
+      global_markup_percentage: 0,
+      global_tax_rate: 0,
+      require_product_photos: false,
+      auto_activate_products: true,
     },
   });
 
@@ -141,6 +157,14 @@ const Settings = () => {
             use_price_ranges: settings.use_price_ranges || false,
             price_range_percentage: settings.price_range_percentage || 15,
             price_range_display_format: (settings.price_range_display_format as 'percentage' | 'dollar_amounts') || 'percentage',
+            currency_symbol: settings.currency_symbol || "$",
+            decimal_precision: settings.decimal_precision || 2,
+            default_product_color: settings.default_product_color || "#3B82F6",
+            default_unit_type: (settings.default_unit_type as "sq_ft" | "linear_ft" | "sq_m" | "linear_m" | "each" | "hour") || "sq_ft",
+            global_markup_percentage: settings.global_markup_percentage || 0,
+            global_tax_rate: settings.global_tax_rate || 0,
+            require_product_photos: settings.require_product_photos || false,
+            auto_activate_products: settings.auto_activate_products ?? true,
           });
         }
       }
@@ -312,6 +336,134 @@ const Settings = () => {
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={contractorForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="(555) 123-4567" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contractorForm.control}
+                      name="website"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Website</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://yourwebsite.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contractorForm.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address</FormLabel>
+                          <FormControl>
+                            <Input placeholder="123 Main Street" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contractorForm.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Your City" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contractorForm.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>State</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a state" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {contractorStates.map((state) => (
+                                <SelectItem key={state} value={state}>
+                                  {state}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contractorForm.control}
+                      name="zip_code"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>ZIP Code</FormLabel>
+                          <FormControl>
+                            <Input placeholder="12345" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contractorForm.control}
+                      name="brand_color"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Primary Brand Color</FormLabel>
+                          <FormControl>
+                            <Input type="color" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contractorForm.control}
+                      name="secondary_color"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Secondary Brand Color</FormLabel>
+                          <FormControl>
+                            <Input type="color" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={contractorForm.control}
+                      name="logo_url"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Logo URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://yoursite.com/logo.png" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                   <Button type="submit" disabled={saving}>
                     {saving ? "Saving..." : "Save Business Information"}
@@ -332,27 +484,410 @@ const Settings = () => {
             <CardContent>
               <Form {...settingsForm}>
                 <form onSubmit={settingsForm.handleSubmit(onSettingsSubmit)} className="space-y-6">
-                  <div className="space-y-4">
-                    <FormField
-                      control={settingsForm.control}
-                      name="require_email"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>Email Required</FormLabel>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Contact Information Requirements</h3>
+                      <div className="space-y-4">
+                        <FormField
+                          control={settingsForm.control}
+                          name="require_email"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel>Email Required</FormLabel>
+                                <FormDescription>
+                                  Require customers to provide email address
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={settingsForm.control}
+                          name="require_phone"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel>Phone Required</FormLabel>
+                                <FormDescription>
+                                  Require customers to provide phone number
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={settingsForm.control}
+                          name="require_address"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel>Address Required</FormLabel>
+                                <FormDescription>
+                                  Require customers to provide project address
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Contact & Pricing Behavior</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={settingsForm.control}
+                          name="contact_capture_timing"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Contact Capture Timing</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select timing" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="before_quote">Before Quote</SelectItem>
+                                  <SelectItem value="after_quote">After Quote</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                When to capture customer contact information
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={settingsForm.control}
+                          name="pricing_visibility"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Pricing Visibility</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select visibility" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="before_submit">Show Before Submit</SelectItem>
+                                  <SelectItem value="after_submit">Show After Submit</SelectItem>
+                                  <SelectItem value="never">Never Show</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                When customers can see pricing
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Widget Appearance</h3>
+                      <FormField
+                        control={settingsForm.control}
+                        name="widget_theme_color"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Widget Theme Color</FormLabel>
+                            <FormControl>
+                              <Input type="color" {...field} />
+                            </FormControl>
                             <FormDescription>
-                              Require customers to provide email address
+                              Primary color for the quote widget
                             </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Price Range Settings</h3>
+                      <div className="space-y-4">
+                        <FormField
+                          control={settingsForm.control}
+                          name="use_price_ranges"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel>Use Price Ranges</FormLabel>
+                                <FormDescription>
+                                  Show price ranges instead of exact prices
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={settingsForm.control}
+                            name="price_range_percentage"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Price Range Percentage</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    min="1" 
+                                    max="50" 
+                                    {...field} 
+                                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Percentage variance for price ranges (1-50%)
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={settingsForm.control}
+                            name="price_range_display_format"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Display Format</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select format" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="percentage">Show Percentage</SelectItem>
+                                    <SelectItem value="dollar_amounts">Dollar Amounts Only</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormDescription>
+                                  How to display price ranges
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Default Product Settings</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={settingsForm.control}
+                          name="currency_symbol"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Currency Symbol</FormLabel>
+                              <FormControl>
+                                <Input placeholder="$" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={settingsForm.control}
+                          name="decimal_precision"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Decimal Precision</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  min="0" 
+                                  max="4" 
+                                  {...field} 
+                                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Number of decimal places for prices
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={settingsForm.control}
+                          name="default_product_color"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Default Product Color</FormLabel>
+                              <FormControl>
+                                <Input type="color" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={settingsForm.control}
+                          name="default_unit_type"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Default Unit Type</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select unit type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="sq_ft">Square Feet</SelectItem>
+                                  <SelectItem value="linear_ft">Linear Feet</SelectItem>
+                                  <SelectItem value="sq_m">Square Meters</SelectItem>
+                                  <SelectItem value="linear_m">Linear Meters</SelectItem>
+                                  <SelectItem value="each">Each</SelectItem>
+                                  <SelectItem value="hour">Hour</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Pricing Adjustments</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={settingsForm.control}
+                          name="global_markup_percentage"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Global Markup (%)</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  min="0" 
+                                  max="100" 
+                                  step="0.1"
+                                  {...field} 
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Apply markup to all products
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={settingsForm.control}
+                          name="global_tax_rate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Global Tax Rate (%)</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  min="0" 
+                                  max="100" 
+                                  step="0.1"
+                                  {...field} 
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Apply tax to all quotes
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Product Management</h3>
+                      <div className="space-y-4">
+                        <FormField
+                          control={settingsForm.control}
+                          name="require_product_photos"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel>Require Product Photos</FormLabel>
+                                <FormDescription>
+                                  Require photos when creating new products
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={settingsForm.control}
+                          name="auto_activate_products"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel>Auto-Activate Products</FormLabel>
+                                <FormDescription>
+                                  Automatically activate new products when created
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
                   </div>
                   <Button type="submit" disabled={saving}>
                     {saving ? "Saving..." : "Save Widget Settings"}
