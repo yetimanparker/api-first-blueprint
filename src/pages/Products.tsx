@@ -27,6 +27,9 @@ interface ProductVariation {
   adjustment_type: "fixed" | "percentage";
   display_order: number;
   is_active: boolean;
+  height_value?: number | null;
+  unit_of_measurement: string;
+  affects_area_calculation: boolean;
 }
 
 interface ProductAddon {

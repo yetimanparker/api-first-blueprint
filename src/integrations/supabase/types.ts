@@ -366,38 +366,47 @@ export type Database = {
       product_variations: {
         Row: {
           adjustment_type: string
+          affects_area_calculation: boolean | null
           created_at: string
           description: string | null
           display_order: number | null
+          height_value: number | null
           id: string
           is_active: boolean
           name: string
           price_adjustment: number
           product_id: string
+          unit_of_measurement: string | null
           updated_at: string
         }
         Insert: {
           adjustment_type?: string
+          affects_area_calculation?: boolean | null
           created_at?: string
           description?: string | null
           display_order?: number | null
+          height_value?: number | null
           id?: string
           is_active?: boolean
           name: string
           price_adjustment?: number
           product_id: string
+          unit_of_measurement?: string | null
           updated_at?: string
         }
         Update: {
           adjustment_type?: string
+          affects_area_calculation?: boolean | null
           created_at?: string
           description?: string | null
           display_order?: number | null
+          height_value?: number | null
           id?: string
           is_active?: boolean
           name?: string
           price_adjustment?: number
           product_id?: string
+          unit_of_measurement?: string | null
           updated_at?: string
         }
         Relationships: [

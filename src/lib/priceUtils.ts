@@ -85,6 +85,50 @@ export function applyGlobalTax(
   return price * (1 + taxRate / 100);
 }
 
+export function calculateAreaWithHeight(
+  baseQuantity: number,
+  heightValue?: number | null,
+  unitOfMeasurement: string = "ft"
+): number {
+  if (!heightValue) return baseQuantity;
+  
+  // Convert height to feet if needed for consistent calculation
+  let heightInFeet = heightValue;
+  if (unitOfMeasurement === "inches") {
+    heightInFeet = heightValue / 12;
+  } else if (unitOfMeasurement === "m") {
+    heightInFeet = heightValue * 3.28084;
+  } else if (unitOfMeasurement === "cm") {
+    heightInFeet = heightValue * 0.0328084;
+  }
+  
+  return baseQuantity * heightInFeet;
+}
+
+export function calculateAddonWithAreaData(
+  addonPrice: number,
+  baseQuantity: number,
+  calculationType: string,
+  variationData?: {
+    height?: number | null;
+    unit?: string;
+    affects_area_calculation?: boolean;
+  }
+): number {
+  if (calculationType === "area_calculation" && variationData?.affects_area_calculation && variationData.height) {
+    const totalArea = calculateAreaWithHeight(baseQuantity, variationData.height, variationData.unit);
+    return addonPrice * totalArea;
+  }
+  
+  // Default calculation for non-area based add-ons
+  if (calculationType === "per_unit") {
+    return addonPrice * baseQuantity;
+  }
+  
+  // For "total" calculation type
+  return addonPrice;
+}
+
 export function calculateFinalPrice(
   basePrice: number,
   markupPercentage: number = 0,

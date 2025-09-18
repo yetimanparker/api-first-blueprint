@@ -53,6 +53,9 @@ interface ProductVariation {
   adjustment_type: "fixed" | "percentage";
   display_order: number;
   is_active: boolean;
+  height_value?: number;
+  unit_of_measurement: string;
+  affects_area_calculation: boolean;
 }
 
 interface Product {
@@ -147,6 +150,9 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       adjustment_type: "fixed",
       display_order: variations.length,
       is_active: true,
+      height_value: undefined,
+      unit_of_measurement: "ft",
+      affects_area_calculation: false,
     };
     setVariations([...variations, newVariation]);
   };
@@ -286,6 +292,9 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             adjustment_type: variation.adjustment_type,
             display_order: index,
             is_active: variation.is_active,
+            height_value: variation.height_value || null,
+            unit_of_measurement: variation.unit_of_measurement || "ft",
+            affects_area_calculation: variation.affects_area_calculation || false,
           }));
 
           const { error: variationError } = await supabase
@@ -607,65 +616,104 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             ) : (
               variations.map((variation, index) => (
                 <Card key={index} className="p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <Label htmlFor={`variation-name-${index}`}>Name</Label>
-                      <Input
-                        id={`variation-name-${index}`}
-                        value={variation.name}
-                        onChange={(e) => updateVariation(index, "name", e.target.value)}
-                        placeholder="e.g., 6 inch height"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor={`variation-description-${index}`}>Description</Label>
-                      <Input
-                        id={`variation-description-${index}`}
-                        value={variation.description}
-                        onChange={(e) => updateVariation(index, "description", e.target.value)}
-                        placeholder="Optional description"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor={`variation-adjustment-type-${index}`}>Price Type</Label>
-                      <Select
-                        value={variation.adjustment_type}
-                        onValueChange={(value) => updateVariation(index, "adjustment_type", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="fixed">Fixed ($)</SelectItem>
-                          <SelectItem value="percentage">Percentage (%)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <Label htmlFor={`variation-price-${index}`}>Price Adjustment</Label>
-                        <Input
-                          id={`variation-price-${index}`}
-                          type="number"
-                          step="0.01"
-                          value={variation.price_adjustment}
-                          onChange={(e) => updateVariation(index, "price_adjustment", parseFloat(e.target.value) || 0)}
-                          placeholder="0.00"
-                        />
-                      </div>
-                      <div className="flex items-end">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeVariation(index)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                     <div>
+                       <Label htmlFor={`variation-name-${index}`}>Name</Label>
+                       <Input
+                         id={`variation-name-${index}`}
+                         value={variation.name}
+                         onChange={(e) => updateVariation(index, "name", e.target.value)}
+                         placeholder="e.g., 6ft Height"
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor={`variation-description-${index}`}>Description</Label>
+                       <Input
+                         id={`variation-description-${index}`}
+                         value={variation.description}
+                         onChange={(e) => updateVariation(index, "description", e.target.value)}
+                         placeholder="Optional description"
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor={`variation-adjustment-type-${index}`}>Price Type</Label>
+                       <Select
+                         value={variation.adjustment_type}
+                         onValueChange={(value) => updateVariation(index, "adjustment_type", value)}
+                       >
+                         <SelectTrigger>
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="fixed">Fixed ($)</SelectItem>
+                           <SelectItem value="percentage">Percentage (%)</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div className="flex gap-2">
+                       <div className="flex-1">
+                         <Label htmlFor={`variation-price-${index}`}>Price Adjustment</Label>
+                         <Input
+                           id={`variation-price-${index}`}
+                           type="number"
+                           step="0.01"
+                           value={variation.price_adjustment}
+                           onChange={(e) => updateVariation(index, "price_adjustment", parseFloat(e.target.value) || 0)}
+                           placeholder="0.00"
+                         />
+                       </div>
+                       <div className="flex items-end">
+                         <Button
+                           type="button"
+                           variant="outline"
+                           size="sm"
+                           onClick={() => removeVariation(index)}
+                           className="text-destructive hover:text-destructive"
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </Button>
+                       </div>
+                     </div>
+                   </div>
+                   
+                   {/* Height and Area Calculation Section */}
+                   <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-muted/50 rounded-lg">
+                     <div>
+                       <Label htmlFor={`variation-height-${index}`}>Height Value (Optional)</Label>
+                       <Input
+                         id={`variation-height-${index}`}
+                         type="number"
+                         step="0.01"
+                         value={variation.height_value || ""}
+                         onChange={(e) => updateVariation(index, "height_value", parseFloat(e.target.value) || undefined)}
+                         placeholder="e.g., 6, 8"
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor={`variation-unit-${index}`}>Unit of Measurement</Label>
+                       <Select
+                         value={variation.unit_of_measurement}
+                         onValueChange={(value) => updateVariation(index, "unit_of_measurement", value)}
+                       >
+                         <SelectTrigger>
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="ft">Feet</SelectItem>
+                           <SelectItem value="inches">Inches</SelectItem>
+                           <SelectItem value="m">Meters</SelectItem>
+                           <SelectItem value="cm">Centimeters</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div className="flex items-center gap-2 pt-6">
+                       <Switch
+                         checked={variation.affects_area_calculation}
+                         onCheckedChange={(checked) => updateVariation(index, "affects_area_calculation", checked)}
+                       />
+                       <Label>Use in area calculations</Label>
+                     </div>
+                   </div>
                   <div className="mt-3 flex items-center gap-2">
                     <Switch
                       checked={variation.is_active}
