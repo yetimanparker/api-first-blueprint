@@ -71,6 +71,30 @@ export function displayPrice(
   }
 }
 
+export function displayQuoteTotal(
+  basePrice: number,
+  settings: PriceRangeSettings,
+  quoteStatus: string = 'draft'
+): string {
+  // Only show price ranges for submitted quotes (not draft)
+  const isSubmittedQuote = ['pending', 'accepted', 'declined', 'expired'].includes(quoteStatus);
+  
+  if (settings.use_price_ranges && isSubmittedQuote) {
+    const range = calculatePriceRange(basePrice, settings.price_range_percentage);
+    return formatPriceRange(range, settings);
+  } else {
+    return formatExactPrice(basePrice, settings);
+  }
+}
+
+export function displayLineItemPrice(
+  basePrice: number,
+  settings: PriceRangeSettings
+): string {
+  // Always show exact prices for line items
+  return formatExactPrice(basePrice, settings);
+}
+
 export function applyGlobalMarkup(
   basePrice: number,
   markupPercentage: number

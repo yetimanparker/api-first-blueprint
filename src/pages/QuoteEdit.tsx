@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { QuoteItemForm } from "@/components/QuoteItemForm";
 import { useGlobalSettings } from "@/hooks/useGlobalSettings";
-import { displayPrice } from "@/lib/priceUtils";
+import { displayQuoteTotal, displayLineItemPrice } from "@/lib/priceUtils";
 
 interface Quote {
   id: string;
@@ -291,7 +291,7 @@ export default function QuoteEdit() {
               <div>
                 <p className="font-medium">Total Amount</p>
                 <p className="text-2xl font-bold text-primary">
-                  {settings ? displayPrice(quote.total_amount, settings) : `$${quote.total_amount.toLocaleString()}`}
+                  {settings ? displayQuoteTotal(quote.total_amount, settings, quote.status) : `$${quote.total_amount.toLocaleString()}`}
                 </p>
               </div>
               <div>
@@ -354,17 +354,26 @@ export default function QuoteEdit() {
                   <div key={item.id} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-medium">{item.product.name}</h3>
-                      <p className="font-bold text-primary">
-                        {settings ? displayPrice(item.line_total, settings) : `$${item.line_total.toLocaleString()}`}
-                      </p>
+                      {!settings?.use_price_ranges && (
+                        <p className="font-bold text-primary">
+                          {settings ? displayLineItemPrice(item.line_total, settings) : `$${item.line_total.toLocaleString()}`}
+                        </p>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
                       <div>
                         Quantity: {item.quantity} {item.product.unit_type}
                       </div>
-                      <div>
-                        Unit Price: {settings ? displayPrice(item.unit_price, settings) : `$${item.unit_price.toLocaleString()}`}
-                      </div>
+                      {!settings?.use_price_ranges && (
+                        <div>
+                          Unit Price: {settings ? displayLineItemPrice(item.unit_price, settings) : `$${item.unit_price.toLocaleString()}`}
+                        </div>
+                      )}
+                      {settings?.use_price_ranges && (
+                        <div>
+                          Price included in total
+                        </div>
+                      )}
                       {item.notes && (
                         <div>
                           Notes: {item.notes}
