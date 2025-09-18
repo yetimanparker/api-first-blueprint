@@ -166,24 +166,6 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
       }
     }
   }, [selectedProduct, selectedVariation, quantity, form]);
-      
-      if (selectedVariation) {
-        if (selectedVariation.adjustment_type === "fixed") {
-          basePrice += selectedVariation.price_adjustment;
-        } else {
-          basePrice *= (1 + selectedVariation.price_adjustment / 100);
-        }
-      }
-
-      // Apply tiered pricing if enabled
-      if (selectedProduct.use_tiered_pricing && selectedProduct.pricing_tiers && quantity > 0) {
-        const tieredPrice = calculateTieredPrice(quantity, selectedProduct.pricing_tiers, basePrice);
-        form.setValue("unit_price", tieredPrice);
-      } else {
-        form.setValue("unit_price", basePrice);
-      }
-    }
-  }, [selectedProduct, selectedVariation, quantity, form]);
 
   const lineTotal = quantity * unitPrice;
 
