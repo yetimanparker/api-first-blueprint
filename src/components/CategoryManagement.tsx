@@ -560,17 +560,19 @@ function SubcategoryForm({
             <SelectValue placeholder="Select a category" />
           </SelectTrigger>
           <SelectContent>
-            {categories.filter(cat => cat.is_active).map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: category.color_hex }}
-                  />
-                  {category.name}
-                </div>
-              </SelectItem>
-            ))}
+            {categories
+              .filter(cat => cat.is_active && cat.id && cat.id.trim() !== '')
+              .map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: category.color_hex }}
+                    />
+                    {category.name}
+                  </div>
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </div>
