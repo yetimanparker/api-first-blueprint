@@ -11,11 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductForm } from "@/components/ProductForm";
 import { ProductSettings } from "@/components/ProductSettings";
 import { CategoryManagement } from "@/components/CategoryManagement";
+import { BulkPricingUpload } from "@/components/BulkPricingUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobalSettings, useProductCategories } from "@/hooks/useGlobalSettings";
 import { displayPrice, formatExactPrice } from "@/lib/priceUtils";
-import { ArrowLeft, Plus, Search, Eye, EyeOff, Edit2, Trash2, ShoppingBag, Package, Settings, Tag } from "lucide-react";
+import { ArrowLeft, Plus, Search, Eye, EyeOff, Edit2, Trash2, ShoppingBag, Package, Settings, Tag, Upload } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // Data structures
@@ -218,6 +219,10 @@ export default function Products() {
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               Products
+            </TabsTrigger>
+            <TabsTrigger value="bulk-pricing" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Bulk Pricing
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -481,6 +486,10 @@ export default function Products() {
                 </Card>
               </>
             )}
+          </TabsContent>
+
+          <TabsContent value="bulk-pricing">
+            <BulkPricingUpload />
           </TabsContent>
 
           <TabsContent value="settings">

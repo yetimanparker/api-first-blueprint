@@ -1,1 +1,73 @@
 project_id = "aiwwquousyzdkagporcy"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+port = 54324
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+refresh_token_rotation_enabled = true
+security_refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+secure_password_change = false
+enable_reauthentication = false
+
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+template = "Your code is {{ .Code }}"
+max_frequency = 60
+
+[realtime]
+enabled = true
+port = 54323
+tenant_id = "realtime-dev"
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+port = 54321
+file_size_limit = "50MiB"
+image_transformation = 
+  enabled = true
+
+[edge_runtime]
+enabled = true
+port = 54321
+
+[analytics]
+enabled = false
+
+[functions.generate-pricing-template]
+verify_jwt = true
+
+[functions.process-pricing-file]
+verify_jwt = true
+
+[functions.apply-bulk-pricing]
+verify_jwt = true
+
+[functions.undo-pricing-batch]
+verify_jwt = true

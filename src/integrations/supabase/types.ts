@@ -240,6 +240,45 @@ export type Database = {
           },
         ]
       }
+      pricing_history: {
+        Row: {
+          batch_id: string | null
+          change_reason: string | null
+          change_type: string
+          changed_by: string
+          contractor_id: string
+          created_at: string
+          id: string
+          new_price: number
+          old_price: number
+          product_id: string
+        }
+        Insert: {
+          batch_id?: string | null
+          change_reason?: string | null
+          change_type?: string
+          changed_by: string
+          contractor_id: string
+          created_at?: string
+          id?: string
+          new_price: number
+          old_price: number
+          product_id: string
+        }
+        Update: {
+          batch_id?: string | null
+          change_reason?: string | null
+          change_type?: string
+          changed_by?: string
+          contractor_id?: string
+          created_at?: string
+          id?: string
+          new_price?: number
+          old_price?: number
+          product_id?: string
+        }
+        Relationships: []
+      }
       product_addons: {
         Row: {
           calculation_formula: string | null
