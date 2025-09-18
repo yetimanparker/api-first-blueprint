@@ -1,35 +1,24 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Package, Eye, EyeOff, ArrowLeft, Search, Filter } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { ProductForm } from "@/components/ProductForm";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProductForm } from "@/components/ProductForm";
+import { ProductSettings } from "@/components/ProductSettings";
+import { CategoryManagement } from "@/components/CategoryManagement";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useGlobalSettings, useProductCategories } from "@/hooks/useGlobalSettings";
+import { displayPrice } from "@/lib/priceUtils";
+import { ArrowLeft, Plus, Search, Eye, EyeOff, Edit2, Trash2, ShoppingBag, Package, Settings, Tag } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-interface Product {
-  id: string;
-  name: string;
-  description: string | null;
-  unit_price: number;
-  unit_type: string;
-  color_hex: string;
-  is_active: boolean;
-  show_pricing_before_submit: boolean;
-  display_order: number | null;
-  photo_url?: string | null;
-  category?: string | null;
-  subcategory?: string | null;
-  product_addons?: ProductAddon[];
-  product_variations?: ProductVariation[];
-}
-
+// Data structures
 interface ProductVariation {
   id: string;
   name: string;
@@ -52,37 +41,35 @@ interface ProductAddon {
   calculation_formula?: string | null;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  unit_price: number;
+  unit_type: string;
+  color_hex: string;
+  is_active: boolean;
+  show_pricing_before_submit: boolean;
+  display_order: number | null;
+  photo_url?: string | null;
+  category?: string | null;
+  subcategory?: string | null;
+  product_addons?: ProductAddon[];
+  product_variations?: ProductVariation[];
+}
+
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | {} | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const unitTypeLabels = {
-    sq_ft: "sq ft",
-    linear_ft: "lin ft", 
-    cu_ft: "cu ft",
-    each: "each"
-  };
-
-  const categoryLabels: Record<string, string> = {
-    fencing: "Fencing",
-    flooring: "Flooring",
-    roofing: "Roofing",
-    painting: "Painting",
-    landscaping: "Landscaping",
-    plumbing: "Plumbing",
-    electrical: "Electrical",
-    hvac: "HVAC",
-    concrete: "Concrete",
-    other: "Other",
-  };
+  const { settings } = useGlobalSettings();
+  const { categories } = useProductCategories();
 
   useEffect(() => {
     fetchProducts();
@@ -181,12 +168,9 @@ export default function Products() {
   };
 
   const handleProductSaved = () => {
-    setShowProductForm(false);
     setEditingProduct(null);
     fetchProducts();
   };
-
-  const uniqueCategories = Array.from(new Set(products.filter(p => p.category).map(p => p.category)));
 
   if (loading) {
     return (
@@ -215,252 +199,292 @@ export default function Products() {
                 Back to Dashboard
               </Button>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">Products</h1>
-                <p className="text-sm text-muted-foreground">Manage your product catalog</p>
+                <h1 className="text-xl font-semibold text-foreground">Product Management</h1>
+                <p className="text-sm text-muted-foreground">
+                  Manage products, settings, and categories
+                </p>
               </div>
             </div>
-            <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
-              <DialogTrigger asChild>
-                <Button onClick={() => setEditingProduct(null)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Product
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingProduct ? "Edit Product" : "Add New Product"}
-                  </DialogTitle>
-                </DialogHeader>
-                <ProductForm
-                  product={editingProduct}
-                  onSaved={handleProductSaved}
-                  onCancel={() => setShowProductForm(false)}
-                />
-              </DialogContent>
-            </Dialog>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {products.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No products yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Create your first product to start building quotes
-              </p>
-              <Button onClick={() => setShowProductForm(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {/* Filters */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Filter className="h-5 w-5" />
-                  Filters
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search products..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                  
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {uniqueCategories.map((category) => (
-                        <SelectItem key={category} value={category!}>
-                          {categoryLabels[category!] || category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+        <Tabs defaultValue="products" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="products" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Products
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Settings
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="flex items-center gap-2">
+              <Tag className="h-4 w-4" />
+              Categories
+            </TabsTrigger>
+          </TabsList>
 
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="active">Active Only</SelectItem>
-                      <SelectItem value="inactive">Inactive Only</SelectItem>
-                    </SelectContent>
-                  </Select>
+          <TabsContent value="products" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Products</h2>
+                <p className="text-muted-foreground">
+                  {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
+                </p>
+              </div>
+              <Dialog open={!!editingProduct} onOpenChange={(open) => !open && setEditingProduct(null)}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => setEditingProduct({})}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Product
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {(editingProduct as Product)?.id ? 'Edit Product' : 'Add New Product'}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <ProductForm
+                    product={(editingProduct as Product)?.id ? editingProduct as Product : null}
+                    onSaved={handleProductSaved}
+                    onCancel={() => setEditingProduct(null)}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
 
-                  <div className="text-sm text-muted-foreground flex items-center">
-                    Showing {filteredProducts.length} of {products.length} products
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {products.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No products yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Start building your product catalog by adding your first product.
+                  </p>
+                  <Dialog open={!!editingProduct} onOpenChange={(open) => !open && setEditingProduct(null)}>
+                    <DialogTrigger asChild>
+                      <Button onClick={() => setEditingProduct({})}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Your First Product
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Add New Product</DialogTitle>
+                      </DialogHeader>
+                      <ProductForm
+                        product={null}
+                        onSaved={handleProductSaved}
+                        onCancel={() => setEditingProduct(null)}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Filters */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Filter Products</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          placeholder="Search products..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                      
+                      <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.name}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
 
-            {/* Products Table */}
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-16"></TableHead>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Variations</TableHead>
-                      <TableHead>Add-ons</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProducts.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell>
-                          {product.photo_url ? (
-                            <img 
-                              src={product.photo_url} 
-                              alt={product.name}
-                              className="w-12 h-12 object-cover rounded border"
-                            />
-                          ) : (
-                            <div
-                              className="w-12 h-12 rounded border flex items-center justify-center"
-                              style={{ backgroundColor: product.color_hex }}
-                            >
-                              <Package className="h-6 w-6 text-white" />
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium flex items-center gap-2">
-                              {product.name}
-                              {product.show_pricing_before_submit ? (
-                                <Eye className="h-3 w-3 text-muted-foreground" />
-                              ) : (
-                                <EyeOff className="h-3 w-3 text-muted-foreground" />
-                              )}
-                            </div>
-                            {product.description && (
-                              <div className="text-sm text-muted-foreground">
-                                {product.description}
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">
-                              {product.category ? categoryLabels[product.category] || product.category : "Uncategorized"}
-                            </div>
-                            {product.subcategory && (
-                              <div className="text-sm text-muted-foreground">
-                                {product.subcategory}
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">
-                            ${product.unit_price.toFixed(2)}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            per {unitTypeLabels[product.unit_type as keyof typeof unitTypeLabels]}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={product.is_active ? "default" : "secondary"}>
-                            {product.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {product.product_variations && product.product_variations.length > 0 ? (
-                            <div className="text-sm">
-                              <div className="font-medium">{product.product_variations.length} variations</div>
-                              <div className="text-muted-foreground text-xs">
-                                {product.product_variations.slice(0, 2).map(v => v.name).join(", ")}
-                                {product.product_variations.length > 2 && "..."}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">None</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {product.product_addons && product.product_addons.length > 0 ? (
-                            <div className="text-sm">
-                              <div className="font-medium">{product.product_addons.length} add-ons</div>
-                              <div className="text-muted-foreground text-xs">
-                                {product.product_addons.slice(0, 2).map(a => a.name).join(", ")}
-                                {product.product_addons.length > 2 && "..."}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">None</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setEditingProduct(product);
-                                setShowProductForm(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete "{product.name}"? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDeleteProduct(product.id)}
-                                    className="bg-destructive hover:bg-destructive/90"
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Products Table */}
+                <Card>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Variations</TableHead>
+                          <TableHead>Add-ons</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredProducts.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell>
+                              <div className="flex items-center space-x-3">
+                                {product.photo_url ? (
+                                  <img
+                                    src={product.photo_url}
+                                    alt={product.name}
+                                    className="h-12 w-12 rounded-lg object-cover"
+                                  />
+                                ) : (
+                                  <div
+                                    className="h-12 w-12 rounded-lg flex items-center justify-center text-white text-sm font-semibold"
+                                    style={{ backgroundColor: product.color_hex }}
                                   >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                                    {product.name
+                                      .split(' ')
+                                      .map(word => word[0])
+                                      .join('')
+                                      .toUpperCase()
+                                      .slice(0, 2)
+                                    }
+                                  </div>
+                                )}
+                                <div>
+                                  <div className="font-medium">{product.name}</div>
+                                  {product.description && (
+                                    <div className="text-sm text-muted-foreground">
+                                      {product.description}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <Badge 
+                                  variant="secondary" 
+                                  style={{ 
+                                    backgroundColor: categories.find(c => c.name === product.category)?.color_hex + '20',
+                                    color: categories.find(c => c.name === product.category)?.color_hex
+                                  }}
+                                >
+                                  {product.category || 'Uncategorized'}
+                                </Badge>
+                                {product.subcategory && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {product.subcategory}
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium">
+                                {displayPrice(product.unit_price, settings?.currency_symbol || '$')}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                per {product.unit_type.replace('_', ' ')}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={product.is_active ? "default" : "secondary"}>
+                                {product.is_active ? (
+                                  <>
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    Active
+                                  </>
+                                ) : (
+                                  <>
+                                    <EyeOff className="h-3 w-3 mr-1" />
+                                    Inactive
+                                  </>
+                                )}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {product.product_variations?.length || 0}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {product.product_addons?.length || 0}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setEditingProduct(product)}
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Product</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete "{product.name}"? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteProduct(product.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <ProductSettings />
+          </TabsContent>
+
+          <TabsContent value="categories">
+            <CategoryManagement />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

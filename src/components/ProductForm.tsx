@@ -320,53 +320,6 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
     { value: "each", label: "Each" },
   ];
 
-  const categoryOptions = [
-    { value: "fencing", label: "Fencing" },
-    { value: "flooring", label: "Flooring" },
-    { value: "roofing", label: "Roofing" },
-    { value: "painting", label: "Painting" },
-    { value: "landscaping", label: "Landscaping" },
-    { value: "plumbing", label: "Plumbing" },
-    { value: "electrical", label: "Electrical" },
-    { value: "hvac", label: "HVAC" },
-    { value: "concrete", label: "Concrete" },
-    { value: "other", label: "Other" },
-  ];
-
-  const subcategoryOptions: Record<string, { value: string; label: string }[]> = {
-    fencing: [
-      { value: "wood_fence", label: "Wood Fence" },
-      { value: "vinyl_fence", label: "Vinyl Fence" },
-      { value: "chain_link", label: "Chain Link" },
-      { value: "iron_fence", label: "Iron Fence" },
-      { value: "fence_staining", label: "Fence Staining" },
-    ],
-    flooring: [
-      { value: "hardwood", label: "Hardwood" },
-      { value: "tile", label: "Tile" },
-      { value: "carpet", label: "Carpet" },
-      { value: "laminate", label: "Laminate" },
-      { value: "vinyl", label: "Vinyl" },
-    ],
-    roofing: [
-      { value: "shingles", label: "Shingles" },
-      { value: "metal_roofing", label: "Metal Roofing" },
-      { value: "tile_roof", label: "Tile Roof" },
-      { value: "roof_repair", label: "Roof Repair" },
-    ],
-    painting: [
-      { value: "interior", label: "Interior Painting" },
-      { value: "exterior", label: "Exterior Painting" },
-      { value: "deck_staining", label: "Deck Staining" },
-      { value: "fence_staining", label: "Fence Staining" },
-    ],
-    landscaping: [
-      { value: "lawn_care", label: "Lawn Care" },
-      { value: "tree_service", label: "Tree Service" },
-      { value: "irrigation", label: "Irrigation" },
-      { value: "hardscaping", label: "Hardscaping" },
-    ],
-  };
 
   return (
     <Form {...form}>
@@ -426,9 +379,9 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {categoryOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -451,11 +404,12 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {form.watch("category") && subcategoryOptions[form.watch("category")]?.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
+                    {getSubcategoriesForCategory(form.watch("category") || "")
+                      .map((subcategory) => (
+                        <SelectItem key={subcategory.id} value={subcategory.id}>
+                          {subcategory.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
