@@ -123,8 +123,9 @@ export function PhoneQuoteDialog({ onQuoteCreated }: PhoneQuoteDialogProps) {
         customerId = newCustomer.id;
       }
 
-      // Generate quote number
-      const quoteNumber = `Q-${Date.now()}`;
+      // Generate sequential quote number
+      const { data: quoteNumber, error: quoteNumberError } = await supabase.rpc('generate_quote_number');
+      if (quoteNumberError) throw quoteNumberError;
 
       // Create quote
       const { data: newQuote, error: quoteError } = await supabase
