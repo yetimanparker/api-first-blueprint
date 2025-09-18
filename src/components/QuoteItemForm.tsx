@@ -86,7 +86,7 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
           unit_type, 
           category,
           use_tiered_pricing,
-          product_variations!inner(
+          product_variations(
             id,
             name,
             description,
@@ -109,7 +109,6 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
           )
         `)
         .eq('is_active', true)
-        .eq('product_variations.is_active', true)
         .order('name');
 
       if (error) throw error;
