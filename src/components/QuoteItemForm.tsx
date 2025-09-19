@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { useGlobalSettings } from "@/hooks/useGlobalSettings";
 import { formatExactPrice, calculateTieredPrice, PricingTier, displayTieredPrice } from "@/lib/priceUtils";
@@ -19,6 +20,7 @@ const quoteItemSchema = z.object({
   quantity: z.number().min(0.01, "Quantity must be greater than 0"),
   unit_price: z.number().min(0, "Price must be positive"),
   notes: z.string().optional(),
+  selected_addons: z.array(z.string()).optional(),
 });
 
 type QuoteItemFormData = z.infer<typeof quoteItemSchema>;
@@ -36,6 +38,17 @@ interface ProductVariation {
   affects_area_calculation: boolean;
 }
 
+interface ProductAddon {
+  id: string;
+  name: string;
+  description: string | null;
+  price_value: number;
+  price_type: "fixed" | "percentage";
+  calculation_type: "per_unit" | "total";
+  is_active: boolean;
+  display_order: number;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -45,6 +58,7 @@ interface Product {
   use_tiered_pricing?: boolean;
   product_variations?: ProductVariation[];
   pricing_tiers?: PricingTier[];
+  product_addons?: ProductAddon[];
 }
 
 interface QuoteItemFormProps {
@@ -56,6 +70,7 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const { toast } = useToast();
   const { settings } = useGlobalSettings();
 
@@ -67,6 +82,7 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
       quantity: 1,
       unit_price: 0,
       notes: "",
+      selected_addons: [],
     },
   });
 
@@ -106,6 +122,16 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
             tier_price,
             is_active,
             display_order
+          ),
+          product_addons(
+            id,
+            name,
+            description,
+            price_value,
+            price_type,
+            calculation_type,
+            is_active,
+            display_order
           )
         `)
         .eq('is_active', true)
@@ -119,6 +145,11 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
         product_variations: product.product_variations?.map(variation => ({
           ...variation,
           adjustment_type: variation.adjustment_type as "fixed" | "percentage"
+        })) || [],
+        product_addons: product.product_addons?.map(addon => ({
+          ...addon,
+          price_type: addon.price_type as "fixed" | "percentage",
+          calculation_type: addon.calculation_type as "per_unit" | "total"
         })) || []
       }));
       
@@ -143,6 +174,28 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
   const selectedProduct = products.find(p => p.id === selectedProductId);
   const selectedVariation = selectedProduct?.product_variations?.find(v => v.id === selectedVariationId);
 
+  // Calculate addon costs
+  const addonCosts = selectedAddons.reduce((total, addonId) => {
+    const addon = selectedProduct?.product_addons?.find(a => a.id === addonId);
+    if (!addon) return total;
+    
+    if (addon.price_type === "fixed") {
+      return total + (addon.calculation_type === "per_unit" ? addon.price_value * quantity : addon.price_value);
+    } else {
+      // Percentage addon
+      const baseAmount = addon.calculation_type === "per_unit" ? unitPrice * quantity : unitPrice;
+      return total + (baseAmount * addon.price_value / 100);
+    }
+  }, 0);
+
+  useEffect(() => {
+    // Reset selected addons when product changes
+    if (selectedProductId) {
+      setSelectedAddons([]);
+      form.setValue("selected_addons", []);
+    }
+  }, [selectedProductId, form]);
+
   useEffect(() => {
     if (selectedProduct) {
       let basePrice = selectedProduct.unit_price;
@@ -166,11 +219,37 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
     }
   }, [selectedProduct, selectedVariation, quantity, form]);
 
-  const lineTotal = quantity * unitPrice;
+  const lineTotal = (quantity * unitPrice) + addonCosts;
 
   const onSubmit = async (data: QuoteItemFormData) => {
     setLoading(true);
     try {
+      // Prepare addon data
+      let addonData = null;
+      if (selectedAddons.length > 0 && selectedProduct) {
+        addonData = selectedAddons.map(addonId => {
+          const addon = selectedProduct.product_addons?.find(a => a.id === addonId);
+          if (!addon) return null;
+          
+          let addonCost = 0;
+          if (addon.price_type === "fixed") {
+            addonCost = addon.calculation_type === "per_unit" ? addon.price_value * data.quantity : addon.price_value;
+          } else {
+            const baseAmount = addon.calculation_type === "per_unit" ? data.unit_price * data.quantity : data.unit_price;
+            addonCost = baseAmount * addon.price_value / 100;
+          }
+          
+          return {
+            addon_id: addon.id,
+            addon_name: addon.name,
+            addon_price: addon.price_value,
+            addon_cost: addonCost,
+            price_type: addon.price_type,
+            calculation_type: addon.calculation_type,
+          };
+        }).filter(Boolean);
+      }
+
       // Prepare measurement data with variation info
       let measurementData = null;
       if (selectedVariation) {
@@ -180,6 +259,11 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
           height: selectedVariation.height_value,
           unit: selectedVariation.unit_of_measurement,
           affects_area_calculation: selectedVariation.affects_area_calculation,
+          addons: addonData,
+        };
+      } else if (addonData) {
+        measurementData = {
+          addons: addonData,
         };
       }
 
@@ -190,7 +274,7 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
           product_id: data.product_id,
           quantity: data.quantity,
           unit_price: data.unit_price,
-          line_total: data.quantity * data.unit_price,
+          line_total: (data.quantity * data.unit_price) + addonCosts,
           notes: data.notes || null,
           measurement_data: measurementData,
         });
@@ -220,6 +304,7 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
       });
 
       form.reset();
+      setSelectedAddons([]);
       onItemAdded();
     } catch (error: any) {
       console.error('Error adding quote item:', error);
@@ -315,6 +400,49 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
               />
             )}
 
+            {selectedProduct?.product_addons && selectedProduct.product_addons.length > 0 && (
+              <FormItem>
+                <FormLabel>Add-ons (Optional)</FormLabel>
+                <div className="space-y-2">
+                  {selectedProduct.product_addons
+                    .filter(addon => addon.is_active)
+                    .sort((a, b) => a.display_order - b.display_order)
+                    .map((addon) => (
+                     <div key={addon.id} className="flex items-center space-x-2">
+                       <Checkbox
+                         id={addon.id}
+                         checked={selectedAddons.includes(addon.id)}
+                         onCheckedChange={(checked) => {
+                           const newSelectedAddons = checked
+                             ? [...selectedAddons, addon.id]
+                             : selectedAddons.filter(id => id !== addon.id);
+                           setSelectedAddons(newSelectedAddons);
+                           form.setValue("selected_addons", newSelectedAddons);
+                         }}
+                       />
+                       <label htmlFor={addon.id} className="flex-1 cursor-pointer">
+                         <div className="flex justify-between items-center">
+                           <span className="font-medium">{addon.name}</span>
+                           <span className="text-sm text-muted-foreground">
+                             {addon.price_type === "fixed" 
+                               ? `+${settings ? formatExactPrice(addon.price_value, {
+                                   currency_symbol: settings.currency_symbol || '$',
+                                   decimal_precision: settings.decimal_precision || 2
+                                 }) : `$${addon.price_value}`}${addon.calculation_type === "per_unit" ? ` per ${selectedProduct.unit_type}` : ""}`
+                               : `+${addon.price_value}%`
+                             }
+                           </span>
+                         </div>
+                         {addon.description && (
+                           <div className="text-sm text-muted-foreground">{addon.description}</div>
+                         )}
+                       </label>
+                     </div>
+                  ))}
+                </div>
+              </FormItem>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -385,12 +513,41 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
                     }) : `$${lineTotal.toFixed(2)}`}
                   </span>
                 </div>
-                {selectedVariation && selectedVariation.height_value && (
-                  <div className="text-sm text-muted-foreground mt-2">
-                    Height: {selectedVariation.height_value}{selectedVariation.unit_of_measurement}
-                    {selectedVariation.affects_area_calculation && " (Used in area calculations)"}
-                  </div>
-                )}
+                 {selectedVariation && selectedVariation.height_value && (
+                   <div className="text-sm text-muted-foreground mt-2">
+                     Height: {selectedVariation.height_value}{selectedVariation.unit_of_measurement}
+                     {selectedVariation.affects_area_calculation && " (Used in area calculations)"}
+                   </div>
+                 )}
+                 {selectedAddons.length > 0 && (
+                   <div className="text-sm text-muted-foreground mt-2">
+                     <div className="font-medium">Add-ons:</div>
+                     {selectedAddons.map(addonId => {
+                       const addon = selectedProduct?.product_addons?.find(a => a.id === addonId);
+                       if (!addon) return null;
+                       
+                       let addonCost = 0;
+                       if (addon.price_type === "fixed") {
+                         addonCost = addon.calculation_type === "per_unit" ? addon.price_value * quantity : addon.price_value;
+                       } else {
+                         const baseAmount = addon.calculation_type === "per_unit" ? unitPrice * quantity : unitPrice;
+                         addonCost = baseAmount * addon.price_value / 100;
+                       }
+                       
+                       return (
+                         <div key={addon.id} className="flex justify-between">
+                           <span>{addon.name}</span>
+                           <span>
+                             +{settings ? formatExactPrice(addonCost, {
+                               currency_symbol: settings.currency_symbol || '$',
+                               decimal_precision: settings.decimal_precision || 2
+                             }) : `$${addonCost.toFixed(2)}`}
+                           </span>
+                         </div>
+                       );
+                     })}
+                   </div>
+                 )}
               </div>
             )}
 
