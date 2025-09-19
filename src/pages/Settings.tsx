@@ -1040,15 +1040,15 @@ const Settings = () => {
                                   name="service_area_radius_miles"
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel>Service Radius: {field.value} miles</FormLabel>
+                                      <FormLabel>Service Radius (miles)</FormLabel>
                                       <FormControl>
-                                        <Slider
+                                        <Input
+                                          type="number"
                                           min={5}
                                           max={200}
-                                          step={5}
-                                          value={[field.value]}
-                                          onValueChange={(value) => field.onChange(value[0])}
-                                          className="w-full"
+                                          placeholder="Enter radius in miles"
+                                          {...field}
+                                          onChange={(e) => field.onChange(Number(e.target.value))}
                                         />
                                       </FormControl>
                                       <FormDescription>
