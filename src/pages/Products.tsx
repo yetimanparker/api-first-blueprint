@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobalSettings, useProductCategories } from "@/hooks/useGlobalSettings";
 import { displayPrice, formatExactPrice } from "@/lib/priceUtils";
-import { ArrowLeft, Plus, Search, Eye, EyeOff, Edit2, Trash2, ShoppingBag, Package, Settings, Tag, Upload } from "lucide-react";
+import { ArrowLeft, Plus, Search, Eye, EyeOff, Edit2, Trash2, ShoppingBag, Package, Settings, Tag, Upload, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // Data structures
@@ -64,6 +64,9 @@ interface Product {
   product_variations?: ProductVariation[];
 }
 
+type SortField = 'name' | 'category' | 'price' | 'status';
+type SortDirection = 'asc' | 'desc' | null;
+
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -72,6 +75,8 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { settings } = useGlobalSettings();
@@ -83,7 +88,56 @@ export default function Products() {
 
   useEffect(() => {
     filterProducts();
-  }, [products, searchTerm, categoryFilter, statusFilter]);
+  }, [products, searchTerm, categoryFilter, statusFilter, sortField, sortDirection]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Cycle through: asc -> desc -> none
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortField(null);
+        setSortDirection(null);
+      }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortProducts = (products: Product[]) => {
+    if (!sortField || !sortDirection) return products;
+
+    return [...products].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortField) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'category':
+          aValue = a.categoryName?.toLowerCase() || 'zzz'; // Put uncategorized last
+          bValue = b.categoryName?.toLowerCase() || 'zzz';
+          break;
+        case 'price':
+          aValue = a.unit_price;
+          bValue = b.unit_price;
+          break;
+        case 'status':
+          aValue = a.is_active ? 0 : 1; // Active first
+          bValue = b.is_active ? 0 : 1;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
 
   const filterProducts = () => {
     let filtered = products;
@@ -109,6 +163,9 @@ export default function Products() {
         statusFilter === "active" ? product.is_active : !product.is_active
       );
     }
+
+    // Apply sorting
+    filtered = sortProducts(filtered);
 
     setFilteredProducts(filtered);
   };
@@ -362,10 +419,74 @@ export default function Products() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Product</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead>Price</TableHead>
-                          <TableHead>Status</TableHead>
+                          <TableHead 
+                            className="cursor-pointer select-none hover:bg-muted/50 transition-colors"
+                            onClick={() => handleSort('name')}
+                          >
+                            <div className="flex items-center gap-2">
+                              Product
+                              {sortField === 'name' ? (
+                                sortDirection === 'asc' ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )
+                              ) : (
+                                <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                              )}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer select-none hover:bg-muted/50 transition-colors"
+                            onClick={() => handleSort('category')}
+                          >
+                            <div className="flex items-center gap-2">
+                              Category
+                              {sortField === 'category' ? (
+                                sortDirection === 'asc' ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )
+                              ) : (
+                                <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                              )}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer select-none hover:bg-muted/50 transition-colors"
+                            onClick={() => handleSort('price')}
+                          >
+                            <div className="flex items-center gap-2">
+                              Price
+                              {sortField === 'price' ? (
+                                sortDirection === 'asc' ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )
+                              ) : (
+                                <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                              )}
+                            </div>
+                          </TableHead>
+                          <TableHead 
+                            className="cursor-pointer select-none hover:bg-muted/50 transition-colors"
+                            onClick={() => handleSort('status')}
+                          >
+                            <div className="flex items-center gap-2">
+                              Status
+                              {sortField === 'status' ? (
+                                sortDirection === 'asc' ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )
+                              ) : (
+                                <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                              )}
+                            </div>
+                          </TableHead>
                           <TableHead>Variations</TableHead>
                           <TableHead>Add-ons</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
