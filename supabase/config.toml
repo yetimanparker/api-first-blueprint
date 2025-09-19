@@ -71,3 +71,6 @@ verify_jwt = true
 
 [functions.undo-product-batch]
 verify_jwt = true
+
+[functions.google-places-autocomplete]
+verify_jwt = false

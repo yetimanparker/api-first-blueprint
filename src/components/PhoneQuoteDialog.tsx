@@ -11,6 +11,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Phone, Plus } from "lucide-react";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
+import type { ParsedAddress } from "@/hooks/useGooglePlaces";
 
 const phoneQuoteSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
@@ -254,7 +256,18 @@ export function PhoneQuoteDialog({ onQuoteCreated }: PhoneQuoteDialogProps) {
                     <FormItem>
                       <FormLabel>Address</FormLabel>
                       <FormControl>
-                        <Input placeholder="123 Main St" {...field} />
+                        <AddressAutocomplete
+                          {...field}
+                          placeholder="123 Main St"
+                          countryRestriction={['us']}
+                          onAddressSelect={(address: ParsedAddress) => {
+                            // Auto-fill the address fields when an address is selected
+                            form.setValue("address", address.streetAddress);
+                            form.setValue("city", address.city);
+                            form.setValue("state", address.state);
+                            form.setValue("zip_code", address.zipCode);
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -340,7 +353,18 @@ export function PhoneQuoteDialog({ onQuoteCreated }: PhoneQuoteDialogProps) {
                     <FormItem>
                       <FormLabel>Project Address</FormLabel>
                       <FormControl>
-                        <Input placeholder="456 Project St" {...field} />
+                        <AddressAutocomplete
+                          {...field}
+                          placeholder="456 Project St"
+                          countryRestriction={['us']}
+                          onAddressSelect={(address: ParsedAddress) => {
+                            // Auto-fill the project address fields when an address is selected
+                            form.setValue("project_address", address.streetAddress);
+                            form.setValue("project_city", address.city);
+                            form.setValue("project_state", address.state);
+                            form.setValue("project_zip_code", address.zipCode);
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
