@@ -85,7 +85,7 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
     resolver: zodResolver(quoteItemSchema),
     defaultValues: {
       product_id: "",
-      variation_id: "",
+      variation_id: "none",
       quantity: 1,
       unit_price: 0,
       notes: "",
@@ -180,7 +180,7 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
   const unitPrice = form.watch("unit_price");
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
-  const selectedVariation = selectedProduct?.product_variations?.find(v => v.id === selectedVariationId);
+  const selectedVariation = selectedProduct?.product_variations?.find(v => v.id === selectedVariationId && selectedVariationId !== "none");
 
   // Calculate addon costs
   const addonCosts = selectedAddons.reduce((total, addonId) => {
@@ -350,10 +350,10 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Product</FormLabel>
-                  <Select onValueChange={(value) => {
-                    field.onChange(value);
-                    form.setValue("variation_id", ""); // Reset variation when product changes
-                  }} value={field.value}>
+                   <Select onValueChange={(value) => {
+                     field.onChange(value);
+                     form.setValue("variation_id", "none"); // Reset variation when product changes
+                   }} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a product" />
@@ -383,13 +383,16 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Variation (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={(value) => {
+                      field.onChange(value === "none" ? "" : value);
+                    }} value={field.value || "none"}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a variation" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="none">No variation</SelectItem>
                         {selectedProduct.product_variations.map((variation) => (
                           <SelectItem key={variation.id} value={variation.id}>
                             {variation.name} 
