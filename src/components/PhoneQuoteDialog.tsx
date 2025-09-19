@@ -315,7 +315,23 @@ export function PhoneQuoteDialog({ onQuoteCreated }: PhoneQuoteDialogProps) {
 
             {/* Project Information */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Project Location (Optional)</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Project Location (Optional)</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const customerAddress = form.getValues();
+                    form.setValue("project_address", customerAddress.address);
+                    form.setValue("project_city", customerAddress.city);
+                    form.setValue("project_state", customerAddress.state);
+                    form.setValue("project_zip_code", customerAddress.zip_code);
+                  }}
+                >
+                  Same as above
+                </Button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <FormField
                   control={form.control}
