@@ -117,6 +117,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
     if (product?.product_addons) {
       setAddons(product.product_addons.map((addon, index) => ({
         ...addon,
+        name: addon.name || "",
+        description: addon.description || "",
         display_order: addon.display_order || index,
         calculation_type: addon.calculation_type || "total",
         calculation_formula: addon.calculation_formula || "",
@@ -125,6 +127,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
     if (product?.product_variations) {
       setVariations(product.product_variations.map((variation, index) => ({
         ...variation,
+        name: variation.name || "",
+        description: variation.description || "",
         display_order: variation.display_order || index,
       })));
     }
@@ -713,21 +717,21 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                      <div>
                        <Label htmlFor={`variation-name-${index}`}>Name</Label>
-                       <Input
-                         id={`variation-name-${index}`}
-                         value={variation.name}
-                         onChange={(e) => updateVariation(index, "name", e.target.value)}
-                         placeholder="e.g., 6ft Height"
-                       />
+                        <Input
+                          id={`variation-name-${index}`}
+                          value={variation.name || ""}
+                          onChange={(e) => updateVariation(index, "name", e.target.value)}
+                          placeholder="e.g., 6ft Height"
+                        />
                      </div>
                      <div>
                        <Label htmlFor={`variation-description-${index}`}>Description</Label>
-                       <Input
-                         id={`variation-description-${index}`}
-                         value={variation.description}
-                         onChange={(e) => updateVariation(index, "description", e.target.value)}
-                         placeholder="Optional description"
-                       />
+                        <Input
+                          id={`variation-description-${index}`}
+                          value={variation.description || ""}
+                          onChange={(e) => updateVariation(index, "description", e.target.value)}
+                          placeholder="Optional description"
+                        />
                      </div>
                      <div>
                        <Label htmlFor={`variation-adjustment-type-${index}`}>Price Type</Label>
@@ -843,21 +847,21 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                       <Label htmlFor={`addon-name-${index}`}>Name</Label>
-                      <Input
-                        id={`addon-name-${index}`}
-                        value={addon.name}
-                        onChange={(e) => updateAddon(index, "name", e.target.value)}
-                        placeholder="e.g., Premium Finish"
-                      />
+                       <Input
+                         id={`addon-name-${index}`}
+                         value={addon.name || ""}
+                         onChange={(e) => updateAddon(index, "name", e.target.value)}
+                         placeholder="e.g., Premium Finish"
+                       />
                     </div>
                     <div>
                       <Label htmlFor={`addon-description-${index}`}>Description</Label>
-                      <Input
-                        id={`addon-description-${index}`}
-                        value={addon.description}
-                        onChange={(e) => updateAddon(index, "description", e.target.value)}
-                        placeholder="Optional description"
-                      />
+                       <Input
+                         id={`addon-description-${index}`}
+                         value={addon.description || ""}
+                         onChange={(e) => updateAddon(index, "description", e.target.value)}
+                         placeholder="Optional description"
+                       />
                     </div>
                     <div>
                       <Label htmlFor={`addon-price-type-${index}`}>Price Type</Label>

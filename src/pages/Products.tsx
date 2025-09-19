@@ -323,18 +323,21 @@ export default function Products() {
                     Add Product
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {(editingProduct as Product)?.id ? 'Edit Product' : 'Add New Product'}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <ProductForm
-                    product={(editingProduct as Product)?.id ? editingProduct as Product : null}
-                    onSaved={handleProductSaved}
-                    onCancel={() => setEditingProduct(null)}
-                  />
-                </DialogContent>
+                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                   <DialogHeader>
+                     <DialogTitle>
+                       {(editingProduct as Product)?.id ? 'Edit Product' : 'Add New Product'}
+                     </DialogTitle>
+                     <DialogDescription>
+                       {(editingProduct as Product)?.id ? 'Make changes to your product information.' : 'Fill out the form below to add a new product to your catalog.'}
+                     </DialogDescription>
+                   </DialogHeader>
+                   <ProductForm
+                     product={(editingProduct as Product)?.id ? editingProduct as Product : null}
+                     onSaved={handleProductSaved}
+                     onCancel={() => setEditingProduct(null)}
+                   />
+                 </DialogContent>
               </Dialog>
             </div>
 
@@ -353,16 +356,19 @@ export default function Products() {
                         Add Your First Product
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Add New Product</DialogTitle>
-                      </DialogHeader>
-                      <ProductForm
-                        product={null}
-                        onSaved={handleProductSaved}
-                        onCancel={() => setEditingProduct(null)}
-                      />
-                    </DialogContent>
+                     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                       <DialogHeader>
+                         <DialogTitle>Add New Product</DialogTitle>
+                         <DialogDescription>
+                           Fill out the form below to add your first product to your catalog.
+                         </DialogDescription>
+                       </DialogHeader>
+                       <ProductForm
+                         product={null}
+                         onSaved={handleProductSaved}
+                         onCancel={() => setEditingProduct(null)}
+                       />
+                     </DialogContent>
                   </Dialog>
                 </CardContent>
               </Card>
