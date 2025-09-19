@@ -6,7 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Copy, Save, History, Edit, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { QuoteItemForm } from "@/components/QuoteItemForm";
@@ -64,12 +67,32 @@ export default function QuoteEdit() {
   const [saving, setSaving] = useState(false);
   const [editingItem, setEditingItem] = useState<QuoteItem | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [editingAddress, setEditingAddress] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    project_address: "",
+    project_city: "", 
+    project_state: "",
+    project_zip_code: "",
+    notes: ""
+  });
 
   useEffect(() => {
     if (quoteId) {
       fetchQuoteData();
     }
   }, [quoteId]);
+
+  useEffect(() => {
+    if (quote) {
+      setAddressForm({
+        project_address: quote.project_address || "",
+        project_city: quote.project_city || "",
+        project_state: quote.project_state || "",
+        project_zip_code: quote.project_zip_code || "",
+        notes: quote.notes || ""
+      });
+    }
+  }, [quote]);
 
   const fetchQuoteData = async () => {
     try {
@@ -243,6 +266,55 @@ export default function QuoteEdit() {
     }
   };
 
+  const saveAddressChanges = async () => {
+    try {
+      setSaving(true);
+      
+      const { error } = await supabase
+        .from('quotes')
+        .update({
+          project_address: addressForm.project_address || null,
+          project_city: addressForm.project_city || null,
+          project_state: addressForm.project_state || null,
+          project_zip_code: addressForm.project_zip_code || null,
+          notes: addressForm.notes || null
+        })
+        .eq('id', quoteId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Address Updated",
+        description: "Project address has been updated successfully",
+      });
+
+      setEditingAddress(false);
+      fetchQuoteData(); // Refresh quote data
+    } catch (error) {
+      console.error('Error updating address:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to update project address",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancelAddressEdit = () => {
+    setEditingAddress(false);
+    if (quote) {
+      setAddressForm({
+        project_address: quote.project_address || "",
+        project_city: quote.project_city || "",
+        project_state: quote.project_state || "",
+        project_zip_code: quote.project_zip_code || "",
+        notes: quote.notes || ""
+      });
+    }
+  };
+
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'accepted': return 'default';
@@ -344,26 +416,123 @@ export default function QuoteEdit() {
               )}
             </div>
             
-            {quote.project_address && (
+            {quote.project_address || editingAddress ? (
               <>
                 <Separator className="my-4" />
                 <div>
-                  <p className="font-medium mb-2">Project Address</p>
-                  <p className="text-sm text-muted-foreground">
-                    {[quote.project_address, quote.project_city, quote.project_state, quote.project_zip_code]
-                      .filter(Boolean)
-                      .join(', ')}
-                  </p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium">Project Address</p>
+                    {!editingAddress && (
+                      <Button variant="ghost" size="sm" onClick={() => setEditingAddress(true)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {editingAddress ? (
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="address">Street Address</Label>
+                        <Input
+                          id="address"
+                          value={addressForm.project_address}
+                          onChange={(e) => setAddressForm(prev => ({ ...prev, project_address: e.target.value }))}
+                          placeholder="Enter street address"
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <div>
+                          <Label htmlFor="city">City</Label>
+                          <Input
+                            id="city"
+                            value={addressForm.project_city}
+                            onChange={(e) => setAddressForm(prev => ({ ...prev, project_city: e.target.value }))}
+                            placeholder="City"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="state">State</Label>
+                          <Input
+                            id="state"
+                            value={addressForm.project_state}
+                            onChange={(e) => setAddressForm(prev => ({ ...prev, project_state: e.target.value }))}
+                            placeholder="State"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="zip">ZIP Code</Label>
+                          <Input
+                            id="zip"
+                            value={addressForm.project_zip_code}
+                            onChange={(e) => setAddressForm(prev => ({ ...prev, project_zip_code: e.target.value }))}
+                            placeholder="ZIP"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 mt-3">
+                        <Button size="sm" onClick={saveAddressChanges} disabled={saving}>
+                          <Check className="h-4 w-4 mr-1" />
+                          {saving ? "Saving..." : "Save"}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={cancelAddressEdit}>
+                          <X className="h-4 w-4 mr-1" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {[quote.project_address, quote.project_city, quote.project_state, quote.project_zip_code]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <Separator className="my-4" />
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium">Project Address</p>
+                    <Button variant="ghost" size="sm" onClick={() => setEditingAddress(true)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">No address specified</p>
                 </div>
               </>
             )}
 
-            {quote.notes && (
+            {(quote.notes || editingAddress) && !editingAddress && (
               <>
                 <Separator className="my-4" />
                 <div>
-                  <p className="font-medium mb-2">Notes</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium">Notes</p>
+                    <Button variant="ghost" size="sm" onClick={() => setEditingAddress(true)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <p className="text-sm text-muted-foreground">{quote.notes}</p>
+                </div>
+              </>
+            )}
+
+            {editingAddress && (
+              <>
+                <Separator className="my-4" />
+                <div>
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    value={addressForm.notes}
+                    onChange={(e) => setAddressForm(prev => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Project notes..."
+                    className="mt-2"
+                  />
                 </div>
               </>
             )}
