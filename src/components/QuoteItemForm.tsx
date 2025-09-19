@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { useGlobalSettings } from "@/hooks/useGlobalSettings";
 import { formatExactPrice, calculateTieredPrice, PricingTier, displayTieredPrice } from "@/lib/priceUtils";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 
 const quoteItemSchema = z.object({
   product_id: z.string().min(1, "Product is required"),
@@ -21,6 +21,12 @@ const quoteItemSchema = z.object({
   unit_price: z.number().min(0, "Price must be positive"),
   notes: z.string().optional(),
   selected_addons: z.array(z.string()).optional(),
+}).refine((data) => {
+  // This will be dynamically validated in the component
+  return true;
+}, {
+  message: "Quantity must meet minimum order requirements",
+  path: ["quantity"],
 });
 
 type QuoteItemFormData = z.infer<typeof quoteItemSchema>;
@@ -53,6 +59,7 @@ interface Product {
   id: string;
   name: string;
   unit_price: number;
+  min_order_quantity: number;
   unit_type: string;
   category?: string;
   use_tiered_pricing?: boolean;
@@ -98,7 +105,8 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
         .select(`
           id, 
           name, 
-          unit_price, 
+          unit_price,
+          min_order_quantity, 
           unit_type, 
           category,
           use_tiered_pricing,
@@ -358,6 +366,7 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
                             currency_symbol: settings.currency_symbol || '$',
                             decimal_precision: settings.decimal_precision || 2
                           }) : `$${product.unit_price}`}/{product.unit_type}
+                          {product.min_order_quantity > 1 && ` (Min: ${product.min_order_quantity} ${product.unit_type})`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -456,9 +465,26 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
                         step="0.01"
                         placeholder="1.00"
                         {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0;
+                          field.onChange(value);
+                          
+                          // Validate minimum order quantity
+                          if (selectedProduct && value < selectedProduct.min_order_quantity) {
+                            form.setError("quantity", {
+                              message: `Minimum order quantity is ${selectedProduct.min_order_quantity} ${selectedProduct.unit_type}`
+                            });
+                          } else {
+                            form.clearErrors("quantity");
+                          }
+                        }}
                       />
                     </FormControl>
+                    {selectedProduct && selectedProduct.min_order_quantity > 1 && (
+                      <FormDescription>
+                        Minimum order: {selectedProduct.min_order_quantity} {selectedProduct.unit_type}
+                      </FormDescription>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

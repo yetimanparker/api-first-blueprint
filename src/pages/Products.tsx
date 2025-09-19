@@ -50,6 +50,7 @@ interface Product {
   name: string;
   description: string | null;
   unit_price: number;
+  min_order_quantity: number;
   unit_type: string;
   color_hex: string;
   is_active: boolean;
@@ -476,6 +477,7 @@ export default function Products() {
                               )}
                             </div>
                           </TableHead>
+                          <TableHead>Min Order</TableHead>
                           <TableHead 
                             className="cursor-pointer select-none hover:bg-muted/50 transition-colors"
                             onClick={() => handleSort('status')}
@@ -560,6 +562,14 @@ export default function Products() {
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 per {product.unit_type.replace('_', ' ')}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium">
+                                {product.min_order_quantity}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {product.unit_type.replace('_', ' ')}
                               </div>
                             </TableCell>
                             <TableCell>

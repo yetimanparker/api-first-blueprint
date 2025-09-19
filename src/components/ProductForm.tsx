@@ -21,6 +21,7 @@ const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().optional(),
   unit_price: z.number().min(0, "Price must be positive"),
+  min_order_quantity: z.number().min(0.01, "Minimum order quantity must be greater than 0"),
   unit_type: z.enum(["sq_ft", "linear_ft", "each", "hour", "cubic_yard", "pound", "ton", "pallet"]),
   color_hex: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color"),
   is_active: z.boolean(),
@@ -64,6 +65,7 @@ interface Product {
   name: string;
   description: string | null;
   unit_price: number;
+  min_order_quantity: number;
   unit_type: string;
   color_hex: string;
   is_active: boolean;
@@ -101,6 +103,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       name: product?.name || "",
       description: product?.description || "",
       unit_price: product?.unit_price || 0,
+      min_order_quantity: product?.min_order_quantity || 1,
       unit_type: (product?.unit_type as any) || globalSettings?.default_unit_type || "sq_ft",
       color_hex: product?.color_hex || globalSettings?.default_product_color || "#3B82F6",
       is_active: product?.is_active ?? (globalSettings?.auto_activate_products ?? true),
@@ -246,6 +249,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         name: data.name,
         description: data.description || null,
         unit_price: Number(data.unit_price),
+        min_order_quantity: Number(data.min_order_quantity),
         unit_type: data.unit_type,
         color_hex: data.color_hex,
         is_active: data.is_active,
@@ -534,6 +538,26 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                     type="number" 
                     step="0.01" 
                     placeholder="0.00"
+                    {...field}
+                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="min_order_quantity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Minimum Order Quantity</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="1.00"
                     {...field}
                     onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   />

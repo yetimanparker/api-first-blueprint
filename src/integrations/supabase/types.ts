@@ -545,6 +545,7 @@ export type Database = {
           display_order: number | null
           id: string
           is_active: boolean
+          min_order_quantity: number
           name: string
           photo_url: string | null
           show_pricing_before_submit: boolean
@@ -563,6 +564,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean
+          min_order_quantity?: number
           name: string
           photo_url?: string | null
           show_pricing_before_submit?: boolean
@@ -581,6 +583,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean
+          min_order_quantity?: number
           name?: string
           photo_url?: string | null
           show_pricing_before_submit?: boolean
