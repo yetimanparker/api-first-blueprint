@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Copy, Save, History } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Copy, Save, History, Edit, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { QuoteItemForm } from "@/components/QuoteItemForm";
@@ -60,6 +62,8 @@ export default function QuoteEdit() {
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingItem, setEditingItem] = useState<QuoteItem | null>(null);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   useEffect(() => {
     if (quoteId) {
@@ -211,6 +215,34 @@ export default function QuoteEdit() {
     });
   };
 
+  const deleteQuoteItem = async (itemId: string) => {
+    try {
+      const { error } = await supabase
+        .from('quote_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Item Deleted",
+        description: "Quote item has been removed",
+      });
+
+      // Refresh quote data to update totals
+      fetchQuoteData();
+    } catch (error) {
+      console.error('Error deleting quote item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete quote item",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingItemId(null);
+    }
+  };
+
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'accepted': return 'default';
@@ -354,11 +386,27 @@ export default function QuoteEdit() {
                   <div key={item.id} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-medium">{item.product.name}</h3>
-                      {!settings?.use_price_ranges && (
-                        <p className="font-bold text-primary">
-                          {settings ? displayLineItemPrice(item.line_total, settings) : `$${item.line_total.toLocaleString()}`}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {!settings?.use_price_ranges && (
+                          <p className="font-bold text-primary">
+                            {settings ? displayLineItemPrice(item.line_total, settings) : `$${item.line_total.toLocaleString()}`}
+                          </p>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingItem(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeletingItemId(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
                       <div>
@@ -392,6 +440,50 @@ export default function QuoteEdit() {
           quoteId={quote.id}
           onItemAdded={fetchQuoteData}
         />
+
+        {/* Edit Item Dialog */}
+        <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Quote Item</DialogTitle>
+            </DialogHeader>
+            {editingItem && (
+              <div className="mt-4">
+                <QuoteItemForm
+                  quoteId={quote.id}
+                  editingItem={editingItem}
+                  onItemAdded={() => {
+                    setEditingItem(null);
+                    fetchQuoteData();
+                  }}
+                />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!deletingItemId} onOpenChange={() => setDeletingItemId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Quote Item</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this item from the quote? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeletingItemId(null)}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deletingItemId && deleteQuoteItem(deletingItemId)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

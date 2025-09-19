@@ -68,12 +68,26 @@ interface Product {
   product_addons?: ProductAddon[];
 }
 
+interface QuoteItem {
+  id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  notes?: string;
+  product: {
+    name: string;
+    unit_type: string;
+  };
+}
+
 interface QuoteItemFormProps {
   quoteId: string;
   onItemAdded: () => void;
+  editingItem?: QuoteItem;
 }
 
-export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
+export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFormProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -84,14 +98,37 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
   const form = useForm<QuoteItemFormData>({
     resolver: zodResolver(quoteItemSchema),
     defaultValues: {
-      product_id: "",
+      product_id: editingItem?.product_id || "",
       variation_id: "none",
-      quantity: 1,
-      unit_price: 0,
-      notes: "",
+      quantity: editingItem?.quantity || 1,
+      unit_price: editingItem?.unit_price || 0,
+      notes: editingItem?.notes || "",
       selected_addons: [],
     },
   });
+
+  // Reset form when editingItem changes
+  useEffect(() => {
+    if (editingItem) {
+      form.reset({
+        product_id: editingItem.product_id,
+        variation_id: "none",
+        quantity: editingItem.quantity,
+        unit_price: editingItem.unit_price,
+        notes: editingItem.notes || "",
+        selected_addons: [],
+      });
+    } else {
+      form.reset({
+        product_id: "",
+        variation_id: "none",
+        quantity: 1,
+        unit_price: 0,
+        notes: "",
+        selected_addons: [],
+      });
+    }
+  }, [editingItem, form]);
 
   useEffect(() => {
     fetchProducts();
@@ -275,17 +312,31 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
         };
       }
 
-      const { error } = await supabase
-        .from('quote_items')
-        .insert({
-          quote_id: quoteId,
-          product_id: data.product_id,
-          quantity: data.quantity,
-          unit_price: data.unit_price,
-          line_total: (data.quantity * data.unit_price) + addonCosts,
-          notes: data.notes || null,
-          measurement_data: measurementData,
-        });
+      const itemData = {
+        quote_id: quoteId,
+        product_id: data.product_id,
+        quantity: data.quantity,
+        unit_price: data.unit_price,
+        line_total: (data.quantity * data.unit_price) + addonCosts,
+        notes: data.notes || null,
+        measurement_data: measurementData,
+      };
+
+      let error;
+      if (editingItem) {
+        // Update existing item
+        const { error: updateError } = await supabase
+          .from('quote_items')
+          .update(itemData)
+          .eq('id', editingItem.id);
+        error = updateError;
+      } else {
+        // Create new item
+        const { error: insertError } = await supabase
+          .from('quote_items')
+          .insert(itemData);
+        error = insertError;
+      }
 
       if (error) throw error;
 
@@ -308,17 +359,19 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
 
       toast({
         title: "Success",
-        description: "Item added to quote successfully",
+        description: editingItem ? "Item updated successfully" : "Item added to quote successfully",
       });
 
-      form.reset();
-      setSelectedAddons([]);
+      if (!editingItem) {
+        form.reset();
+        setSelectedAddons([]);
+      }
       onItemAdded();
     } catch (error: any) {
-      console.error('Error adding quote item:', error);
+      console.error(`Error ${editingItem ? 'updating' : 'adding'} quote item:`, error);
       toast({
         title: "Error",
-        description: error.message || "Failed to add item to quote",
+        description: error.message || `Failed to ${editingItem ? 'update' : 'add'} item ${editingItem ? '' : 'to quote'}`,
         variant: "destructive",
       });
     } finally {
@@ -339,7 +392,7 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Add Item to Quote</CardTitle>
+        <CardTitle>{editingItem ? "Edit Quote Item" : "Add Item to Quote"}</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -581,7 +634,7 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
 
             <div className="flex justify-end">
               <Button type="submit" disabled={loading}>
-                {loading ? "Adding..." : "Add to Quote"}
+                {loading ? (editingItem ? "Updating..." : "Adding...") : (editingItem ? "Update Item" : "Add to Quote")}
               </Button>
             </div>
           </form>
