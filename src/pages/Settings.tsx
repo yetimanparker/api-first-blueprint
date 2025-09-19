@@ -53,6 +53,11 @@ const settingsSchema = z.object({
   service_area_center_lat: z.number().optional(),
   service_area_center_lng: z.number().optional(),
   service_area_zip_codes: z.array(z.string()).optional(),
+  use_different_service_address: z.boolean(),
+  service_center_address: z.string().optional(),
+  service_center_city: z.string().optional(),
+  service_center_state: z.string().optional(),
+  service_center_zip: z.string().optional(),
 });
 
 type ContractorFormData = z.infer<typeof contractorSchema>;
@@ -115,6 +120,11 @@ const Settings = () => {
       service_area_center_lat: undefined,
       service_area_center_lng: undefined,
       service_area_zip_codes: [],
+      use_different_service_address: false,
+      service_center_address: "",
+      service_center_city: "",
+      service_center_state: "",
+      service_center_zip: "",
     },
   });
 
@@ -184,6 +194,11 @@ const Settings = () => {
             service_area_center_lat: settings.service_area_center_lat || undefined,
             service_area_center_lng: settings.service_area_center_lng || undefined,
             service_area_zip_codes: settings.service_area_zip_codes || [],
+            use_different_service_address: false,
+            service_center_address: contractor?.address || "",
+            service_center_city: contractor?.city || "",
+            service_center_state: contractor?.state || "",
+            service_center_zip: contractor?.zip_code || "",
           });
         }
       }
@@ -917,29 +932,133 @@ const Settings = () => {
                             />
 
                             {settingsForm.watch("service_area_method") === "radius" && (
-                              <FormField
-                                control={settingsForm.control}
-                                name="service_area_radius_miles"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Service Radius: {field.value} miles</FormLabel>
-                                    <FormControl>
-                                      <Slider
-                                        min={5}
-                                        max={200}
-                                        step={5}
-                                        value={[field.value]}
-                                        onValueChange={(value) => field.onChange(value[0])}
-                                        className="w-full"
+                              <>
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <FormLabel>Service Center Address</FormLabel>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        const useDifferent = !settingsForm.watch("use_different_service_address");
+                                        settingsForm.setValue("use_different_service_address", useDifferent);
+                                        if (!useDifferent) {
+                                          // Reset to business address
+                                          const businessAddress = contractorForm.getValues();
+                                          settingsForm.setValue("service_center_address", businessAddress.address || "");
+                                          settingsForm.setValue("service_center_city", businessAddress.city || "");
+                                          settingsForm.setValue("service_center_state", businessAddress.state || "");
+                                          settingsForm.setValue("service_center_zip", businessAddress.zip_code || "");
+                                        }
+                                      }}
+                                    >
+                                      {settingsForm.watch("use_different_service_address") ? "Use Business Address" : "Use Different Address"}
+                                    </Button>
+                                  </div>
+                                  
+                                  {settingsForm.watch("use_different_service_address") ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/50">
+                                      <FormField
+                                        control={settingsForm.control}
+                                        name="service_center_address"
+                                        render={({ field }) => (
+                                          <FormItem className="md:col-span-2">
+                                            <FormLabel>Service Center Address</FormLabel>
+                                            <FormControl>
+                                              <Input placeholder="123 Service Center St" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
                                       />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Distance from your business location (5-200 miles)
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+                                      <FormField
+                                        control={settingsForm.control}
+                                        name="service_center_city"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>City</FormLabel>
+                                            <FormControl>
+                                              <Input placeholder="Service City" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={settingsForm.control}
+                                        name="service_center_state"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>State</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                              <FormControl>
+                                                <SelectTrigger>
+                                                  <SelectValue placeholder="Select state" />
+                                                </SelectTrigger>
+                                              </FormControl>
+                                              <SelectContent>
+                                                {contractorStates.map((state) => (
+                                                  <SelectItem key={state} value={state}>
+                                                    {state}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={settingsForm.control}
+                                        name="service_center_zip"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>ZIP Code</FormLabel>
+                                            <FormControl>
+                                              <Input placeholder="12345" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="p-4 border rounded-lg bg-muted/20">
+                                      <p className="text-sm text-muted-foreground">
+                                        Using business address: {contractorForm.watch("address") || "No business address set"}
+                                        {contractorForm.watch("city") && `, ${contractorForm.watch("city")}`}
+                                        {contractorForm.watch("state") && `, ${contractorForm.watch("state")}`}
+                                        {contractorForm.watch("zip_code") && ` ${contractorForm.watch("zip_code")}`}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <FormField
+                                  control={settingsForm.control}
+                                  name="service_area_radius_miles"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Service Radius: {field.value} miles</FormLabel>
+                                      <FormControl>
+                                        <Slider
+                                          min={5}
+                                          max={200}
+                                          step={5}
+                                          value={[field.value]}
+                                          onValueChange={(value) => field.onChange(value[0])}
+                                          className="w-full"
+                                        />
+                                      </FormControl>
+                                      <FormDescription>
+                                        Distance from your service center location (5-200 miles)
+                                      </FormDescription>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </>
                             )}
 
                             {settingsForm.watch("service_area_method") === "zipcodes" && (
