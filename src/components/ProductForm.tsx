@@ -288,18 +288,18 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         }
 
         // Insert new/updated addons
-        const validAddons = addons.filter(addon => addon.name.trim() && addon.price_value >= 0);
+        const validAddons = addons.filter(addon => (addon.name || "").trim() && addon.price_value >= 0);
         if (validAddons.length > 0) {
           const addonsToInsert = validAddons.map((addon, index) => ({
             product_id: productId,
-            name: addon.name.trim(),
-            description: addon.description.trim() || null,
+            name: (addon.name || "").trim(),
+            description: (addon.description || "").trim() || null,
             price_type: addon.price_type,
             price_value: Number(addon.price_value),
             display_order: index,
             is_active: addon.is_active,
             calculation_type: addon.calculation_type,
-            calculation_formula: addon.calculation_formula?.trim() || null,
+            calculation_formula: (addon.calculation_formula || "").trim() || null,
           }));
 
           const { error: addonError } = await supabase
@@ -317,12 +317,12 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             .eq("product_id", productId);
         }
 
-        const validVariations = variations.filter(variation => variation.name.trim());
+        const validVariations = variations.filter(variation => (variation.name || "").trim());
         if (validVariations.length > 0) {
           const variationsToInsert = validVariations.map((variation, index) => ({
             product_id: productId,
-            name: variation.name.trim(),
-            description: variation.description.trim() || null,
+            name: (variation.name || "").trim(),
+            description: (variation.description || "").trim() || null,
             price_adjustment: Number(variation.price_adjustment),
             adjustment_type: variation.adjustment_type,
             display_order: index,
@@ -347,7 +347,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             .eq("product_id", productId);
         }
 
-        const validTiers = pricingTiers.filter(tier => tier.tier_name.trim() && tier.min_quantity > 0 && tier.tier_price >= 0);
+        const validTiers = pricingTiers.filter(tier => (tier.tier_name || "").trim() && tier.min_quantity > 0 && tier.tier_price >= 0);
         if (validTiers.length > 0) {
           // Validate tiers before inserting
           const tierErrors = validateTiers(validTiers);
@@ -358,7 +358,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           const tiersToInsert = validTiers.map((tier, index) => ({
             product_id: productId,
             contractor_id: contractorData.id,
-            tier_name: tier.tier_name.trim(),
+            tier_name: (tier.tier_name || "").trim(),
             min_quantity: Number(tier.min_quantity),
             max_quantity: tier.max_quantity ? Number(tier.max_quantity) : null,
             tier_price: Number(tier.tier_price),
