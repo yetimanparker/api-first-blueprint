@@ -390,7 +390,6 @@ export function QuoteItemForm({ quoteId, onItemAdded }: QuoteItemFormProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">No variation</SelectItem>
                         {selectedProduct.product_variations.map((variation) => (
                           <SelectItem key={variation.id} value={variation.id}>
                             {variation.name} 
