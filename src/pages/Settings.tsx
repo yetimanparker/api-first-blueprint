@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft } from "lucide-react";
+import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const contractorSchema = z.object({
@@ -46,6 +47,12 @@ const settingsSchema = z.object({
   global_tax_rate: z.number().min(0).max(100),
   require_product_photos: z.boolean(),
   auto_activate_products: z.boolean(),
+  service_area_enabled: z.boolean(),
+  service_area_method: z.enum(["radius", "zipcodes"]),
+  service_area_radius_miles: z.number().min(5).max(200),
+  service_area_center_lat: z.number().optional(),
+  service_area_center_lng: z.number().optional(),
+  service_area_zip_codes: z.array(z.string()).optional(),
 });
 
 type ContractorFormData = z.infer<typeof contractorSchema>;
@@ -102,6 +109,12 @@ const Settings = () => {
       global_tax_rate: 0,
       require_product_photos: false,
       auto_activate_products: true,
+      service_area_enabled: false,
+      service_area_method: "radius",
+      service_area_radius_miles: 50,
+      service_area_center_lat: undefined,
+      service_area_center_lng: undefined,
+      service_area_zip_codes: [],
     },
   });
 
@@ -165,6 +178,12 @@ const Settings = () => {
             global_tax_rate: settings.global_tax_rate || 0,
             require_product_photos: settings.require_product_photos || false,
             auto_activate_products: settings.auto_activate_products ?? true,
+            service_area_enabled: settings.service_area_enabled || false,
+            service_area_method: (settings.service_area_method as "radius" | "zipcodes") || "radius",
+            service_area_radius_miles: settings.service_area_radius_miles || 50,
+            service_area_center_lat: settings.service_area_center_lat || undefined,
+            service_area_center_lng: settings.service_area_center_lng || undefined,
+            service_area_zip_codes: settings.service_area_zip_codes || [],
           });
         }
       }
@@ -838,6 +857,121 @@ const Settings = () => {
                             </FormItem>
                           )}
                         />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                        <MapPin className="h-5 w-5" />
+                        Service Area Configuration
+                      </h3>
+                      <div className="space-y-4">
+                        <FormField
+                          control={settingsForm.control}
+                          name="service_area_enabled"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel>Enable Service Area Restrictions</FormLabel>
+                                <FormDescription>
+                                  Restrict quotes to specific geographical areas
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        {settingsForm.watch("service_area_enabled") && (
+                          <>
+                            <FormField
+                              control={settingsForm.control}
+                              name="service_area_method"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Service Area Method</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select method" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="radius">Radius from Business Location</SelectItem>
+                                      <SelectItem value="zipcodes">Specific ZIP Codes</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormDescription>
+                                    Choose how to define your service area
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            {settingsForm.watch("service_area_method") === "radius" && (
+                              <FormField
+                                control={settingsForm.control}
+                                name="service_area_radius_miles"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Service Radius: {field.value} miles</FormLabel>
+                                    <FormControl>
+                                      <Slider
+                                        min={5}
+                                        max={200}
+                                        step={5}
+                                        value={[field.value]}
+                                        onValueChange={(value) => field.onChange(value[0])}
+                                        className="w-full"
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Distance from your business location (5-200 miles)
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            )}
+
+                            {settingsForm.watch("service_area_method") === "zipcodes" && (
+                              <FormField
+                                control={settingsForm.control}
+                                name="service_area_zip_codes"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Service ZIP Codes</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="12345, 12346, 12347"
+                                        value={field.value?.join(", ") || ""}
+                                        onChange={(e) => {
+                                          const zips = e.target.value
+                                            .split(",")
+                                            .map(zip => zip.trim())
+                                            .filter(zip => zip.length > 0);
+                                          field.onChange(zips);
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Enter ZIP codes separated by commas (e.g., 12345, 12346, 12347)
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
 

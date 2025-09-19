@@ -34,6 +34,12 @@ export type Database = {
           require_email: boolean
           require_phone: boolean
           require_product_photos: boolean
+          service_area_center_lat: number | null
+          service_area_center_lng: number | null
+          service_area_enabled: boolean | null
+          service_area_method: string | null
+          service_area_radius_miles: number | null
+          service_area_zip_codes: string[] | null
           updated_at: string
           use_price_ranges: boolean
           widget_theme_color: string | null
@@ -57,6 +63,12 @@ export type Database = {
           require_email?: boolean
           require_phone?: boolean
           require_product_photos?: boolean
+          service_area_center_lat?: number | null
+          service_area_center_lng?: number | null
+          service_area_enabled?: boolean | null
+          service_area_method?: string | null
+          service_area_radius_miles?: number | null
+          service_area_zip_codes?: string[] | null
           updated_at?: string
           use_price_ranges?: boolean
           widget_theme_color?: string | null
@@ -80,6 +92,12 @@ export type Database = {
           require_email?: boolean
           require_phone?: boolean
           require_product_photos?: boolean
+          service_area_center_lat?: number | null
+          service_area_center_lng?: number | null
+          service_area_enabled?: boolean | null
+          service_area_method?: string | null
+          service_area_radius_miles?: number | null
+          service_area_zip_codes?: string[] | null
           updated_at?: string
           use_price_ranges?: boolean
           widget_theme_color?: string | null
