@@ -100,7 +100,7 @@ export default function Products() {
 
     // Category filter
     if (categoryFilter !== "all") {
-      filtered = filtered.filter(product => product.category === categoryFilter);
+      filtered = filtered.filter(product => product.categoryName === categoryFilter);
     }
 
     // Status filter
