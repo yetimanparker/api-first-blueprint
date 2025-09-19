@@ -17,8 +17,16 @@ import type { ParsedAddress } from "@/hooks/useGooglePlaces";
 const phoneQuoteSchema = z.object({
   first_name: z.string().min(1, "First name is required"),
   last_name: z.string().min(1, "Last name is required"),
-  email: z.string().email("Valid email is required"),
-  phone: z.string().min(1, "Phone number is required"),
+  email: z.string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address")
+    .refine((email) => email.includes("@"), "Email must contain @ symbol"),
+  phone: z.string()
+    .min(1, "Phone number is required")
+    .refine((phone) => {
+      const digits = phone.replace(/\D/g, '');
+      return digits.length >= 10;
+    }, "Phone number must contain at least 10 digits"),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -292,12 +300,12 @@ export function PhoneQuoteDialog({ onQuoteCreated }: PhoneQuoteDialogProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>State</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select state" />
-                          </SelectTrigger>
-                        </FormControl>
+                       <Select onValueChange={field.onChange} value={field.value}>
+                         <FormControl>
+                           <SelectTrigger>
+                             <SelectValue placeholder="Select state" />
+                           </SelectTrigger>
+                         </FormControl>
                         <SelectContent>
                           {states.map((state) => (
                             <SelectItem key={state} value={state}>
@@ -389,12 +397,12 @@ export function PhoneQuoteDialog({ onQuoteCreated }: PhoneQuoteDialogProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Project State</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select state" />
-                          </SelectTrigger>
-                        </FormControl>
+                       <Select onValueChange={field.onChange} value={field.value}>
+                         <FormControl>
+                           <SelectTrigger>
+                             <SelectValue placeholder="Select state" />
+                           </SelectTrigger>
+                         </FormControl>
                         <SelectContent>
                           {states.map((state) => (
                             <SelectItem key={state} value={state}>
