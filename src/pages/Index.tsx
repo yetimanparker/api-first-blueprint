@@ -77,7 +77,7 @@ const Index = () => {
                 Get Started Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8" onClick={() => navigate('/widget/demo')}>
+              <Button size="lg" variant="outline" className="text-lg px-8">
                 View Demo
               </Button>
             </div>
