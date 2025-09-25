@@ -61,7 +61,9 @@ export const MeasurementWidget: React.FC<MeasurementWidgetProps> = ({
   onQuoteSubmit,
   className
 }) => {
-  const [currentStep, setCurrentStep] = useState<WidgetStep>('contact');
+  const [currentStep, setCurrentStep] = useState<WidgetStep>(() => 
+    !settingsLoading && settings?.contactCaptureFlow === 'after_quote' ? 'product' : 'contact'
+  );
   const [progress, setProgress] = useState(0);
   const [contactInfo, setContactInfo] = useState<ContactInfo>({
     firstName: '',
@@ -80,7 +82,7 @@ export const MeasurementWidget: React.FC<MeasurementWidgetProps> = ({
   const { settings, loading: settingsLoading } = useGlobalSettings();
   const { validateByAddress, isValidating } = useServiceArea();
 
-  const steps: WidgetStep[] = settings?.contactCaptureFlow === 'before_quote' 
+  const steps: WidgetStep[] = !settings || settings.contactCaptureFlow === 'before_quote' 
     ? ['contact', 'address', 'product', 'measure', 'configure', 'quote', 'complete']
     : ['product', 'measure', 'configure', 'contact', 'quote', 'complete'];
 
