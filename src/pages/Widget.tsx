@@ -28,15 +28,23 @@ const Widget = () => {
     // This will be handled by the widget component
   };
 
+  console.log('Widget rendering with contractorId:', contractorId, 'mode:', mode);
+  
   return (
     <div className={`${mode === 'embedded' ? '' : 'min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5'} flex items-start justify-center p-4`}>
       <div className={`w-full ${mode === 'embedded' ? 'max-w-none' : 'max-w-2xl'} ${mode === 'embedded' ? 'mt-0' : 'mt-8'}`}>
-        <MeasurementWidget
-          contractorId={contractorId}
-          mode={mode}
-          onQuoteSubmit={handleQuoteSubmit}
-          className={mode === 'embedded' ? 'shadow-none border-0' : ''}
-        />
+        {contractorId ? (
+          <MeasurementWidget
+            contractorId={contractorId}
+            mode={mode}
+            onQuoteSubmit={handleQuoteSubmit}
+            className={mode === 'embedded' ? 'shadow-none border-0' : ''}
+          />
+        ) : (
+          <div className="text-center p-8">
+            <p>Loading widget...</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -61,8 +61,12 @@ export const MeasurementWidget: React.FC<MeasurementWidgetProps> = ({
   onQuoteSubmit,
   className
 }) => {
+  console.log('MeasurementWidget rendering with contractorId:', contractorId);
+  
   const { settings, loading: settingsLoading } = useGlobalSettings();
   const { validateByAddress, isValidating } = useServiceArea();
+  
+  console.log('Settings loading:', settingsLoading, 'Settings:', settings);
 
   const [currentStep, setCurrentStep] = useState<WidgetStep>('contact');
   const [progress, setProgress] = useState(0);
