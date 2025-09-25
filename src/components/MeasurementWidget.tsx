@@ -61,9 +61,10 @@ export const MeasurementWidget: React.FC<MeasurementWidgetProps> = ({
   onQuoteSubmit,
   className
 }) => {
-  const [currentStep, setCurrentStep] = useState<WidgetStep>(() => 
-    !settingsLoading && settings?.contactCaptureFlow === 'after_quote' ? 'product' : 'contact'
-  );
+  const { settings, loading: settingsLoading } = useGlobalSettings();
+  const { validateByAddress, isValidating } = useServiceArea();
+
+  const [currentStep, setCurrentStep] = useState<WidgetStep>('contact');
   const [progress, setProgress] = useState(0);
   const [contactInfo, setContactInfo] = useState<ContactInfo>({
     firstName: '',
@@ -79,8 +80,12 @@ export const MeasurementWidget: React.FC<MeasurementWidgetProps> = ({
   const [mapCenter, setMapCenter] = useState<LatLng>(new LatLng(39.8283, -98.5795)); // Default to US center
   const [manualMeasurement, setManualMeasurement] = useState<string>('');
 
-  const { settings, loading: settingsLoading } = useGlobalSettings();
-  const { validateByAddress, isValidating } = useServiceArea();
+  // Update step when settings load
+  useEffect(() => {
+    if (!settingsLoading && settings) {
+      setCurrentStep(settings.contactCaptureFlow === 'after_quote' ? 'product' : 'contact');
+    }
+  }, [settings, settingsLoading]);
 
   const steps: WidgetStep[] = !settings || settings.contactCaptureFlow === 'before_quote' 
     ? ['contact', 'address', 'product', 'measure', 'configure', 'quote', 'complete']
