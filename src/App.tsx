@@ -11,6 +11,7 @@ import CRM from "./pages/CRM";
 import CustomerDetail from "./pages/CustomerDetail";
 import QuoteEdit from "./pages/QuoteEdit";
 import Settings from "./pages/Settings";
+import Widget from "./pages/Widget";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/customer/:customerId" element={<CustomerDetail />} />
           <Route path="/quote/edit/:quoteId" element={<QuoteEdit />} />
           <Route path="/quote/edit/:quoteId/:accessToken" element={<QuoteEdit />} />
+          <Route path="/widget/:contractorId" element={<Widget />} />
           <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

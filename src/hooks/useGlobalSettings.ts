@@ -9,6 +9,8 @@ export interface GlobalSettings extends PriceRangeSettings {
   require_product_photos: boolean;
   global_tax_rate: number;
   global_markup_percentage: number;
+  contactCaptureFlow: 'before_quote' | 'after_quote';
+  serviceAreaEnabled: boolean;
 }
 
 export function useGlobalSettings() {
@@ -45,6 +47,8 @@ export function useGlobalSettings() {
           require_product_photos: false,
           global_tax_rate: 0,
           global_markup_percentage: 0,
+          contactCaptureFlow: 'before_quote',
+          serviceAreaEnabled: false,
         });
         return;
       }
@@ -73,6 +77,8 @@ export function useGlobalSettings() {
           require_product_photos: contractorSettings.require_product_photos || false,
           global_tax_rate: contractorSettings.global_tax_rate || 0,
           global_markup_percentage: contractorSettings.global_markup_percentage || 0,
+          contactCaptureFlow: (contractorSettings.contact_capture_timing === 'before_quote' ? 'before_quote' : 'after_quote'),
+          serviceAreaEnabled: contractorSettings.service_area_enabled || false,
         });
       } else {
         // Use default settings if no settings found
@@ -88,6 +94,8 @@ export function useGlobalSettings() {
           require_product_photos: false,
           global_tax_rate: 0,
           global_markup_percentage: 0,
+          contactCaptureFlow: 'before_quote',
+          serviceAreaEnabled: false,
         });
       }
     } catch (err: any) {
