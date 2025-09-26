@@ -250,7 +250,9 @@ const ContactForm = ({
 
           <Button 
             type="submit" 
-            className="w-full"
+            variant="default"
+            size="lg"
+            className="w-full mt-6 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             Continue
           </Button>
