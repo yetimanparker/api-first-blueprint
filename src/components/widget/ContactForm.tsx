@@ -89,12 +89,12 @@ const ContactForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with:', customerInfo);
+    console.log('Service area valid:', isServiceAreaValid);
+    console.log('Is validating:', isValidating);
+    
     if (validateForm()) {
-      // Check service area if enabled and address provided
-      if (settings.service_area_enabled !== false && customerInfo.address && isServiceAreaValid === false) {
-        setErrors({ address: 'This address is outside our service area' });
-        return;
-      }
+      // Don't block on service area validation - let user proceed 
       onNext();
     }
   };

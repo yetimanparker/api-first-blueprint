@@ -66,9 +66,10 @@ export function useGooglePlaces() {
 
     try {
       const { data, error: supabaseError } = await supabase.functions.invoke(
-        'google-places-autocomplete/autocomplete',
+        'google-places-autocomplete',
         {
           body: {
+            endpoint: 'autocomplete',
             input: input.trim(),
             sessionToken: generateSessionToken(),
             types: options?.types || ['address'],
@@ -102,9 +103,10 @@ export function useGooglePlaces() {
 
     try {
       const { data, error: supabaseError } = await supabase.functions.invoke(
-        'google-places-autocomplete/details',
+        'google-places-autocomplete',
         {
           body: {
+            endpoint: 'details',
             placeId,
             sessionToken: sessionTokenRef.current,
           },

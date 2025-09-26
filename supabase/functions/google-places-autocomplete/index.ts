@@ -40,16 +40,16 @@ serve(async (req) => {
       );
     }
 
-    const url = new URL(req.url);
-    const endpoint = url.pathname.split('/').pop();
+    const requestBody = await req.json();
+    const { endpoint } = requestBody;
     
     if (endpoint === 'autocomplete') {
-      return handleAutocomplete(req, googleApiKey);
+      return handleAutocomplete(requestBody, googleApiKey);
     } else if (endpoint === 'details') {
-      return handlePlaceDetails(req, googleApiKey);
+      return handlePlaceDetails(requestBody, googleApiKey);
     } else {
       return new Response(
-        JSON.stringify({ error: 'Invalid endpoint. Use /autocomplete or /details' }),
+        JSON.stringify({ error: 'Invalid endpoint. Use endpoint: "autocomplete" or "details" in request body' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -68,8 +68,8 @@ serve(async (req) => {
   }
 });
 
-async function handleAutocomplete(req: Request, apiKey: string) {
-  const { input, sessionToken, types, componentRestrictions }: AutocompleteRequest = await req.json();
+async function handleAutocomplete(requestBody: any, apiKey: string) {
+  const { input, sessionToken, types, componentRestrictions }: AutocompleteRequest = requestBody;
   
   if (!input || input.trim().length < 2) {
     return new Response(
@@ -140,8 +140,8 @@ async function handleAutocomplete(req: Request, apiKey: string) {
   }
 }
 
-async function handlePlaceDetails(req: Request, apiKey: string) {
-  const { placeId, sessionToken }: PlaceDetailsRequest = await req.json();
+async function handlePlaceDetails(requestBody: any, apiKey: string) {
+  const { placeId, sessionToken }: PlaceDetailsRequest = requestBody;
   
   if (!placeId) {
     return new Response(

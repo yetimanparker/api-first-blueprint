@@ -56,6 +56,9 @@ const Widget = () => {
         ? 'product-selection' 
         : 'contact-before';
       
+      console.log('Initializing widget with step:', initialStep);
+      console.log('Settings:', settings);
+      
       setWidgetState(prev => ({
         ...prev,
         currentStep: initialStep
@@ -139,6 +142,8 @@ const Widget = () => {
   };
 
   const nextStep = () => {
+    console.log('Moving to next step from:', widgetState.currentStep);
+    
     const stepFlow: Record<WorkflowStep, WorkflowStep> = {
       'contact-before': 'product-selection',
       'product-selection': 'measurement',
@@ -151,9 +156,12 @@ const Widget = () => {
       'confirmation': 'confirmation'
     };
 
+    const nextStepValue = stepFlow[widgetState.currentStep];
+    console.log('Next step will be:', nextStepValue);
+
     setWidgetState(prev => ({
       ...prev,
-      currentStep: stepFlow[prev.currentStep]
+      currentStep: nextStepValue
     }));
   };
 
@@ -266,17 +274,16 @@ const Widget = () => {
           </div>
         </div>
 
-        {/* Step content */}
-        {widgetState.currentStep === 'contact-before' && (
-          <ContactForm
-            customerInfo={widgetState.customerInfo}
-            onUpdate={updateCustomerInfo}
-            onNext={nextStep}
-            settings={settings}
-            isServiceAreaValid={widgetState.isServiceAreaValid}
-            isValidating={isValidating}
-          />
-        )}
+            {(widgetState.currentStep === 'contact-before' || widgetState.currentStep === 'contact-after') && (
+              <ContactForm
+                customerInfo={widgetState.customerInfo}
+                onUpdate={updateCustomerInfo}
+                onNext={nextStep}
+                settings={settings}
+                isServiceAreaValid={widgetState.isServiceAreaValid}
+                isValidating={isValidating}
+              />
+            )}
 
         {widgetState.currentStep === 'product-selection' && (
           <ProductSelector
