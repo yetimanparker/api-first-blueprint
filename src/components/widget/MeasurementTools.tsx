@@ -126,33 +126,63 @@ const MeasurementTools = ({
         maxZoom: 19,
       });
 
-      // Try Google first, fallback to OSM on error
-      let primaryLayer = googleSat;
+      // Add primary layer and handle loading
+      console.log('Adding Google Satellite tiles to map...');
+      googleSat.addTo(map);
       
-      googleSat.on('tileerror', (e) => {
-        console.warn('Google tiles failed, switching to OpenStreetMap');
-        if (map.hasLayer(googleSat)) {
-          map.removeLayer(googleSat);
-          osmLayer.addTo(map);
+      let tilesLoaded = false;
+      let tileLoadCount = 0;
+      let tileErrorCount = 0;
+      
+      // Set a reasonable timeout for map loading
+      const loadTimeout = setTimeout(() => {
+        console.log('Map load timeout reached, assuming map is ready');
+        setMapLoading(false);
+      }, 3000);
+      
+      // Track individual tile loads
+      googleSat.on('tileload', () => {
+        tileLoadCount++;
+        if (tileLoadCount >= 3 && !tilesLoaded) { // After a few tiles load successfully
+          console.log(`Map tiles loading successfully (${tileLoadCount} tiles loaded)`);
+          tilesLoaded = true;
+          clearTimeout(loadTimeout);
+          setMapLoading(false);
         }
       });
-
-      primaryLayer.addTo(map);
       
-      // Add loading indicator
-      map.on('loading', () => setMapLoading(true));
-      map.on('load', () => {
-        setMapLoading(false);
-        console.log('Map loaded successfully');
+      // Handle tile errors
+      googleSat.on('tileerror', () => {
+        tileErrorCount++;
+        console.warn(`Tile error ${tileErrorCount}, total loaded: ${tileLoadCount}`);
+        
+        if (tileErrorCount >= 3 && tileLoadCount === 0) {
+          console.warn('Multiple tile errors, switching to OpenStreetMap');
+          map.removeLayer(googleSat);
+          osmLayer.addTo(map);
+          
+          // Simple fallback - just assume OSM works after a short delay
+          setTimeout(() => {
+            console.log('Switched to OSM, assuming ready');
+            clearTimeout(loadTimeout);
+            setMapLoading(false);
+          }, 1500);
+        }
       });
       
-      // Handle tile loading errors
-      map.on('tileerror', (e) => {
-        console.warn('Tile loading error:', e);
+      // Fallback: Map ready event
+      map.whenReady(() => {
+        console.log('Leaflet map ready event fired');
+        setTimeout(() => {
+          if (!tilesLoaded) {
+            console.log('Map ready but tiles not confirmed, assuming loaded');
+            clearTimeout(loadTimeout);
+            setMapLoading(false);
+          }
+        }, 1000);
       });
 
       mapRef.current = map;
-      setMapLoading(false);
 
       // Try to geocode customer address if provided
       if (customerAddress) {
