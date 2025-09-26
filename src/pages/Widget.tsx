@@ -208,7 +208,7 @@ const Widget = () => {
         {/* Header with Branding */}
         <div className="mb-8 text-center">
           <div 
-            className="inline-block px-6 py-3 rounded-full text-white font-semibold text-lg mb-4"
+            className="inline-block px-6 py-3 rounded-full text-primary-foreground font-semibold text-lg mb-4"
             style={{ backgroundColor: brandColor }}
           >
             {contractorInfo?.business_name || 'Professional Services'}
