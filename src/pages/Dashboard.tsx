@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Building2, Package, Users, FileText, Settings, Plus } from "lucide-react";
+import { LogOut, Building2, Package, Users, FileText, Settings, Plus, ExternalLink, Eye } from "lucide-react";
 import type { User, Session } from "@supabase/supabase-js";
+import { useContractorId } from "@/hooks/useContractorId";
 
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -13,6 +14,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { contractorId } = useContractorId();
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -172,7 +174,7 @@ const Dashboard = () => {
         </div>
 
         {/* Main Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader>
               <div className="flex items-center">
@@ -208,6 +210,31 @@ const Dashboard = () => {
             <CardContent>
               <Button variant="outline" className="w-full" onClick={() => navigate("/crm")}>
                 View Customers
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardHeader>
+              <div className="flex items-center">
+                <div className="p-2 bg-blue-500/10 rounded-lg mr-3">
+                  <Eye className="h-6 w-6 text-blue-500" />
+                </div>
+                <div>
+                  <CardTitle>Preview Widget</CardTitle>
+                  <CardDescription>Test your customer-facing quote widget</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => contractorId && window.open(`/widget/${contractorId}`, '_blank')}
+                disabled={!contractorId}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open Widget
               </Button>
             </CardContent>
           </Card>
