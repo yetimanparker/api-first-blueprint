@@ -9,6 +9,13 @@ export interface GlobalSettings extends PriceRangeSettings {
   require_product_photos: boolean;
   global_tax_rate: number;
   global_markup_percentage: number;
+  require_email: boolean;
+  require_phone: boolean;
+  require_address: boolean;
+  service_area_enabled: boolean;
+  widget_theme_color: string;
+  contact_capture_timing: 'before_quote' | 'after_quote';
+  pricing_visibility: 'before_submit' | 'after_submit';
 }
 
 export function useGlobalSettings() {
@@ -45,6 +52,13 @@ export function useGlobalSettings() {
           require_product_photos: false,
           global_tax_rate: 0,
           global_markup_percentage: 0,
+          require_email: true,
+          require_phone: true,
+          require_address: true,
+          service_area_enabled: false,
+          widget_theme_color: '#3B82F6',
+          contact_capture_timing: 'before_quote',
+          pricing_visibility: 'before_submit',
         });
         return;
       }
@@ -73,6 +87,13 @@ export function useGlobalSettings() {
           require_product_photos: contractorSettings.require_product_photos || false,
           global_tax_rate: contractorSettings.global_tax_rate || 0,
           global_markup_percentage: contractorSettings.global_markup_percentage || 0,
+          require_email: contractorSettings.require_email ?? true,
+          require_phone: contractorSettings.require_phone ?? true,
+          require_address: contractorSettings.require_address ?? true,
+          service_area_enabled: contractorSettings.service_area_enabled || false,
+          widget_theme_color: contractorSettings.widget_theme_color || '#3B82F6',
+          contact_capture_timing: (contractorSettings.contact_capture_timing as any) || 'before_quote',
+          pricing_visibility: (contractorSettings.pricing_visibility as any) || 'before_submit',
         });
       } else {
         // Use default settings if no settings found
@@ -88,6 +109,13 @@ export function useGlobalSettings() {
           require_product_photos: false,
           global_tax_rate: 0,
           global_markup_percentage: 0,
+          require_email: true,
+          require_phone: true,
+          require_address: true,
+          service_area_enabled: false,
+          widget_theme_color: '#3B82F6',
+          contact_capture_timing: 'before_quote',
+          pricing_visibility: 'before_submit',
         });
       }
     } catch (err: any) {

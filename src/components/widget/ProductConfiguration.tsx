@@ -146,7 +146,12 @@ const ProductConfiguration = ({
 
     // Apply tiered pricing if enabled
     if (product.use_tiered_pricing && pricingTiers.length > 0) {
-      basePrice = calculateTieredPrice(quantity, pricingTiers, product.unit_price);
+      const simplifiedTiers: any[] = pricingTiers.map(tier => ({
+        min_quantity: tier.min_quantity,
+        max_quantity: tier.max_quantity,
+        tier_price: tier.tier_price
+      }));
+      basePrice = calculateTieredPrice(quantity, simplifiedTiers, product.unit_price);
     }
 
     // Apply variations
