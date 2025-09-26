@@ -88,16 +88,25 @@ const MeasurementTools = ({
   };
 
   const initializeMap = async (retry = false) => {
-    if (!mapContainerRef.current) return;
+    if (!mapContainerRef.current) {
+      console.log('No map container ref, aborting initialization');
+      return;
+    }
 
     try {
       setMapLoading(true);
       setMapError(null);
       
-      console.log('Initializing map...', retry ? `(retry ${retryCount + 1})` : '');
+      console.log('=== MAP INITIALIZATION START ===');
+      console.log('Map container:', mapContainerRef.current);
+      console.log('Container dimensions:', {
+        width: mapContainerRef.current.offsetWidth,
+        height: mapContainerRef.current.offsetHeight
+      });
       
       // Dynamic import to avoid SSR issues
       const L = (await import('leaflet')).default;
+      console.log('Leaflet imported successfully');
       
       // Fix for default markers
       delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -108,10 +117,13 @@ const MeasurementTools = ({
       });
 
       // Initialize map
+      console.log('Creating Leaflet map...');
       const map = L.map(mapContainerRef.current, {
         zoomControl: true,
         attributionControl: true,
       }).setView([39.8283, -98.5795], 4);
+      
+      console.log('Map created, adding tiles...');
       
       // Primary: Google Satellite layer
       const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
@@ -126,77 +138,61 @@ const MeasurementTools = ({
         maxZoom: 19,
       });
 
-      // Add primary layer and handle loading
-      console.log('Adding Google Satellite tiles to map...');
+      // Add Google tiles immediately
       googleSat.addTo(map);
+      console.log('Google Satellite tiles added to map');
       
-      let tilesLoaded = false;
-      let tileLoadCount = 0;
-      let tileErrorCount = 0;
-      
-      // Set a reasonable timeout for map loading
-      const loadTimeout = setTimeout(() => {
-        console.log('Map load timeout reached, assuming map is ready');
+      // Force loading state to clear after 2 seconds regardless
+      const forceReady = setTimeout(() => {
+        console.log('FORCE CLEARING loading state after timeout');
         setMapLoading(false);
-      }, 3000);
+      }, 2000);
       
-      // Track individual tile loads
+      // Track tile loading
+      let tileCount = 0;
       googleSat.on('tileload', () => {
-        tileLoadCount++;
-        if (tileLoadCount >= 3 && !tilesLoaded) { // After a few tiles load successfully
-          console.log(`Map tiles loading successfully (${tileLoadCount} tiles loaded)`);
-          tilesLoaded = true;
-          clearTimeout(loadTimeout);
+        tileCount++;
+        console.log(`Tile loaded: ${tileCount}`);
+        if (tileCount >= 1) { // Clear loading after first successful tile
+          console.log('First tile loaded, clearing loading state');
+          clearTimeout(forceReady);
           setMapLoading(false);
         }
       });
       
       // Handle tile errors
-      googleSat.on('tileerror', () => {
-        tileErrorCount++;
-        console.warn(`Tile error ${tileErrorCount}, total loaded: ${tileLoadCount}`);
-        
-        if (tileErrorCount >= 3 && tileLoadCount === 0) {
-          console.warn('Multiple tile errors, switching to OpenStreetMap');
+      googleSat.on('tileerror', (e) => {
+        console.warn('Tile load error:', e);
+        // Switch to OSM on errors
+        setTimeout(() => {
+          console.log('Switching to OpenStreetMap due to tile errors');
           map.removeLayer(googleSat);
           osmLayer.addTo(map);
-          
-          // Simple fallback - just assume OSM works after a short delay
-          setTimeout(() => {
-            console.log('Switched to OSM, assuming ready');
-            clearTimeout(loadTimeout);
-            setMapLoading(false);
-          }, 1500);
-        }
-      });
-      
-      // Fallback: Map ready event
-      map.whenReady(() => {
-        console.log('Leaflet map ready event fired');
-        setTimeout(() => {
-          if (!tilesLoaded) {
-            console.log('Map ready but tiles not confirmed, assuming loaded');
-            clearTimeout(loadTimeout);
-            setMapLoading(false);
-          }
+          clearTimeout(forceReady);
+          setMapLoading(false);
         }, 1000);
       });
 
+      // Store map reference
       mapRef.current = map;
+      console.log('Map stored in ref, initialization complete');
 
       // Try to geocode customer address if provided
       if (customerAddress) {
+        console.log('Geocoding customer address:', customerAddress);
         geocodeAndCenterMap(customerAddress);
       }
+      
+      console.log('=== MAP INITIALIZATION END ===');
 
     } catch (error) {
-      console.error('Error initializing map:', error);
+      console.error('=== MAP INITIALIZATION ERROR ===', error);
       setMapError(`Failed to load map: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setMapLoading(false);
       
       // Retry logic
       if (retryCount < 2) {
-        console.log(`Retrying map initialization in 2 seconds...`);
+        console.log(`Retrying map initialization in 2 seconds... (attempt ${retryCount + 1})`);
         setTimeout(() => {
           setRetryCount(prev => prev + 1);
           initializeMap(true);
@@ -438,12 +434,15 @@ const MeasurementTools = ({
                 style={{ minHeight: '320px' }}
               />
               
-              {/* Map Loading Overlay */}
+              {/* Map Loading Overlay - Simplified */}
               {mapLoading && (
-                <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
+                <div className="absolute inset-0 bg-background/90 flex items-center justify-center rounded-lg">
                   <div className="text-center">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
                     <p className="text-sm text-muted-foreground">Loading map...</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This should only take a moment
+                    </p>
                   </div>
                 </div>
               )}
@@ -466,6 +465,13 @@ const MeasurementTools = ({
                       Retry Map
                     </Button>
                   </div>
+                </div>
+              )}
+              
+              {/* Debug Info */}
+              {!mapLoading && !mapError && (
+                <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                  Map Ready
                 </div>
               )}
             </div>
