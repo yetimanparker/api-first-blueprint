@@ -230,11 +230,11 @@ const Dashboard = () => {
               <Button 
                 variant="outline" 
                 className="w-full" 
-                onClick={() => contractorId && window.open(`/widget/${contractorId}`, '_blank')}
+                onClick={() => contractorId && navigate(`/widget/${contractorId}`)}
                 disabled={!contractorId}
               >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open Widget
+                <Eye className="h-4 w-4 mr-2" />
+                Preview Widget
               </Button>
             </CardContent>
           </Card>

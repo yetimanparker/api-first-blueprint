@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useGlobalSettings } from '@/hooks/useGlobalSettings';
 import { useProductCategories } from '@/hooks/useGlobalSettings';
@@ -18,6 +18,7 @@ import { WidgetState, WorkflowStep, CustomerInfo, QuoteItem, MeasurementData } f
 const Widget = () => {
   const { contractorId } = useParams<{ contractorId: string }>();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const { settings, loading: settingsLoading, error: settingsError } = useGlobalSettings();
   const { categories, loading: categoriesLoading } = useProductCategories();
@@ -204,6 +205,21 @@ const Widget = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30" style={brandStyle}>
+      {/* Back to Dashboard Button */}
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/dashboard')}
+            className="mb-2"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+      
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header with Branding */}
         <div className="mb-8 text-center">
