@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useGlobalSettings } from '@/hooks/useGlobalSettings';
 import { useProductCategories } from '@/hooks/useGlobalSettings';
 import { useServiceArea } from '@/hooks/useServiceArea';
@@ -24,17 +25,36 @@ const Widget = () => {
 
   const [widgetState, setWidgetState] = useState<WidgetState>({
     contractorId: contractorId!,
-    currentStep: 'product-selection', // Will be updated based on settings
+    currentStep: 'contact-before', // Start with contact based on settings
     customerInfo: {},
     quoteItems: [],
   });
 
+  const [contractorInfo, setContractorInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch contractor information for branding
+  useEffect(() => {
+    const fetchContractor = async () => {
+      if (contractorId) {
+        const { data } = await supabase
+          .from('contractors')
+          .select('business_name, brand_color, secondary_color')
+          .eq('id', contractorId)
+          .single();
+        
+        setContractorInfo(data);
+      }
+    };
+    fetchContractor();
+  }, [contractorId]);
 
   // Initialize workflow based on contractor settings
   useEffect(() => {
     if (settings && !settingsLoading) {
-      const initialStep: WorkflowStep = 'product-selection';
+      const initialStep: WorkflowStep = settings.contact_capture_timing === 'after_quote' 
+        ? 'product-selection' 
+        : 'contact-before';
       
       setWidgetState(prev => ({
         ...prev,
@@ -152,33 +172,80 @@ const Widget = () => {
   }
 
   // Apply contractor branding
+  const brandColor = contractorInfo?.brand_color || settings?.widget_theme_color || '#3B82F6';
   const brandStyle = {
-    '--primary': `hsl(${settings.widget_theme_color || '#3B82F6'})`,
+    '--primary': brandColor,
   } as React.CSSProperties;
 
+  const stepConfig = [
+    { key: 'contact-before', label: '1. Contact Information', active: true },
+    { key: 'product-selection', label: '2. Select Your Products', active: false },
+    { key: 'measurement', label: '3. Measure Your Project', active: false },
+    { key: 'quote-review', label: '4. Review Your Quote', active: false }
+  ];
+
+  const currentStepIndex = stepConfig.findIndex(step => {
+    if (step.key === 'contact-before') return ['contact-before', 'contact-after'].includes(widgetState.currentStep);
+    if (step.key === 'product-selection') return ['product-selection'].includes(widgetState.currentStep);
+    if (step.key === 'measurement') return ['measurement', 'product-configuration', 'add-another-check'].includes(widgetState.currentStep);
+    if (step.key === 'quote-review') return ['project-comments', 'quote-review', 'confirmation'].includes(widgetState.currentStep);
+    return false;
+  });
+
   return (
-    <div className="min-h-screen bg-background" style={brandStyle}>
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/30" style={brandStyle}>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Header with Branding */}
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Get Your Quote</h1>
-          <p className="text-muted-foreground">Fast, accurate estimates for your project</p>
+          <div 
+            className="inline-block px-6 py-3 rounded-full text-white font-semibold text-lg mb-4"
+            style={{ backgroundColor: brandColor }}
+          >
+            {contractorInfo?.business_name || 'Professional Services'}
+          </div>
+          <h1 className="text-4xl font-bold text-foreground mb-2">
+            {contractorInfo?.business_name || 'Professional Services'}
+          </h1>
+          <p className="text-muted-foreground text-lg">Professional outdoor services</p>
         </div>
 
-        {/* Progress indicator */}
+        {/* Step Indicators */}
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-muted-foreground">Progress</span>
-            <span className="text-sm text-muted-foreground">
-              {widgetState.currentStep === 'confirmation' ? '100' : Math.round((getStepIndex(widgetState.currentStep) / 7) * 100)}%
-            </span>
-          </div>
-          <div className="w-full bg-secondary rounded-full h-2">
-            <div 
-              className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ 
-                width: `${widgetState.currentStep === 'confirmation' ? 100 : (getStepIndex(widgetState.currentStep) / 7) * 100}%` 
-              }}
-            />
+          <div className="flex flex-col space-y-4">
+            {stepConfig.map((step, index) => {
+              const isActive = index === currentStepIndex;
+              const isCompleted = index < currentStepIndex;
+              const isAccessible = index <= currentStepIndex;
+              
+              return (
+                <div
+                  key={step.key}
+                  className={`flex items-center p-4 rounded-lg border transition-all ${
+                    isActive 
+                      ? 'border-primary bg-primary/5 shadow-md' 
+                      : isCompleted
+                      ? 'border-success bg-success/5'
+                      : 'border-border bg-card'
+                  }`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                      isActive 
+                        ? 'bg-primary text-primary-foreground' 
+                        : isCompleted
+                        ? 'bg-success text-success-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {isCompleted ? '✓' : index + 1}
+                  </div>
+                  <h3 className={`ml-4 font-medium ${isActive ? 'text-primary' : isCompleted ? 'text-success' : 'text-muted-foreground'}`}>
+                    {step.label}
+                  </h3>
+                  {isActive && <span className="ml-auto text-sm text-muted-foreground">Current Step</span>}
+                </div>
+              );
+            })}
           </div>
         </div>
 
