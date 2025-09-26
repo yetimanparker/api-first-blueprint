@@ -27,6 +27,8 @@ export interface ParsedAddress {
   state: string;
   zipCode: string;
   country: string;
+  lat?: number;
+  lng?: number;
 }
 
 export function useGooglePlaces() {
@@ -132,6 +134,8 @@ export function useGooglePlaces() {
         state: components.administrativeAreaLevel1 || '',
         zipCode: components.postalCode || '',
         country: components.country || '',
+        lat: result.geometry?.location?.lat,
+        lng: result.geometry?.location?.lng,
       };
 
       // Clear session token after successful request

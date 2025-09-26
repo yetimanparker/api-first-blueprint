@@ -52,7 +52,9 @@ const ContactForm = ({
           address: description,
           city: placeDetails?.city,
           state: placeDetails?.state,
-          zipCode: placeDetails?.zipCode
+          zipCode: placeDetails?.zipCode,
+          lat: placeDetails?.lat,
+          lng: placeDetails?.lng
         });
     } else {
       onUpdate({ address: description });

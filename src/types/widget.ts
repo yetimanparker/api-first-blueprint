@@ -7,6 +7,8 @@ export interface CustomerInfo {
   city?: string;
   state?: string;
   zipCode?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface MeasurementData {

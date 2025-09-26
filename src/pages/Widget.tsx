@@ -67,11 +67,22 @@ const Widget = () => {
   useEffect(() => {
     const validateCustomerArea = async () => {
       if (widgetState.customerInfo.address && contractorId) {
+        console.log('Validating service area with:', {
+          address: widgetState.customerInfo.address,
+          lat: widgetState.customerInfo.lat,
+          lng: widgetState.customerInfo.lng,
+          zipCode: widgetState.customerInfo.zipCode
+        });
+        
         const result = await validateServiceArea({
           contractor_id: contractorId,
           customer_address: widgetState.customerInfo.address,
+          customer_lat: widgetState.customerInfo.lat,
+          customer_lng: widgetState.customerInfo.lng,
           customer_zip: widgetState.customerInfo.zipCode,
         });
+
+        console.log('Service area validation result:', result);
 
         setWidgetState(prev => ({
           ...prev,
@@ -84,12 +95,18 @@ const Widget = () => {
             description: result.message,
             variant: "destructive",
           });
+        } else if (result && result.valid) {
+          toast({
+            title: "Service Area Confirmed",
+            description: result.message,
+            variant: "default",
+          });
         }
       }
     };
 
     validateCustomerArea();
-  }, [widgetState.customerInfo.address, widgetState.customerInfo.zipCode, contractorId, settings, validateServiceArea, toast]);
+  }, [widgetState.customerInfo.address, widgetState.customerInfo.zipCode, widgetState.customerInfo.lat, widgetState.customerInfo.lng, contractorId, settings, validateServiceArea, toast]);
 
   const updateCustomerInfo = (info: Partial<CustomerInfo>) => {
     setWidgetState(prev => ({
