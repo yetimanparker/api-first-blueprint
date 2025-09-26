@@ -51,10 +51,13 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       if (!contractorId) {
         throw new Error('Contractor ID not provided');
       }
+      
+      console.log('Fetching products for contractor:', contractorId);
       
       const { data, error } = await supabase
         .from('products')
@@ -63,13 +66,21 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
       
-      console.log(`Fetched ${data?.length || 0} products for contractor ${contractorId}`);
+      console.log(`Successfully fetched ${data?.length || 0} products for contractor ${contractorId}`);
+      console.log('Products data:', data);
       setProducts(data || []);
+      
+      if (!data || data.length === 0) {
+        console.warn('No active products found for contractor:', contractorId);
+      }
     } catch (err) {
       console.error('Error fetching products:', err);
-      setError('Unable to load products. Please try again.');
+      setError(`Failed to load products: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
