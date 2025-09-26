@@ -37,6 +37,9 @@ const MeasurementTools = ({
   const [mapMeasurement, setMapMeasurement] = useState<number | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentMeasurement, setCurrentMeasurement] = useState<MeasurementData | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [mapLoading, setMapLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -84,10 +87,15 @@ const MeasurementTools = ({
     }
   };
 
-  const initializeMap = async () => {
+  const initializeMap = async (retry = false) => {
     if (!mapContainerRef.current) return;
 
     try {
+      setMapLoading(true);
+      setMapError(null);
+      
+      console.log('Initializing map...', retry ? `(retry ${retryCount + 1})` : '');
+      
       // Dynamic import to avoid SSR issues
       const L = (await import('leaflet')).default;
       
@@ -100,16 +108,51 @@ const MeasurementTools = ({
       });
 
       // Initialize map
-      const map = L.map(mapContainerRef.current).setView([39.8283, -98.5795], 4);
+      const map = L.map(mapContainerRef.current, {
+        zoomControl: true,
+        attributionControl: true,
+      }).setView([39.8283, -98.5795], 4);
       
-      // Add Google Satellite layer
+      // Primary: Google Satellite layer
       const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
         attribution: '© Google',
         maxZoom: 20,
+        errorTileUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZmlsbD0iIzk5OSI+TWFwIFVuYXZhaWxhYmxlPC90ZXh0Pjwvc3ZnPg=='
       });
-      googleSat.addTo(map);
+      
+      // Fallback: OpenStreetMap layer
+      const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19,
+      });
+
+      // Try Google first, fallback to OSM on error
+      let primaryLayer = googleSat;
+      
+      googleSat.on('tileerror', (e) => {
+        console.warn('Google tiles failed, switching to OpenStreetMap');
+        if (map.hasLayer(googleSat)) {
+          map.removeLayer(googleSat);
+          osmLayer.addTo(map);
+        }
+      });
+
+      primaryLayer.addTo(map);
+      
+      // Add loading indicator
+      map.on('loading', () => setMapLoading(true));
+      map.on('load', () => {
+        setMapLoading(false);
+        console.log('Map loaded successfully');
+      });
+      
+      // Handle tile loading errors
+      map.on('tileerror', (e) => {
+        console.warn('Tile loading error:', e);
+      });
 
       mapRef.current = map;
+      setMapLoading(false);
 
       // Try to geocode customer address if provided
       if (customerAddress) {
@@ -118,6 +161,17 @@ const MeasurementTools = ({
 
     } catch (error) {
       console.error('Error initializing map:', error);
+      setMapError(`Failed to load map: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setMapLoading(false);
+      
+      // Retry logic
+      if (retryCount < 2) {
+        console.log(`Retrying map initialization in 2 seconds...`);
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          initializeMap(true);
+        }, 2000);
+      }
     }
   };
 
@@ -347,16 +401,49 @@ const MeasurementTools = ({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div 
-              ref={mapContainerRef}
-              className="w-full h-64 sm:h-80 bg-muted rounded-lg"
-              style={{ minHeight: '320px' }}
-            />
+            <div className="relative">
+              <div 
+                ref={mapContainerRef}
+                className="w-full h-64 sm:h-80 bg-muted rounded-lg border"
+                style={{ minHeight: '320px' }}
+              />
+              
+              {/* Map Loading Overlay */}
+              {mapLoading && (
+                <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
+                  <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
+                    <p className="text-sm text-muted-foreground">Loading map...</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Map Error State */}
+              {mapError && (
+                <div className="absolute inset-0 bg-background/90 flex items-center justify-center rounded-lg">
+                  <div className="text-center p-4">
+                    <MapPin className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm font-medium mb-2">Map Unavailable</p>
+                    <p className="text-xs text-muted-foreground mb-3">{mapError}</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        setRetryCount(0);
+                        initializeMap();
+                      }}
+                    >
+                      Retry Map
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
             
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={startDrawing}
-                disabled={isDrawing}
+                disabled={isDrawing || !!mapError || mapLoading}
                 variant="outline"
                 className="flex-1"
               >
@@ -376,7 +463,7 @@ const MeasurementTools = ({
               <Button
                 onClick={clearMapDrawing}
                 variant="outline"
-                disabled={!mapMeasurement && !isDrawing}
+                disabled={(!mapMeasurement && !isDrawing) || !!mapError}
               >
                 Clear
               </Button>

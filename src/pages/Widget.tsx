@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +32,7 @@ const Widget = () => {
 
   const [contractorInfo, setContractorInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   // Use debounced service area validation
   const { isServiceAreaValid, isValidating, manualValidate } = useDebouncedServiceArea({
@@ -113,7 +114,15 @@ const Widget = () => {
     }));
   };
 
-  const setCurrentProduct = (productId: string) => {
+  const setCurrentProduct = async (productId: string) => {
+    // Fetch product details to display in UI
+    const { data: productData } = await supabase
+      .from('products')
+      .select('id, name, description, unit_type, unit_price')
+      .eq('id', productId)
+      .single();
+    
+    setSelectedProduct(productData);
     setWidgetState(prev => ({
       ...prev,
       currentProductId: productId,
@@ -152,6 +161,7 @@ const Widget = () => {
   };
 
   const goToProductSelection = () => {
+    setSelectedProduct(null);
     setWidgetState(prev => ({
       ...prev,
       currentStep: 'product-selection',
@@ -296,40 +306,122 @@ const Widget = () => {
         )}
 
         {widgetState.currentStep === 'measurement' && widgetState.currentProductId && (
-          <MeasurementTools
-            productId={widgetState.currentProductId}
-            onMeasurementComplete={updateCurrentMeasurement}
-            onNext={() => setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }))}
-            customerAddress={widgetState.customerInfo.address}
-          />
+          <div className="space-y-4">
+            {/* Selected Product Context */}
+            {selectedProduct && (
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-primary">Selected Product</h3>
+                      <p className="text-sm">{selectedProduct.name}</p>
+                      {selectedProduct.description && (
+                        <p className="text-xs text-muted-foreground">{selectedProduct.description}</p>
+                      )}
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={goToProductSelection}
+                    >
+                      Change Product
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            <MeasurementTools
+              productId={widgetState.currentProductId}
+              onMeasurementComplete={updateCurrentMeasurement}
+              onNext={() => setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }))}
+              customerAddress={widgetState.customerInfo.address}
+            />
+          </div>
         )}
 
         {widgetState.currentStep === 'product-configuration' && 
          widgetState.currentProductId && 
          widgetState.currentMeasurement && (
-          <ProductConfiguration
-            productId={widgetState.currentProductId}
-            measurement={widgetState.currentMeasurement}
-            onAddToQuote={addQuoteItem}
-            settings={settings}
-          />
+          <div className="space-y-4">
+            {/* Selected Product Context */}
+            {selectedProduct && (
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-primary">Configuring Product</h3>
+                      <p className="text-sm">{selectedProduct.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Measurement: {widgetState.currentMeasurement.value.toLocaleString()} {widgetState.currentMeasurement.unit.replace('_', ' ')}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setWidgetState(prev => ({ ...prev, currentStep: 'measurement' }))}
+                      >
+                        Change Measurement
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={goToProductSelection}
+                      >
+                        Change Product
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            <ProductConfiguration
+              productId={widgetState.currentProductId}
+              measurement={widgetState.currentMeasurement}
+              onAddToQuote={addQuoteItem}
+              settings={settings}
+            />
+          </div>
         )}
 
         {widgetState.currentStep === 'add-another-check' && (
-          <Card className="p-8 text-center">
-            <h3 className="text-xl font-semibold mb-4">Item Added to Quote</h3>
-            <p className="text-muted-foreground mb-6">
-              Would you like to add another product to your quote?
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={goToProductSelection} variant="default">
-                Add Another Product
-              </Button>
-              <Button onClick={nextStep} variant="outline">
-                Continue to Review
-              </Button>
-            </div>
-          </Card>
+          <div className="space-y-4">
+            {/* Quote Summary */}
+            {widgetState.quoteItems.length > 0 && (
+              <Card className="bg-success/5 border-success/20">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-success mb-2">Items in Your Quote</h3>
+                  <div className="space-y-2">
+                    {widgetState.quoteItems.map((item, index) => (
+                      <div key={item.id} className="flex justify-between items-center text-sm">
+                        <span>{item.customName || item.productName}</span>
+                        <span className="text-muted-foreground">
+                          {item.quantity.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            <Card className="p-8 text-center">
+              <h3 className="text-xl font-semibold mb-4">Item Added to Quote</h3>
+              <p className="text-muted-foreground mb-6">
+                Would you like to add another product to your quote?
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button onClick={goToProductSelection} variant="default">
+                  Add Another Product
+                </Button>
+                <Button onClick={nextStep} variant="outline">
+                  Continue to Review
+                </Button>
+              </div>
+            </Card>
+          </div>
         )}
 
         {widgetState.currentStep === 'contact-after' && (
