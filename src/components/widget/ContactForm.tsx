@@ -89,13 +89,16 @@ const ContactForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted with:', customerInfo);
-    console.log('Service area valid:', isServiceAreaValid);
-    console.log('Is validating:', isValidating);
+    console.log('ContactForm: Form submitted with:', customerInfo);
+    console.log('ContactForm: Service area valid:', isServiceAreaValid);
+    console.log('ContactForm: Is validating:', isValidating);
     
     if (validateForm()) {
+      console.log('ContactForm: Form validation passed, calling onNext()');
       // Don't block on service area validation - let user proceed 
       onNext();
+    } else {
+      console.log('ContactForm: Form validation failed');
     }
   };
 
@@ -247,17 +250,9 @@ const ContactForm = ({
 
           <Button 
             type="submit" 
-            className="w-full" 
-            disabled={isValidating}
+            className="w-full"
           >
-            {isValidating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Validating...
-              </>
-            ) : (
-              'Continue'
-            )}
+            Continue
           </Button>
         </form>
       </CardContent>
