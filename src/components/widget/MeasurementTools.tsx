@@ -7,9 +7,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Ruler, Square, MapPin, Edit3 } from 'lucide-react';
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
-
-// Import Leaflet after component mounts to avoid SSR issues
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// Fix default marker icons
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 interface MeasurementToolsProps {
   productId: string;
@@ -39,7 +46,6 @@ const MeasurementTools = ({
   const [currentMeasurement, setCurrentMeasurement] = useState<MeasurementData | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [mapLoading, setMapLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -87,9 +93,9 @@ const MeasurementTools = ({
     }
   };
 
-  const initializeMap = async (retry = false) => {
+  const initializeMap = async () => {
     if (!mapContainerRef.current) {
-      console.log('No map container ref, aborting initialization');
+      console.log('No map container available');
       return;
     }
 
@@ -97,107 +103,44 @@ const MeasurementTools = ({
       setMapLoading(true);
       setMapError(null);
       
-      console.log('=== MAP INITIALIZATION START ===');
-      console.log('Map container:', mapContainerRef.current);
-      console.log('Container dimensions:', {
-        width: mapContainerRef.current.offsetWidth,
-        height: mapContainerRef.current.offsetHeight
-      });
+      // Wait a bit to ensure container has dimensions
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Dynamic import to avoid SSR issues
-      const L = (await import('leaflet')).default;
-      console.log('Leaflet imported successfully');
+      // Check container size
+      const containerRect = mapContainerRef.current.getBoundingClientRect();
+      if (containerRect.width === 0 || containerRect.height === 0) {
+        throw new Error('Map container has no dimensions');
+      }
       
-      // Fix for default markers
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-      });
-
-      // Initialize map
-      console.log('Creating Leaflet map...');
+      // Initialize map with OpenStreetMap (most reliable)
       const map = L.map(mapContainerRef.current, {
         zoomControl: true,
         attributionControl: true,
       }).setView([39.8283, -98.5795], 4);
       
-      console.log('Map created, adding tiles...');
-      
-      // Primary: Google Satellite layer
-      const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-        attribution: '© Google',
-        maxZoom: 20,
-        errorTileUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZmlsbD0iIzk5OSI+TWFwIFVuYXZhaWxhYmxlPC90ZXh0Pjwvc3ZnPg=='
-      });
-      
-      // Fallback: OpenStreetMap layer
-      const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Use OpenStreetMap as primary - more reliable than Google
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
-      });
-
-      // Add Google tiles immediately
-      googleSat.addTo(map);
-      console.log('Google Satellite tiles added to map');
+      }).addTo(map);
       
-      // Force loading state to clear after 2 seconds regardless
-      const forceReady = setTimeout(() => {
-        console.log('FORCE CLEARING loading state after timeout');
-        setMapLoading(false);
-      }, 2000);
-      
-      // Track tile loading
-      let tileCount = 0;
-      googleSat.on('tileload', () => {
-        tileCount++;
-        console.log(`Tile loaded: ${tileCount}`);
-        if (tileCount >= 1) { // Clear loading after first successful tile
-          console.log('First tile loaded, clearing loading state');
-          clearTimeout(forceReady);
-          setMapLoading(false);
-        }
-      });
-      
-      // Handle tile errors
-      googleSat.on('tileerror', (e) => {
-        console.warn('Tile load error:', e);
-        // Switch to OSM on errors
-        setTimeout(() => {
-          console.log('Switching to OpenStreetMap due to tile errors');
-          map.removeLayer(googleSat);
-          osmLayer.addTo(map);
-          clearTimeout(forceReady);
-          setMapLoading(false);
-        }, 1000);
-      });
-
       // Store map reference
       mapRef.current = map;
-      console.log('Map stored in ref, initialization complete');
+      
+      // Clear loading state after a short delay to ensure tiles load
+      setTimeout(() => {
+        setMapLoading(false);
+      }, 1000);
 
       // Try to geocode customer address if provided
       if (customerAddress) {
-        console.log('Geocoding customer address:', customerAddress);
         geocodeAndCenterMap(customerAddress);
       }
       
-      console.log('=== MAP INITIALIZATION END ===');
-
     } catch (error) {
-      console.error('=== MAP INITIALIZATION ERROR ===', error);
-      setMapError(`Failed to load map: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Map initialization failed:', error);
+      setMapError(`Unable to load map: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setMapLoading(false);
-      
-      // Retry logic
-      if (retryCount < 2) {
-        console.log(`Retrying map initialization in 2 seconds... (attempt ${retryCount + 1})`);
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-          initializeMap(true);
-        }, 2000);
-      }
     }
   };
 
@@ -239,9 +182,6 @@ const MeasurementTools = ({
     clearMapDrawing();
 
     try {
-      // Dynamic import for Leaflet.draw
-      const L = (await import('leaflet')).default;
-      
       // Simple drawing implementation without leaflet-draw dependency
       let isDrawingActive = true;
       let points: L.LatLng[] = [];
@@ -458,7 +398,6 @@ const MeasurementTools = ({
                       size="sm" 
                       variant="outline"
                       onClick={() => {
-                        setRetryCount(0);
                         initializeMap();
                       }}
                     >
