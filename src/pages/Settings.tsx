@@ -305,7 +305,9 @@ const Settings = () => {
 
       const { error } = await supabase
         .from("contractor_settings")
-        .upsert(settingsData);
+        .upsert(settingsData, {
+          onConflict: 'contractor_id'
+        });
 
       if (error) throw error;
 
