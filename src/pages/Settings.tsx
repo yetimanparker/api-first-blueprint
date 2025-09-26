@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin } from "lucide-react";
+import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin, Navigation } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -74,6 +74,7 @@ const contractorStates = [
 const Settings = () => {
   const [contractorId, setContractorId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [geocodingAddress, setGeocodingAddress] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -274,12 +275,37 @@ const Settings = () => {
 
     setSaving(true);
     try {
+      // Only save fields that exist in the contractor_settings table
+      const settingsData = {
+        contractor_id: contractorId,
+        require_email: data.require_email,
+        require_phone: data.require_phone,
+        require_address: data.require_address,
+        pricing_visibility: data.pricing_visibility,
+        contact_capture_timing: data.contact_capture_timing,
+        widget_theme_color: data.widget_theme_color,
+        use_price_ranges: data.use_price_ranges,
+        price_range_percentage: data.price_range_percentage,
+        price_range_display_format: data.price_range_display_format,
+        currency_symbol: data.currency_symbol,
+        decimal_precision: data.decimal_precision,
+        default_product_color: data.default_product_color,
+        default_unit_type: data.default_unit_type,
+        global_markup_percentage: data.global_markup_percentage,
+        global_tax_rate: data.global_tax_rate,
+        require_product_photos: data.require_product_photos,
+        auto_activate_products: data.auto_activate_products,
+        service_area_enabled: data.service_area_enabled,
+        service_area_method: data.service_area_method,
+        service_area_radius_miles: data.service_area_radius_miles,
+        service_area_center_lat: data.service_area_center_lat,
+        service_area_center_lng: data.service_area_center_lng,
+        service_area_zip_codes: data.service_area_zip_codes,
+      };
+
       const { error } = await supabase
         .from("contractor_settings")
-        .upsert({
-          contractor_id: contractorId,
-          ...data,
-        });
+        .upsert(settingsData);
 
       if (error) throw error;
 
@@ -295,6 +321,76 @@ const Settings = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const geocodeServiceAddress = async () => {
+    setGeocodingAddress(true);
+    try {
+      let address = "";
+      if (settingsForm.watch("use_different_service_address")) {
+        // Use custom service address
+        const serviceAddress = settingsForm.getValues("service_center_address");
+        const serviceCity = settingsForm.getValues("service_center_city");
+        const serviceState = settingsForm.getValues("service_center_state");
+        const serviceZip = settingsForm.getValues("service_center_zip");
+        address = `${serviceAddress}, ${serviceCity}, ${serviceState} ${serviceZip}`.trim();
+      } else {
+        // Use business address
+        const businessData = contractorForm.getValues();
+        address = `${businessData.address}, ${businessData.city}, ${businessData.state} ${businessData.zip_code}`.trim();
+      }
+
+      if (!address || address === "   ") {
+        toast({
+          title: "Error",
+          description: "Please enter a complete address first",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Use the existing Google Places edge function to get autocomplete
+      const { data: autocompleteData, error: autocompleteError } = await supabase.functions.invoke('google-places-autocomplete', {
+        body: {
+          input: address,
+          types: ['address']
+        }
+      });
+
+      if (autocompleteError || !autocompleteData?.predictions?.length) {
+        throw new Error("No address found");
+      }
+
+      // Get place details for the first result
+      const { data: detailsData, error: detailsError } = await supabase.functions.invoke('google-places-autocomplete', {
+        body: {
+          placeId: autocompleteData.predictions[0].place_id
+        }
+      });
+
+      if (detailsError || !detailsData?.geometry?.location) {
+        throw new Error("Could not get address details");
+      }
+
+      const { lat, lng } = detailsData.geometry.location;
+
+      // Update the coordinates in the form
+      settingsForm.setValue("service_area_center_lat", lat);
+      settingsForm.setValue("service_area_center_lng", lng);
+
+      toast({
+        title: "Success",
+        description: `Coordinates set: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to geocode address. Please check the address and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeocodingAddress(false);
     }
   };
 
@@ -1035,29 +1131,56 @@ const Settings = () => {
                                   )}
                                 </div>
 
-                                <FormField
-                                  control={settingsForm.control}
-                                  name="service_area_radius_miles"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Service Radius (miles)</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          min={5}
-                                          max={200}
-                                          placeholder="Enter radius in miles"
-                                          {...field}
-                                          onChange={(e) => field.onChange(Number(e.target.value))}
-                                        />
-                                      </FormControl>
-                                      <FormDescription>
-                                        Distance from your service center location (5-200 miles)
-                                      </FormDescription>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
+                                <div className="space-y-4">
+                                  <div className="p-4 border rounded-lg bg-muted/10">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <h4 className="text-sm font-medium">Service Center Coordinates</h4>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={geocodeServiceAddress}
+                                        disabled={geocodingAddress}
+                                      >
+                                        <Navigation className="h-4 w-4 mr-2" />
+                                        {geocodingAddress ? "Setting..." : "Set Coordinates"}
+                                      </Button>
+                                    </div>
+                                    {settingsForm.watch("service_area_center_lat") && settingsForm.watch("service_area_center_lng") ? (
+                                      <p className="text-sm text-muted-foreground">
+                                        Coordinates: {settingsForm.watch("service_area_center_lat")?.toFixed(6)}, {settingsForm.watch("service_area_center_lng")?.toFixed(6)}
+                                      </p>
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground text-orange-600">
+                                        No coordinates set. Click "Set Coordinates" to geocode your service address.
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <FormField
+                                    control={settingsForm.control}
+                                    name="service_area_radius_miles"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Service Radius (miles)</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            min={5}
+                                            max={200}
+                                            placeholder="Enter radius in miles"
+                                            {...field}
+                                            onChange={(e) => field.onChange(Number(e.target.value))}
+                                          />
+                                        </FormControl>
+                                        <FormDescription>
+                                          Distance from your service center location (5-200 miles)
+                                        </FormDescription>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
                               </>
                             )}
 
