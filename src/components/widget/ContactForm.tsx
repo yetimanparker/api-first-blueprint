@@ -98,7 +98,7 @@ const ContactForm = ({
       // Don't block on service area validation - let user proceed 
       onNext();
     } else {
-      console.log('ContactForm: Form validation failed');
+      console.log('ContactForm: Form validation failed with errors:', errors);
     }
   };
 
