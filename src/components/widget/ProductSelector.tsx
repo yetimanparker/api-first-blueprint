@@ -32,25 +32,29 @@ interface ProductSelectorProps {
   categories: ProductCategory[];
   onProductSelect: (productId: string) => void;
   settings: GlobalSettings;
+  contractorId: string;
 }
 
-const ProductSelector = ({ categories, onProductSelect, settings }: ProductSelectorProps) => {
+const ProductSelector = ({ categories, onProductSelect, settings, contractorId }: ProductSelectorProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (contractorId) {
+      console.log('Fetching products for contractor:', contractorId);
+      fetchProducts();
+    }
+  }, [contractorId]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       
-      // Get contractor ID from URL
-      const urlParts = window.location.pathname.split('/');
-      const contractorId = urlParts[urlParts.length - 1];
+      if (!contractorId) {
+        throw new Error('Contractor ID not provided');
+      }
       
       const { data, error } = await supabase
         .from('products')
@@ -61,6 +65,7 @@ const ProductSelector = ({ categories, onProductSelect, settings }: ProductSelec
 
       if (error) throw error;
       
+      console.log(`Fetched ${data?.length || 0} products for contractor ${contractorId}`);
       setProducts(data || []);
     } catch (err) {
       console.error('Error fetching products:', err);

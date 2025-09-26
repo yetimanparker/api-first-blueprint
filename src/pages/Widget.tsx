@@ -199,6 +199,7 @@ const Widget = () => {
             categories={categories}
             onProductSelect={setCurrentProduct}
             settings={settings}
+            contractorId={contractorId!}
           />
         )}
 
