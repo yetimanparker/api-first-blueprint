@@ -53,11 +53,9 @@ const MeasurementTools = ({
 
   useEffect(() => {
     fetchProduct();
-  }, []);
-
-  useEffect(() => {
-    // Wait for container to be mounted before initializing map
-    if (mapContainerRef.current && !mapRef.current) {
+    
+    // Initialize map once container is mounted
+    if (!mapRef.current && mapContainerRef.current) {
       initializeMap();
     }
     
@@ -67,7 +65,7 @@ const MeasurementTools = ({
         mapRef.current = null;
       }
     };
-  }, [mapContainerRef.current]);
+  }, []);
 
   useEffect(() => {
     // Reset measurements when measurement type changes
