@@ -1,3 +1,4 @@
+/// <reference types="@types/google.maps" />
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,16 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Ruler, Square, MapPin, Edit3 } from 'lucide-react';
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-
-// Fix default marker icons
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+import { Loader } from '@googlemaps/js-api-loader';
 
 interface MeasurementToolsProps {
   productId: string;
@@ -46,26 +38,23 @@ const MeasurementTools = ({
   const [currentMeasurement, setCurrentMeasurement] = useState<MeasurementData | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [mapLoading, setMapLoading] = useState(true);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const drawingRef = useRef<any>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
+  const currentShapeRef = useRef<google.maps.Polygon | google.maps.Polyline | null>(null);
 
   useEffect(() => {
     fetchProduct();
-    
-    // Initialize map once container is mounted
-    if (!mapRef.current && mapContainerRef.current) {
+    fetchApiKey();
+  }, []);
+
+  useEffect(() => {
+    if (apiKey && !mapRef.current) {
       initializeMap();
     }
-    
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, []);
+  }, [apiKey]);
 
   useEffect(() => {
     // Reset measurements when measurement type changes
@@ -73,7 +62,40 @@ const MeasurementTools = ({
     setMapMeasurement(null);
     setCurrentMeasurement(null);
     clearMapDrawing();
+    
+    // Update drawing manager mode if it exists
+    if (drawingManagerRef.current) {
+      const mode = measurementType === 'area' 
+        ? google.maps.drawing.OverlayType.POLYGON 
+        : google.maps.drawing.OverlayType.POLYLINE;
+      drawingManagerRef.current.setOptions({
+        drawingMode: null,
+        drawingControl: true,
+        drawingControlOptions: {
+          drawingModes: [mode],
+        },
+      });
+    }
   }, [measurementType]);
+
+  const fetchApiKey = async () => {
+    try {
+      // Get API key from edge function
+      const { data, error } = await supabase.functions.invoke('get-google-maps-key');
+      
+      if (error) throw error;
+      
+      if (data?.apiKey) {
+        setApiKey(data.apiKey);
+      } else {
+        throw new Error('No API key returned');
+      }
+    } catch (error) {
+      console.error('Error fetching API key:', error);
+      setMapError('Unable to load map: API key not available');
+      setMapLoading(false);
+    }
+  };
 
   const fetchProduct = async () => {
     try {
@@ -100,14 +122,11 @@ const MeasurementTools = ({
   };
 
   const initializeMap = async () => {
-    if (!mapContainerRef.current) {
-      console.error('No map container available');
-      setMapError('Map container not found');
-      setMapLoading(false);
+    if (!mapContainerRef.current || !apiKey) {
+      console.error('No map container or API key available');
       return;
     }
 
-    // Prevent reinitializing if map already exists
     if (mapRef.current) {
       console.log('Map already initialized');
       return;
@@ -117,39 +136,49 @@ const MeasurementTools = ({
       setMapLoading(true);
       setMapError(null);
       
-      // Wait for container to have dimensions
-      await new Promise(resolve => setTimeout(resolve, 300));
+      console.log('Loading Google Maps API...');
       
-      // Check container size
-      const containerRect = mapContainerRef.current.getBoundingClientRect();
-      if (containerRect.width === 0 || containerRect.height === 0) {
-        throw new Error('Map container has no dimensions');
-      }
+      // Load Google Maps JavaScript API
+      const loader = new Loader({
+        apiKey: apiKey,
+        version: 'weekly',
+        libraries: ['drawing', 'geometry'],
+      });
+
+      await loader.load();
       
-      // Initialize map with OpenStreetMap (most reliable)
-      const map = L.map(mapContainerRef.current, {
-        zoomControl: true,
-        attributionControl: true,
-      }).setView([39.8283, -98.5795], 4);
-      
-      // Use OpenStreetMap as primary - more reliable than Google
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19,
-      }).addTo(map);
-      
-      // Store map reference
-      mapRef.current = map;
-      
-      // Clear loading state after a short delay to ensure tiles load
-      setTimeout(() => {
-        setMapLoading(false);
-      }, 1000);
+      console.log('Google Maps API loaded successfully');
+
+      // Default center (US center)
+      let center = { lat: 39.8283, lng: -98.5795 };
+      let zoom = 4;
 
       // Try to geocode customer address if provided
       if (customerAddress) {
-        geocodeAndCenterMap(customerAddress);
+        const geocodedCenter = await geocodeAddress(customerAddress);
+        if (geocodedCenter) {
+          center = geocodedCenter;
+          zoom = 18;
+        }
       }
+
+      // Create map
+      const map = new google.maps.Map(mapContainerRef.current, {
+        center: center,
+        zoom: zoom,
+        mapTypeId: google.maps.MapTypeId.HYBRID,
+        mapTypeControl: true,
+        streetViewControl: false,
+        fullscreenControl: false,
+      });
+
+      mapRef.current = map;
+      console.log('Map created successfully');
+
+      // Set up drawing manager
+      setupDrawingManager(map);
+      
+      setMapLoading(false);
       
     } catch (error) {
       console.error('Map initialization failed:', error);
@@ -158,136 +187,133 @@ const MeasurementTools = ({
     }
   };
 
-  const geocodeAndCenterMap = async (address: string) => {
+  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
     try {
-      // Use the existing Google Places integration through edge function
-      const { data, error } = await supabase.functions.invoke('google-places-autocomplete', {
-        body: {
-          input: address,
-          sessionToken: Date.now().toString()
-        }
-      });
-
-      if (!error && data?.predictions?.[0]) {
-        const placeId = data.predictions[0].place_id;
-        
-        // Get place details
-        const { data: details } = await supabase.functions.invoke('google-places-autocomplete/details', {
-          body: {
-            placeId: placeId,
-            sessionToken: Date.now().toString()
-          }
-        });
-
-        if (details?.geometry?.location) {
-          const { lat, lng } = details.geometry.location;
-          mapRef.current?.setView([lat, lng], 18);
-        }
+      const geocoder = new google.maps.Geocoder();
+      const result = await geocoder.geocode({ address });
+      
+      if (result.results && result.results[0]) {
+        const location = result.results[0].geometry.location;
+        return {
+          lat: location.lat(),
+          lng: location.lng(),
+        };
       }
     } catch (error) {
       console.error('Error geocoding address:', error);
     }
+    return null;
   };
 
-  const startDrawing = async () => {
-    if (!mapRef.current) return;
+  const setupDrawingManager = (map: google.maps.Map) => {
+    const drawingMode = measurementType === 'area' 
+      ? google.maps.drawing.OverlayType.POLYGON 
+      : google.maps.drawing.OverlayType.POLYLINE;
+
+    const drawingManager = new google.maps.drawing.DrawingManager({
+      drawingMode: null,
+      drawingControl: false, // We'll control this manually
+      polygonOptions: {
+        fillColor: '#FF0000',
+        fillOpacity: 0.3,
+        strokeColor: '#FF0000',
+        strokeWeight: 2,
+        clickable: true,
+        editable: true,
+        zIndex: 1,
+      },
+      polylineOptions: {
+        strokeColor: '#0000FF',
+        strokeWeight: 3,
+        clickable: true,
+        editable: true,
+      },
+    });
+
+    drawingManager.setMap(map);
+    drawingManagerRef.current = drawingManager;
+
+    // Listen for shape completion
+    google.maps.event.addListener(drawingManager, 'overlaycomplete', (event: any) => {
+      setIsDrawing(false);
+      
+      // Remove previous shape if exists
+      if (currentShapeRef.current) {
+        currentShapeRef.current.setMap(null);
+      }
+      
+      currentShapeRef.current = event.overlay;
+      drawingManager.setDrawingMode(null);
+
+      // Calculate measurement
+      if (event.type === google.maps.drawing.OverlayType.POLYGON) {
+        const polygon = event.overlay as google.maps.Polygon;
+        const path = polygon.getPath();
+        const area = google.maps.geometry.spherical.computeArea(path);
+        const sqFt = Math.ceil(area * 10.764); // Convert m² to sq ft
+        setMapMeasurement(sqFt);
+        
+        // Add listener for edits
+        google.maps.event.addListener(path, 'set_at', () => {
+          const newArea = google.maps.geometry.spherical.computeArea(path);
+          const newSqFt = Math.ceil(newArea * 10.764);
+          setMapMeasurement(newSqFt);
+        });
+        
+        google.maps.event.addListener(path, 'insert_at', () => {
+          const newArea = google.maps.geometry.spherical.computeArea(path);
+          const newSqFt = Math.ceil(newArea * 10.764);
+          setMapMeasurement(newSqFt);
+        });
+        
+      } else if (event.type === google.maps.drawing.OverlayType.POLYLINE) {
+        const polyline = event.overlay as google.maps.Polyline;
+        const path = polyline.getPath();
+        const length = google.maps.geometry.spherical.computeLength(path);
+        const feet = Math.ceil(length * 3.28084); // Convert meters to feet
+        setMapMeasurement(feet);
+        
+        // Add listener for edits
+        google.maps.event.addListener(path, 'set_at', () => {
+          const newLength = google.maps.geometry.spherical.computeLength(path);
+          const newFeet = Math.ceil(newLength * 3.28084);
+          setMapMeasurement(newFeet);
+        });
+        
+        google.maps.event.addListener(path, 'insert_at', () => {
+          const newLength = google.maps.geometry.spherical.computeLength(path);
+          const newFeet = Math.ceil(newLength * 3.28084);
+          setMapMeasurement(newFeet);
+        });
+      }
+    });
+  };
+
+  const startDrawing = () => {
+    if (!drawingManagerRef.current) return;
 
     setIsDrawing(true);
     clearMapDrawing();
 
-    try {
-      // Simple drawing implementation without leaflet-draw dependency
-      let isDrawingActive = true;
-      let points: L.LatLng[] = [];
-      let tempMarkers: L.Marker[] = [];
-      let currentShape: L.Polygon | L.Polyline | null = null;
-
-      const handleMapClick = (e: L.LeafletMouseEvent) => {
-        if (!isDrawingActive) return;
-
-        points.push(e.latlng);
-        
-        // Add temporary marker
-        const marker = L.marker(e.latlng).addTo(mapRef.current);
-        tempMarkers.push(marker);
-
-        if (measurementType === 'area' && points.length >= 3) {
-          // Create/update polygon
-          if (currentShape) currentShape.remove();
-          currentShape = L.polygon(points, { color: 'red', fillColor: 'red', fillOpacity: 0.2 }).addTo(mapRef.current);
-          
-          // Calculate area in square feet
-          const area = calculatePolygonArea(points);
-          const sqFt = Math.ceil(area * 10.764); // Convert m² to ft² and round up
-          setMapMeasurement(sqFt);
-          
-        } else if (measurementType === 'linear' && points.length >= 2) {
-          // Create/update polyline
-          if (currentShape) currentShape.remove();
-          currentShape = L.polyline(points, { color: 'blue', weight: 3 }).addTo(mapRef.current);
-          
-          // Calculate total distance in feet
-          let totalDistance = 0;
-          for (let i = 1; i < points.length; i++) {
-            totalDistance += points[i-1].distanceTo(points[i]);
-          }
-          const feet = Math.ceil(totalDistance * 3.28084); // Convert meters to feet and round up
-          setMapMeasurement(feet);
-        }
-      };
-
-      const handleDoubleClick = () => {
-        isDrawingActive = false;
-        setIsDrawing(false);
-        mapRef.current.off('click', handleMapClick);
-        mapRef.current.off('dblclick', handleDoubleClick);
-        
-        // Clean up temporary markers
-        tempMarkers.forEach(marker => marker.remove());
-      };
-
-      mapRef.current.on('click', handleMapClick);
-      mapRef.current.on('dblclick', handleDoubleClick);
-      
-      drawingRef.current = {
-        stop: () => {
-          isDrawingActive = false;
-          mapRef.current?.off('click', handleMapClick);
-          mapRef.current?.off('dblclick', handleDoubleClick);
-          tempMarkers.forEach(marker => marker.remove());
-          setIsDrawing(false);
-        },
-        shape: currentShape
-      };
-
-    } catch (error) {
-      console.error('Error starting drawing:', error);
-      setIsDrawing(false);
-    }
-  };
-
-  // Simple polygon area calculation (approximate)
-  const calculatePolygonArea = (points: any[]) => {
-    if (points.length < 3) return 0;
+    const mode = measurementType === 'area' 
+      ? google.maps.drawing.OverlayType.POLYGON 
+      : google.maps.drawing.OverlayType.POLYLINE;
     
-    let area = 0;
-    for (let i = 0; i < points.length; i++) {
-      const j = (i + 1) % points.length;
-      area += points[i].lat * points[j].lng;
-      area -= points[j].lat * points[i].lng;
-    }
-    return Math.abs(area * 111319.5 * 111319.5 / 2); // Approximate conversion to m²
+    drawingManagerRef.current.setDrawingMode(mode);
   };
 
   const clearMapDrawing = () => {
-    if (drawingRef.current) {
-      drawingRef.current.stop();
-      if (drawingRef.current.shape) {
-        drawingRef.current.shape.remove();
-      }
-      drawingRef.current = null;
+    if (currentShapeRef.current) {
+      currentShapeRef.current.setMap(null);
+      currentShapeRef.current = null;
     }
+    
+    if (drawingManagerRef.current) {
+      drawingManagerRef.current.setDrawingMode(null);
+    }
+    
     setMapMeasurement(null);
+    setIsDrawing(false);
   };
 
   const handleManualSubmit = () => {
@@ -388,15 +414,12 @@ const MeasurementTools = ({
                 style={{ minHeight: '320px' }}
               />
               
-              {/* Map Loading Overlay - Simplified */}
+              {/* Map Loading Overlay */}
               {mapLoading && (
                 <div className="absolute inset-0 bg-background/90 flex items-center justify-center rounded-lg">
                   <div className="text-center">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading map...</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      This should only take a moment
-                    </p>
+                    <p className="text-sm text-muted-foreground">Loading Google Maps...</p>
                   </div>
                 </div>
               )}
@@ -412,19 +435,13 @@ const MeasurementTools = ({
                       size="sm" 
                       variant="outline"
                       onClick={() => {
-                        initializeMap();
+                        setMapError(null);
+                        fetchApiKey();
                       }}
                     >
                       Retry Map
                     </Button>
                   </div>
-                </div>
-              )}
-              
-              {/* Debug Info */}
-              {!mapLoading && !mapError && (
-                <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                  Map Ready
                 </div>
               )}
             </div>
@@ -439,7 +456,7 @@ const MeasurementTools = ({
                 {isDrawing ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Click to draw, double-click to finish
+                    Drawing... Click to place points
                   </>
                 ) : (
                   <>
@@ -472,8 +489,8 @@ const MeasurementTools = ({
             {isDrawing && (
               <p className="text-sm text-muted-foreground text-center">
                 {measurementType === 'area' 
-                  ? 'Click points to create a shape. Double-click to finish.'
-                  : 'Click points to draw a line. Double-click to finish.'
+                  ? 'Click on the map to create points for your area. Click the first point again to complete.'
+                  : 'Click on the map to create points for your line measurement.'
                 }
               </p>
             )}
@@ -509,37 +526,33 @@ const MeasurementTools = ({
                   onClick={handleManualSubmit}
                   disabled={!manualValue || parseFloat(manualValue) <= 0}
                 >
-                  Use Manual Entry
+                  Use This
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Current Measurement Display */}
+        {/* Current Selection Display */}
         {currentMeasurement && (
-          <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="flex items-center justify-between p-4">
-              <div>
-                <p className="text-sm font-medium">Selected Measurement:</p>
-                <p className="text-lg font-bold text-primary">
-                  {currentMeasurement.value.toLocaleString()} {currentMeasurement.unit.replace('_', ' ')}
-                </p>
-                {currentMeasurement.manualEntry && (
-                  <p className="text-xs text-muted-foreground">Manual entry</p>
-                )}
+          <Card className="border-primary bg-primary/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Selected Measurement</p>
+                  <p className="text-2xl font-bold">
+                    {currentMeasurement.value.toLocaleString()} {currentMeasurement.unit.replace('_', ' ')}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {currentMeasurement.manualEntry ? 'Manual entry' : 'From map'}
+                  </p>
+                </div>
+                <Button onClick={onNext} size="lg">
+                  Continue
+                </Button>
               </div>
-              <Button onClick={onNext}>
-                Continue to Configuration
-              </Button>
             </CardContent>
           </Card>
-        )}
-
-        {!canProceed && (
-          <div className="text-center text-muted-foreground text-sm">
-            Please measure your project using the map tool or manual entry to continue.
-          </div>
         )}
       </CardContent>
     </Card>
