@@ -53,13 +53,21 @@ const MeasurementTools = ({
 
   useEffect(() => {
     fetchProduct();
-    initializeMap();
+  }, []);
+
+  useEffect(() => {
+    // Wait for container to be mounted before initializing map
+    if (mapContainerRef.current && !mapRef.current) {
+      initializeMap();
+    }
+    
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
+        mapRef.current = null;
       }
     };
-  }, []);
+  }, [mapContainerRef.current]);
 
   useEffect(() => {
     // Reset measurements when measurement type changes
@@ -95,7 +103,15 @@ const MeasurementTools = ({
 
   const initializeMap = async () => {
     if (!mapContainerRef.current) {
-      console.log('No map container available');
+      console.error('No map container available');
+      setMapError('Map container not found');
+      setMapLoading(false);
+      return;
+    }
+
+    // Prevent reinitializing if map already exists
+    if (mapRef.current) {
+      console.log('Map already initialized');
       return;
     }
 
@@ -103,8 +119,8 @@ const MeasurementTools = ({
       setMapLoading(true);
       setMapError(null);
       
-      // Wait a bit to ensure container has dimensions
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for container to have dimensions
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Check container size
       const containerRect = mapContainerRef.current.getBoundingClientRect();
