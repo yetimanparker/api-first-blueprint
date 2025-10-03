@@ -140,8 +140,8 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
               onClick={() => setSelectedCategory('')}
               className={`rounded-full h-11 px-6 font-medium transition-all ${
                 selectedCategory === '' 
-                  ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
-                  : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                  ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
+                  : 'bg-background text-foreground border-input hover:bg-accent/10 hover:text-accent-foreground'
               }`}
             >
               All Categories ({allProductsCount})
@@ -154,8 +154,8 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
                 onClick={() => setSelectedCategory(category.name)}
                 className={`rounded-full h-11 px-6 font-medium transition-all ${
                   selectedCategory === category.name 
-                    ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
-                    : 'bg-background text-foreground border-input hover:bg-accent hover:text-accent-foreground'
+                    ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
+                    : 'bg-background text-foreground border-input hover:bg-accent/10 hover:text-accent-foreground'
                 }`}
               >
                 {category.name} ({categoryProductCounts[category.name] || 0})
