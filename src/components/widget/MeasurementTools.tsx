@@ -613,7 +613,11 @@ const MeasurementTools = ({
                       {mapMeasurement.toLocaleString()} {unitAbbr}
                     </p>
                   </div>
-                  <Button onClick={handleMapSubmit} size="lg">
+                  <Button 
+                    onClick={handleMapSubmit} 
+                    size="lg"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md"
+                  >
                     Use Measurement
                   </Button>
                 </div>
