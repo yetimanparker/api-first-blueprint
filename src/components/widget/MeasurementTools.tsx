@@ -363,6 +363,16 @@ const MeasurementTools = ({
     setIsDrawing(false);
   };
 
+  const handleUndo = () => {
+    clearMapDrawing();
+    // Restart drawing mode immediately after clearing
+    setTimeout(() => {
+      if (!showManualEntry) {
+        startDrawing();
+      }
+    }, 100);
+  };
+
   const handleManualSubmit = () => {
     const value = parseFloat(manualValue);
     if (isNaN(value) || value <= 0) return;
@@ -599,7 +609,7 @@ const MeasurementTools = ({
                 <Button
                   variant="ghost"
                   size="lg"
-                  onClick={clearMapDrawing}
+                  onClick={handleUndo}
                   disabled={!mapMeasurement && !isDrawing}
                   className="gap-2"
                 >
