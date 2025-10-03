@@ -96,10 +96,15 @@ const MeasurementTools = ({
       if (error) throw error;
       setProduct(data);
       
-      if (data.unit_type.includes('sq_') || data.unit_type.includes('area')) {
+      // Auto-select measurement type based on product unit type
+      const unitType = data.unit_type.toLowerCase();
+      if (unitType.includes('sq_') || unitType.includes('square') || unitType.includes('area')) {
         setMeasurementType('area');
-      } else if (data.unit_type.includes('linear') || data.unit_type.includes('ft')) {
+      } else if (unitType.includes('linear') || unitType.includes('ft') || unitType === 'feet' || unitType === 'foot') {
         setMeasurementType('linear');
+      } else {
+        // Default based on common patterns
+        setMeasurementType('area');
       }
     } catch (error) {
       console.error('Error fetching product:', error);
