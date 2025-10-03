@@ -508,58 +508,8 @@ const MeasurementTools = ({
       {!mapLoading && !mapError && (
         <div className="bg-background border-t px-6 py-4">
           <div className="max-w-7xl mx-auto">
-            {/* Selected Product Display */}
-            {selectedProduct && (
-              <div className="mb-4 bg-primary/5 border border-primary/20 rounded-lg px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-primary mb-1">Selected Product</h3>
-                    <p className="text-sm font-medium">{selectedProduct.name}</p>
-                    {selectedProduct.description && (
-                      <p className="text-xs text-muted-foreground mt-1">{selectedProduct.description}</p>
-                    )}
-                  </div>
-                  {onChangeProduct && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={onChangeProduct}
-                    >
-                      Change Product
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Measurement Display */}
-            {mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement && (
-              <div className="mb-4 bg-primary/10 border-2 border-primary rounded-lg px-6 py-4 shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Measured on map</p>
-                    <p className="text-2xl font-bold text-primary">
-                      {mapMeasurement.toLocaleString()} {unitAbbr}
-                    </p>
-                  </div>
-                  <Button onClick={handleMapSubmit} size="lg">
-                    Use Measurement
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Continue Button */}
-            {currentMeasurement && (
-              <div className="mb-4 flex justify-center">
-                <Button onClick={onNext} size="lg" className="px-8">
-                  Continue with {currentMeasurement.value.toLocaleString()} {unitAbbr}
-                </Button>
-              </div>
-            )}
-
             {/* Control Bar */}
-            <div className="flex justify-center">
+            <div className="flex justify-center mb-4">
               <div className="bg-background rounded-lg shadow-lg border px-2 py-2 flex items-center gap-1">
                 <Button
                   variant="ghost"
@@ -628,6 +578,56 @@ const MeasurementTools = ({
                 </Button>
               </div>
             </div>
+
+            {/* Selected Product Display */}
+            {selectedProduct && (
+              <div className="mb-4 bg-primary/5 border border-primary/20 rounded-lg px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-primary mb-1">Selected Product</h3>
+                    <p className="text-sm font-medium">{selectedProduct.name}</p>
+                    {selectedProduct.description && (
+                      <p className="text-xs text-muted-foreground mt-1">{selectedProduct.description}</p>
+                    )}
+                  </div>
+                  {onChangeProduct && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={onChangeProduct}
+                    >
+                      Change Product
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Measurement Display */}
+            {mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement && (
+              <div className="mb-4 bg-primary/10 border-2 border-primary rounded-lg px-6 py-4 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Measured on map</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {mapMeasurement.toLocaleString()} {unitAbbr}
+                    </p>
+                  </div>
+                  <Button onClick={handleMapSubmit} size="lg">
+                    Use Measurement
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Continue Button */}
+            {currentMeasurement && (
+              <div className="flex justify-center">
+                <Button onClick={onNext} size="lg" className="px-8">
+                  Continue with {currentMeasurement.value.toLocaleString()} {unitAbbr}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
