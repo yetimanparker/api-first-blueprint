@@ -120,145 +120,144 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     );
   }
 
+  // Get product counts per category
+  const categoryProductCounts = categories.reduce((acc, category) => {
+    acc[category.name] = products.filter(p => p.category === category.name).length;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  const allProductsCount = products.length;
+
   return (
-    <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Package className="h-5 w-5 text-primary" />
-          Select a Product
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Choose the product or service you'd like to get a quote for
-        </p>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Category filters */}
-        {categories.length > 0 && (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Categories</Label>
-            <div className="flex flex-wrap gap-2">
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      {/* Category filters - Prominent Pills */}
+      {categories.length > 0 && (
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant={selectedCategory === '' ? 'default' : 'outline'}
+              size="lg"
+              onClick={() => setSelectedCategory('')}
+              className="rounded-full h-11 px-6 font-medium shadow-sm hover:shadow-md transition-all"
+            >
+              All Categories ({allProductsCount})
+            </Button>
+            {categories.map((category) => (
               <Button
-                variant={selectedCategory === '' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedCategory('')}
-                className="h-8"
+                key={category.id}
+                variant={selectedCategory === category.name ? 'default' : 'outline'}
+                size="lg"
+                onClick={() => setSelectedCategory(category.name)}
+                className="rounded-full h-11 px-6 font-medium shadow-sm hover:shadow-md transition-all"
+                style={{
+                  backgroundColor: selectedCategory === category.name 
+                    ? category.color_hex 
+                    : undefined,
+                  borderColor: category.color_hex,
+                  color: selectedCategory === category.name ? 'white' : category.color_hex
+                }}
               >
-                All Products
+                {category.name} ({categoryProductCounts[category.name] || 0})
               </Button>
-              {categories.map((category) => (
-                <Button
-                  key={category.id}
-                  variant={selectedCategory === category.name ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category.name)}
-                  className="h-8"
-                  style={{
-                    backgroundColor: selectedCategory === category.name 
-                      ? category.color_hex 
-                      : undefined,
-                    borderColor: category.color_hex,
-                    color: selectedCategory === category.name ? 'white' : category.color_hex
-                  }}
-                >
-                  {category.name}
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Products grid */}
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No Products Available</h3>
-            <p className="text-muted-foreground">
-              {selectedCategory 
-                ? `No products found in the "${selectedCategory}" category.`
-                : 'No products are currently available for quoting.'
-              }
-            </p>
-            {selectedCategory && (
-              <Button
-                variant="outline"
-                onClick={() => setSelectedCategory('')}
-                className="mt-4"
-              >
-                View All Products
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredProducts.map((product) => (
-              <Card 
-                key={product.id}
-                className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-primary/20"
-                onClick={() => onProductSelect(product.id)}
-              >
-                <CardContent className="p-4">
-                  {product.photo_url && (
-                    <div className="mb-3 rounded-lg overflow-hidden bg-muted">
-                      <img
-                        src={product.photo_url}
-                        alt={product.name}
-                        className="w-full h-32 object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="flex items-start gap-2 mb-2">
-                    <div 
-                      className="w-3 h-3 rounded-full flex-shrink-0 mt-1"
-                      style={{ backgroundColor: product.color_hex }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm leading-tight truncate">
-                        {product.name}
-                      </h3>
-                    </div>
-                  </div>
-
-                  {product.description && (
-                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                      {product.description}
-                    </p>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary" className="text-xs">
-                      Per {product.unit_type}
-                    </Badge>
-                    
-                    {shouldShowPricing(product) && (
-                      <span className="text-sm font-semibold text-primary">
-                        {formatExactPrice(product.unit_price, {
-                          currency_symbol: settings.currency_symbol,
-                          decimal_precision: settings.decimal_precision
-                        })}
-                      </span>
-                    )}
-                  </div>
-
-                  {product.category && (
-                    <div className="mt-2">
-                      <Badge variant="outline" className="text-xs">
-                        {product.category}
-                        {product.subcategory && ` • ${product.subcategory}`}
-                      </Badge>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             ))}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+
+      {/* Products grid */}
+      {filteredProducts.length === 0 ? (
+        <div className="text-center py-12">
+          <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-semibold mb-2">No Products Available</h3>
+          <p className="text-muted-foreground">
+            {selectedCategory 
+              ? `No products found in the "${selectedCategory}" category.`
+              : 'No products are currently available for quoting.'
+            }
+          </p>
+          {selectedCategory && (
+            <Button
+              variant="outline"
+              onClick={() => setSelectedCategory('')}
+              className="mt-4"
+            >
+              View All Products
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProducts.map((product) => (
+            <Card 
+              key={product.id}
+              className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 hover:scale-[1.02] rounded-xl overflow-hidden"
+              onClick={() => onProductSelect(product.id)}
+            >
+              {product.photo_url && (
+                <div className="relative overflow-hidden bg-muted h-48">
+                  <img
+                    src={product.photo_url}
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              
+              <CardContent className="p-5">
+                <div className="flex items-start gap-2 mb-3">
+                  <div 
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5"
+                    style={{ backgroundColor: product.color_hex }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-base leading-tight mb-1">
+                      {product.name}
+                    </h3>
+                  </div>
+                </div>
+
+                {product.description && (
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                    {product.description}
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between mb-3">
+                  {shouldShowPricing(product) && (
+                    <span className="text-lg font-bold text-primary">
+                      {formatExactPrice(product.unit_price, {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      })}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">
+                        / {product.unit_type}
+                      </span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Badges at bottom */}
+                <div className="flex flex-wrap gap-1.5">
+                  {product.category && (
+                    <Badge variant="outline" className="text-xs bg-muted/50">
+                      {product.category}
+                    </Badge>
+                  )}
+                  {product.subcategory && (
+                    <Badge variant="outline" className="text-xs bg-muted/50">
+                      {product.subcategory}
+                    </Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 

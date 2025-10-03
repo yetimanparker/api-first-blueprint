@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, FileText, Send, Download } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Loader2, FileText, Send, DollarSign, Plus, MessageSquare, Calculator } from 'lucide-react';
 import { QuoteItem, CustomerInfo, WorkflowStep } from '@/types/widget';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +26,7 @@ interface QuoteReviewProps {
   currentStep: WorkflowStep;
   onNext: () => void;
   onUpdateComments: (comments: string) => void;
+  onAddAnother?: () => void;
 }
 
 const QuoteReview = ({ 
@@ -34,7 +36,8 @@ const QuoteReview = ({
   settings, 
   currentStep,
   onNext,
-  onUpdateComments 
+  onUpdateComments,
+  onAddAnother
 }: QuoteReviewProps) => {
   const [projectComments, setProjectComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,7 +62,6 @@ const QuoteReview = ({
     setIsSubmitting(true);
     
     try {
-      // First create the customer record
       const customerData = {
         contractor_id: contractorId,
         first_name: customerInfo.firstName || '',
@@ -82,7 +84,6 @@ const QuoteReview = ({
 
       if (customerError) throw customerError;
 
-      // Create the quote record
       const { data: quoteNumberData } = await supabase.rpc('generate_quote_number');
       
       const quoteData = {
@@ -108,7 +109,6 @@ const QuoteReview = ({
 
       if (quoteError) throw quoteError;
 
-      // Create quote items
       const quoteItemsData = quoteItems.map(item => ({
         quote_id: quote.id,
         product_id: item.productId,
@@ -150,7 +150,7 @@ const QuoteReview = ({
         description: `Quote #${quote.quote_number} has been created. You'll be contacted soon.`,
       });
 
-      onNext(); // Move to confirmation step
+      onNext();
 
     } catch (error) {
       console.error('Error submitting quote:', error);
@@ -166,246 +166,259 @@ const QuoteReview = ({
 
   if (currentStep === 'project-comments') {
     return (
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Project Comments
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Add any additional details about your project (optional)
-          </p>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          <div>
-            <Label htmlFor="projectComments">Additional Project Details</Label>
-            <Textarea
-              id="projectComments"
-              value={projectComments}
-              onChange={(e) => handleCommentsChange(e.target.value)}
-              placeholder="Tell us more about your project requirements, preferences, timeline, or any other details that would help us provide the best service..."
-              rows={6}
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              This information helps us better understand your needs and provide accurate service.
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              Project Comments
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Tell us about your project in detail
             </p>
-          </div>
+          </CardHeader>
+          
+          <CardContent className="space-y-6">
+            <div>
+              <Label htmlFor="projectComments">Project Details</Label>
+              <Textarea
+                id="projectComments"
+                value={projectComments}
+                onChange={(e) => handleCommentsChange(e.target.value)}
+                placeholder="Tell us about your project in detail. Please provide access information, ground type, slope/elevation change etc."
+                rows={6}
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                This information helps us provide a more accurate quote and better service.
+              </p>
+            </div>
 
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button onClick={onNext} className="flex-1" size="lg">
-              Continue to Quote Review
-            </Button>
-            <Button 
-              onClick={onNext} 
-              variant="outline" 
-              className="flex-1"
-            >
-              Skip Comments
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button onClick={onNext} className="flex-1" size="lg">
+                Continue to Review
+              </Button>
+              <Button 
+                onClick={onNext} 
+                variant="outline" 
+                className="flex-1"
+              >
+                Skip
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-primary" />
-          Quote Summary
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Review your quote details before submission
-        </p>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Customer Information */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Contact Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p><strong>Name:</strong> {customerInfo.firstName} {customerInfo.lastName}</p>
-            {customerInfo.email && <p><strong>Email:</strong> {customerInfo.email}</p>}
-            {customerInfo.phone && <p><strong>Phone:</strong> {customerInfo.phone}</p>}
-            {customerInfo.address && (
-              <p><strong>Address:</strong> {customerInfo.address}
-                {customerInfo.city && `, ${customerInfo.city}`}
-                {customerInfo.state && `, ${customerInfo.state}`}
-                {customerInfo.zipCode && ` ${customerInfo.zipCode}`}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Quote Items */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Quote Items</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      {/* Quote Items Card */}
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-green-600" />
+            Quote Items ({quoteItems.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="single" collapsible className="w-full">
             {quoteItems.map((item, index) => (
-              <div key={item.id} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <h4 className="font-semibold">{item.customName || item.productName}</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-xs">
-                        {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
-                      </Badge>
-                      {item.measurement.manualEntry && (
-                        <Badge variant="secondary" className="text-xs">Manual Entry</Badge>
-                      )}
+              <AccordionItem key={item.id} value={`item-${index}`}>
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-start justify-between w-full pr-4">
+                    <div className="flex items-start gap-3">
+                      <div 
+                        className="w-2 h-2 rounded-full flex-shrink-0 mt-2"
+                        style={{ backgroundColor: '#3B82F6' }}
+                      />
+                      <div className="text-left">
+                        <p className="font-semibold">{item.productName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
                     <p className="font-semibold">
                       {formatExactPrice(item.lineTotal, {
                         currency_symbol: settings.currency_symbol,
                         decimal_precision: settings.decimal_precision
                       })}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatExactPrice(item.unitPrice, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })} per unit
-                    </p>
                   </div>
-                </div>
+                </AccordionTrigger>
+                <AccordionContent className="pl-9">
+                  {item.variations && item.variations.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Variations:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {item.variations.map((variation, idx) => (
+                          <Badge key={idx} className="bg-purple-500">
+                            {variation.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                {/* Variations */}
-                {item.variations && item.variations.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm font-medium text-muted-foreground">Variations:</p>
-                    <ul className="text-sm text-muted-foreground">
-                      {item.variations.map((variation, idx) => (
-                        <li key={idx}>• {variation.name}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                  {item.addons && item.addons.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Add-ons:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {item.addons.map((addon, idx) => (
+                          <Badge key={idx} className="bg-orange-500">
+                            {addon.name} (×{addon.quantity})
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                {/* Add-ons */}
-                {item.addons && item.addons.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm font-medium text-muted-foreground">Add-ons:</p>
-                    <ul className="text-sm text-muted-foreground">
-                      {item.addons.map((addon, idx) => (
-                        <li key={idx}>• {addon.name} (Qty: {addon.quantity})</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Notes */}
-                {item.notes && (
-                  <div className="mt-2">
-                    <p className="text-sm font-medium text-muted-foreground">Notes:</p>
-                    <p className="text-sm text-muted-foreground">{item.notes}</p>
-                  </div>
-                )}
-              </div>
+                  {item.notes && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Notes:</p>
+                      <p className="text-sm">{item.notes}</p>
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </CardContent>
-        </Card>
+          </Accordion>
+        </CardContent>
+      </Card>
 
-        {/* Project Comments */}
-        {projectComments && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Project Comments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm">{projectComments}</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Price Breakdown */}
-        <Card className="bg-primary/5 border-primary/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Price Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span>
-                {formatExactPrice(subtotal, {
-                  currency_symbol: settings.currency_symbol,
-                  decimal_precision: settings.decimal_precision
-                })}
-              </span>
-            </div>
-            
-            {markupAmount > 0 && (
-              <div className="flex justify-between text-muted-foreground">
-                <span>Markup ({settings.global_markup_percentage}%):</span>
-                <span>
-                  {formatExactPrice(markupAmount, {
-                    currency_symbol: settings.currency_symbol,
-                    decimal_precision: settings.decimal_precision
-                  })}
-                </span>
-              </div>
-            )}
-            
-            {taxAmount > 0 && (
-              <div className="flex justify-between text-muted-foreground">
-                <span>Tax ({settings.global_tax_rate}%):</span>
-                <span>
-                  {formatExactPrice(taxAmount, {
-                    currency_symbol: settings.currency_symbol,
-                    decimal_precision: settings.decimal_precision
-                  })}
-                </span>
-              </div>
-            )}
-            
-            <Separator />
-            
-            <div className="flex justify-between text-lg font-bold">
-              <span>Total:</span>
-              <span className="text-primary">
-                {formatExactPrice(total, {
-                  currency_symbol: settings.currency_symbol,
-                  decimal_precision: settings.decimal_precision
-                })}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Submit Button */}
-        <Button 
-          onClick={handleSubmitQuote} 
-          disabled={isSubmitting}
-          className="w-full"
-          size="lg"
+      {/* Add Another Product Card */}
+      {onAddAnother && (
+        <Card 
+          className="border-2 border-dashed cursor-pointer hover:bg-accent transition-colors"
+          onClick={onAddAnother}
         >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Submitting Quote...
-            </>
-          ) : (
-            <>
-              <Send className="h-4 w-4 mr-2" />
-              Submit Quote Request
-            </>
-          )}
-        </Button>
+          <CardContent className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <Plus className="h-12 w-12 mx-auto mb-2 text-primary" />
+              <p className="text-primary font-semibold">Add Another Product</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        <div className="text-center text-sm text-muted-foreground">
-          By submitting this quote request, you agree to be contacted about your project.
-          <br />
-          This is an estimate and final pricing may vary based on site conditions.
-        </div>
-      </CardContent>
-    </Card>
+      {/* Project Comments Display */}
+      {projectComments && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Project Comments
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">{projectComments}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Customer Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Contact Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <p><strong>Name:</strong> {customerInfo.firstName} {customerInfo.lastName}</p>
+          {customerInfo.email && <p><strong>Email:</strong> {customerInfo.email}</p>}
+          {customerInfo.phone && <p><strong>Phone:</strong> {customerInfo.phone}</p>}
+          {customerInfo.address && (
+            <p><strong>Address:</strong> {customerInfo.address}
+              {customerInfo.city && `, ${customerInfo.city}`}
+              {customerInfo.state && `, ${customerInfo.state}`}
+              {customerInfo.zipCode && ` ${customerInfo.zipCode}`}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Quote Summary Card */}
+      <Card className="bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Calculator className="h-5 w-5 text-green-600" />
+            Quote Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex justify-between text-sm">
+            <span>Subtotal:</span>
+            <span>
+              {formatExactPrice(subtotal, {
+                currency_symbol: settings.currency_symbol,
+                decimal_precision: settings.decimal_precision
+              })}
+            </span>
+          </div>
+          
+          {markupAmount > 0 && (
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Markup ({settings.global_markup_percentage}%):</span>
+              <span>
+                {formatExactPrice(markupAmount, {
+                  currency_symbol: settings.currency_symbol,
+                  decimal_precision: settings.decimal_precision
+                })}
+              </span>
+            </div>
+          )}
+          
+          {taxAmount > 0 && (
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Tax ({settings.global_tax_rate}%):</span>
+              <span>
+                {formatExactPrice(taxAmount, {
+                  currency_symbol: settings.currency_symbol,
+                  decimal_precision: settings.decimal_precision
+                })}
+              </span>
+            </div>
+          )}
+          
+          <Separator />
+          
+          <div className="flex justify-between text-xl font-bold text-green-700 dark:text-green-400">
+            <span>Total:</span>
+            <span>
+              {formatExactPrice(total, {
+                currency_symbol: settings.currency_symbol,
+                decimal_precision: settings.decimal_precision
+              })}
+            </span>
+          </div>
+
+          <Button 
+            onClick={handleSubmitQuote} 
+            disabled={isSubmitting}
+            className="w-full bg-green-600 hover:bg-green-700 mt-4"
+            size="lg"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                Review and Download Quote
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="text-center text-sm text-muted-foreground">
+        By submitting this quote request, you agree to be contacted about your project.
+        <br />
+        This is an estimate and final pricing may vary based on site conditions.
+      </div>
+    </div>
   );
 };
 

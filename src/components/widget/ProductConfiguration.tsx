@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Package, Calculator, Loader2 } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Minus, Package, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { QuoteItem, MeasurementData, ProductVariation, ProductAddon } from '@/types/widget';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
@@ -14,7 +15,6 @@ import {
   calculateTieredPrice, 
   calculateAddonWithAreaData, 
   applyGlobalMarkup, 
-  displayPrice, 
   formatExactPrice 
 } from '@/lib/priceUtils';
 
@@ -26,6 +26,7 @@ interface Product {
   unit_price: number;
   use_tiered_pricing: boolean;
   min_order_quantity: number;
+  color_hex: string;
 }
 
 interface Variation {
@@ -77,7 +78,6 @@ const ProductConfiguration = ({
   
   const [selectedVariations, setSelectedVariations] = useState<string[]>([]);
   const [selectedAddons, setSelectedAddons] = useState<Record<string, number>>({});
-  const [customName, setCustomName] = useState('');
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -88,7 +88,6 @@ const ProductConfiguration = ({
     try {
       setLoading(true);
       
-      // Fetch product details
       const { data: productData, error: productError } = await supabase
         .from('products')
         .select('*')
@@ -97,9 +96,7 @@ const ProductConfiguration = ({
 
       if (productError) throw productError;
       setProduct(productData);
-      setCustomName(productData.name);
 
-      // Fetch variations
       const { data: variationsData } = await supabase
         .from('product_variations')
         .select('*')
@@ -109,7 +106,6 @@ const ProductConfiguration = ({
 
       setVariations((variationsData || []) as Variation[]);
 
-      // Fetch addons
       const { data: addonsData } = await supabase
         .from('product_addons')
         .select('*')
@@ -119,7 +115,6 @@ const ProductConfiguration = ({
 
       setAddons((addonsData || []) as Addon[]);
 
-      // Fetch pricing tiers if tiered pricing is enabled
       if (productData.use_tiered_pricing) {
         const { data: tiersData } = await supabase
           .from('product_pricing_tiers')
@@ -144,7 +139,6 @@ const ProductConfiguration = ({
     let basePrice = product.unit_price;
     let quantity = measurement.value;
 
-    // Apply tiered pricing if enabled
     if (product.use_tiered_pricing && pricingTiers.length > 0) {
       const simplifiedTiers: any[] = pricingTiers.map(tier => ({
         min_quantity: tier.min_quantity,
@@ -154,7 +148,6 @@ const ProductConfiguration = ({
       basePrice = calculateTieredPrice(quantity, simplifiedTiers, product.unit_price);
     }
 
-    // Apply variations
     selectedVariations.forEach(variationId => {
       const variation = variations.find(v => v.id === variationId);
       if (variation) {
@@ -164,9 +157,7 @@ const ProductConfiguration = ({
           basePrice += variation.price_adjustment;
         }
         
-        // Handle area calculation effects
         if (variation.affects_area_calculation && variation.height_value) {
-          // Recalculate quantity based on height
           if (measurement.type === 'area') {
             quantity = quantity * variation.height_value;
           }
@@ -176,7 +167,6 @@ const ProductConfiguration = ({
 
     let subtotal = basePrice * quantity;
 
-    // Apply addons
     Object.entries(selectedAddons).forEach(([addonId, addonQuantity]) => {
       if (addonQuantity > 0) {
         const addon = addons.find(a => a.id === addonId);
@@ -191,7 +181,6 @@ const ProductConfiguration = ({
       }
     });
 
-    // Apply global markup
     if (settings.global_markup_percentage > 0) {
       subtotal = applyGlobalMarkup(subtotal, settings.global_markup_percentage);
     }
@@ -233,7 +222,6 @@ const ProductConfiguration = ({
       unitPrice: product.unit_price,
       quantity: measurement.value,
       lineTotal: calculateItemPrice(),
-      customName: customName || product.name,
       notes: notes || undefined,
       variations: selectedVariationObjects.length > 0 ? selectedVariationObjects : undefined,
       addons: selectedAddonObjects.length > 0 ? selectedAddonObjects : undefined
@@ -259,184 +247,164 @@ const ProductConfiguration = ({
 
   if (loading) {
     return (
-      <Card className="max-w-4xl mx-auto">
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </Card>
+      <div className="w-full h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   if (!product) {
     return (
-      <Card className="max-w-4xl mx-auto">
-        <CardContent className="text-center py-12">
-          <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Product not found</p>
-        </CardContent>
-      </Card>
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+        <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <p className="text-muted-foreground">Product not found</p>
+      </div>
     );
   }
 
   const lineTotal = calculateItemPrice();
+  const perimeter = measurement.type === 'area' ? Math.sqrt(measurement.value) * 4 : undefined;
 
   return (
-    <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calculator className="h-5 w-5 text-primary" />
-          Configure Your Selection
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Customize your product options and add it to your quote
-        </p>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Product Summary */}
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      {/* Product Summary Card */}
+      <Card className="border-2 shadow-lg" style={{ borderColor: product.color_hex }}>
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div 
+              className="w-3 h-3 rounded-full flex-shrink-0 mt-2"
+              style={{ backgroundColor: product.color_hex }}
+            />
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold mb-2">{product.name}</h2>
+              {product.description && (
+                <p className="text-sm text-muted-foreground mb-4">{product.description}</p>
+              )}
+              
+              <div className="flex flex-wrap gap-2 text-sm">
+                <Badge variant="secondary" className="text-base px-3 py-1">
+                  {measurement.value.toLocaleString()} {measurement.unit.replace('_', ' ')}
+                </Badge>
+                {perimeter && (
+                  <Badge variant="outline" className="text-base px-3 py-1">
+                    {Math.ceil(perimeter).toLocaleString()} ft perimeter
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Variations Section */}
+      {variations.length > 0 && (
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">{product.name}</h3>
-              <Badge variant="secondary">
-                {measurement.value.toLocaleString()} {measurement.unit.replace('_', ' ')}
-              </Badge>
-            </div>
-            
-            {product.description && (
-              <p className="text-sm text-muted-foreground mb-3">{product.description}</p>
-            )}
-            
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Base Price</p>
-              <p className="text-lg font-semibold text-primary">
-                {formatExactPrice(product.unit_price, {
-                  currency_symbol: settings.currency_symbol,
-                  decimal_precision: settings.decimal_precision
-                })} per {product.unit_type}
-              </p>
-            </div>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Badge className="bg-purple-500">Height Options</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {variations.map((variation) => (
+              <Card 
+                key={variation.id}
+                className={`cursor-pointer transition-all ${
+                  selectedVariations.includes(variation.id) 
+                    ? 'ring-2 ring-primary bg-primary/5' 
+                    : 'hover:bg-accent'
+                }`}
+                onClick={() => toggleVariation(variation.id)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold">{variation.name}</p>
+                      {variation.description && (
+                        <p className="text-sm text-muted-foreground">{variation.description}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        {variation.adjustment_type === 'percentage' ? '+' : ''}
+                        {formatExactPrice(variation.price_adjustment, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}
+                        {variation.adjustment_type === 'percentage' && '%'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </CardContent>
         </Card>
+      )}
 
-        {/* Custom Name */}
-        <div>
-          <Label htmlFor="customName">Item Name (Optional)</Label>
-          <Input
-            id="customName"
-            value={customName}
-            onChange={(e) => setCustomName(e.target.value)}
-            placeholder={`e.g., "Back Yard ${product.name}"`}
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Give this item a custom name to identify it in your quote
-          </p>
-        </div>
-
-        {/* Variations */}
-        {variations.length > 0 && (
-          <div>
-            <h4 className="font-semibold mb-3">Product Variations</h4>
-            <div className="space-y-2">
-              {variations.map((variation) => (
-                <Card 
-                  key={variation.id}
-                  className={`cursor-pointer transition-colors ${
-                    selectedVariations.includes(variation.id) 
-                      ? 'ring-2 ring-primary bg-primary/5' 
-                      : 'hover:bg-accent'
-                  }`}
-                  onClick={() => toggleVariation(variation.id)}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{variation.name}</p>
-                        {variation.description && (
-                          <p className="text-sm text-muted-foreground">{variation.description}</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">
-                          {variation.adjustment_type === 'percentage' ? '+' : ''}
-                          {formatExactPrice(variation.price_adjustment, {
-                            currency_symbol: settings.currency_symbol,
-                            decimal_precision: settings.decimal_precision
-                          })}
-                          {variation.adjustment_type === 'percentage' && '%'}
-                        </p>
-                      </div>
+      {/* Add-ons Section */}
+      {addons.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Badge className="bg-orange-500">Available Add-ons</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {addons.map((addon) => (
+              <Card key={addon.id} className="bg-muted/30">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex-1">
+                      <p className="font-semibold">{addon.name}</p>
+                      {addon.description && (
+                        <p className="text-sm text-muted-foreground">{addon.description}</p>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Add-ons */}
-        {addons.length > 0 && (
-          <div>
-            <h4 className="font-semibold mb-3">Add-On Items</h4>
-            <div className="space-y-3">
-              {addons.map((addon) => (
-                <Card key={addon.id}>
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex-1">
-                        <p className="font-medium">{addon.name}</p>
-                        {addon.description && (
-                          <p className="text-sm text-muted-foreground">{addon.description}</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">
-                          {formatExactPrice(addon.price_value, {
-                            currency_symbol: settings.currency_symbol,
-                            decimal_precision: settings.decimal_precision
-                          })}
-                          {addon.calculation_type === 'per_unit' && ` per ${product.unit_type}`}
-                        </p>
-                      </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        {formatExactPrice(addon.price_value, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}
+                        {addon.calculation_type === 'per_unit' && ` per ${product.unit_type}`}
+                      </p>
                     </div>
-                    
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">Quantity:</Label>
                     <div className="flex items-center gap-2">
-                      <Label className="text-sm">Quantity:</Label>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) - 1)}
-                          disabled={(selectedAddons[addon.id] || 0) <= 0}
-                        >
-                          -
-                        </Button>
-                        <Input
-                          type="number"
-                          min="0"
-                          value={selectedAddons[addon.id] || 0}
-                          onChange={(e) => updateAddonQuantity(addon.id, parseInt(e.target.value) || 0)}
-                          className="w-16 text-center"
-                        />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) + 1)}
-                        >
-                          +
-                        </Button>
-                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) - 1)}
+                        disabled={(selectedAddons[addon.id] || 0) <= 0}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="w-12 text-center font-medium">
+                        {selectedAddons[addon.id] || 0}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) + 1)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Notes */}
-        <div>
-          <Label htmlFor="notes">Special Notes (Optional)</Label>
+      {/* Notes */}
+      <Card>
+        <CardContent className="p-4">
+          <Label htmlFor="notes" className="text-base font-semibold mb-2 block">Special Notes</Label>
           <Textarea
             id="notes"
             value={notes}
@@ -444,42 +412,37 @@ const ProductConfiguration = ({
             placeholder="Any special requirements or notes for this item..."
             rows={3}
           />
-        </div>
+        </CardContent>
+      </Card>
 
-        <Separator />
-
-        {/* Price Summary */}
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-lg font-semibold">Total for this item:</span>
-              <span className="text-xl font-bold text-primary">
+      {/* Action Card */}
+      <Card className="border-2 shadow-lg bg-muted/20" style={{ borderColor: product.color_hex }}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Total Price</p>
+              <p className="text-3xl font-bold text-primary">
                 {formatExactPrice(lineTotal, {
                   currency_symbol: settings.currency_symbol,
                   decimal_precision: settings.decimal_precision
                 })}
-              </span>
+              </p>
             </div>
-            
-            <div className="text-sm text-muted-foreground">
-              {measurement.value.toLocaleString()} {measurement.unit.replace('_', ' ')} × {formatExactPrice(product.unit_price, {
-                currency_symbol: settings.currency_symbol,
-                decimal_precision: settings.decimal_precision
-              })}
-              {selectedVariations.length > 0 && ' + variations'}
-              {Object.values(selectedAddons).some(q => q > 0) && ' + add-ons'}
-              {settings.global_markup_percentage > 0 && ` + ${settings.global_markup_percentage}% markup`}
-            </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Add to Quote Button */}
-        <Button onClick={handleAddToQuote} className="w-full" size="lg">
-          <Plus className="h-4 w-4 mr-2" />
-          Add to Quote
-        </Button>
-      </CardContent>
-    </Card>
+          <div className="flex gap-3">
+            <Button variant="destructive" size="lg" className="flex-1">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Remove
+            </Button>
+            <Button onClick={handleAddToQuote} size="lg" className="flex-1">
+              <Plus className="h-4 w-4 mr-2" />
+              Add to Quote
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
