@@ -377,7 +377,7 @@ const MeasurementTools = ({
                 className="pl-10"
               />
             </div>
-            <Button className="px-6">
+            <Button className="px-6" variant="outline">
               Search
             </Button>
           </div>
@@ -495,6 +495,7 @@ const MeasurementTools = ({
                   onClick={handleManualSubmit}
                   disabled={!manualValue || parseFloat(manualValue) <= 0}
                   className="flex-1"
+                  variant="outline"
                 >
                   Submit
                 </Button>
@@ -627,7 +628,7 @@ const MeasurementTools = ({
             {/* Continue Button */}
             {currentMeasurement && (
               <div className="flex justify-center">
-                <Button onClick={onNext} size="lg" className="px-8">
+                <Button onClick={onNext} size="lg" variant="outline" className="px-8">
                   Continue with {currentMeasurement.value.toLocaleString()} {unitAbbr}
                 </Button>
               </div>
