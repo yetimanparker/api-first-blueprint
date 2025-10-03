@@ -297,38 +297,14 @@ const Widget = () => {
         )}
 
         {widgetState.currentStep === 'measurement' && widgetState.currentProductId && (
-          <div className="space-y-4">
-            {/* Selected Product Context */}
-            {selectedProduct && (
-              <Card className="bg-primary/5 border-primary/20">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-primary">Selected Product</h3>
-                      <p className="text-sm">{selectedProduct.name}</p>
-                      {selectedProduct.description && (
-                        <p className="text-xs text-muted-foreground">{selectedProduct.description}</p>
-                      )}
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={goToProductSelection}
-                    >
-                      Change Product
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            
-            <MeasurementTools
-              productId={widgetState.currentProductId}
-              onMeasurementComplete={updateCurrentMeasurement}
-              onNext={() => setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }))}
-              customerAddress={widgetState.customerInfo.address}
-            />
-          </div>
+          <MeasurementTools
+            productId={widgetState.currentProductId}
+            onMeasurementComplete={updateCurrentMeasurement}
+            onNext={() => setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }))}
+            customerAddress={widgetState.customerInfo.address}
+            selectedProduct={selectedProduct}
+            onChangeProduct={goToProductSelection}
+          />
         )}
 
         {widgetState.currentStep === 'product-configuration' && 

@@ -13,6 +13,14 @@ interface MeasurementToolsProps {
   onMeasurementComplete: (measurement: MeasurementData) => void;
   onNext: () => void;
   customerAddress?: string;
+  selectedProduct?: {
+    id: string;
+    name: string;
+    description?: string;
+    unit_type: string;
+    unit_price: number;
+  } | null;
+  onChangeProduct?: () => void;
 }
 
 interface Product {
@@ -25,7 +33,9 @@ const MeasurementTools = ({
   productId, 
   onMeasurementComplete, 
   onNext,
-  customerAddress 
+  customerAddress,
+  selectedProduct,
+  onChangeProduct
 }: MeasurementToolsProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,10 +53,18 @@ const MeasurementTools = ({
   const mapRef = useRef<google.maps.Map | null>(null);
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const currentShapeRef = useRef<google.maps.Polygon | google.maps.Polyline | null>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchProduct();
     fetchApiKey();
+    
+    // Scroll to center the map view after a brief delay
+    setTimeout(() => {
+      if (headerRef.current) {
+        headerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 300);
   }, []);
 
   useEffect(() => {
@@ -346,7 +364,7 @@ const MeasurementTools = ({
   return (
     <div className="flex flex-col h-screen w-full">
       {/* Header with Search and Title */}
-      <div className="bg-background border-b px-6 py-4 z-20">
+      <div ref={headerRef} className="bg-background border-b px-6 py-4 z-20">
         <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
           <h2 className="text-2xl font-semibold text-foreground whitespace-nowrap">
             Measure Your Project
@@ -490,6 +508,30 @@ const MeasurementTools = ({
       {!mapLoading && !mapError && (
         <div className="bg-background border-t px-6 py-4">
           <div className="max-w-7xl mx-auto">
+            {/* Selected Product Display */}
+            {selectedProduct && (
+              <div className="mb-4 bg-primary/5 border border-primary/20 rounded-lg px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-primary mb-1">Selected Product</h3>
+                    <p className="text-sm font-medium">{selectedProduct.name}</p>
+                    {selectedProduct.description && (
+                      <p className="text-xs text-muted-foreground mt-1">{selectedProduct.description}</p>
+                    )}
+                  </div>
+                  {onChangeProduct && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={onChangeProduct}
+                    >
+                      Change Product
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Measurement Display */}
             {mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement && (
               <div className="mb-4 bg-primary/10 border-2 border-primary rounded-lg px-6 py-4 shadow-lg">
