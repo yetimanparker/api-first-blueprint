@@ -143,32 +143,48 @@ const MeasurementTools = ({
   };
 
   const initializeMap = async () => {
-    if (!mapContainerRef.current || !apiKey) return;
-    if (mapRef.current) return;
+    if (!mapContainerRef.current || !apiKey) {
+      console.error('Cannot initialize map:', { 
+        hasContainer: !!mapContainerRef.current, 
+        hasApiKey: !!apiKey 
+      });
+      return;
+    }
+    if (mapRef.current) {
+      console.log('Map already initialized');
+      return;
+    }
 
     try {
+      console.log('Starting map initialization...');
       setMapLoading(true);
       setMapError(null);
       
+      console.log('Creating Loader with API key');
       const loader = new Loader({
         apiKey: apiKey,
         version: 'weekly',
         libraries: ['drawing', 'geometry'],
       });
 
+      console.log('Loading Google Maps API...');
       await loader.load();
+      console.log('Google Maps API loaded successfully');
 
       let center = { lat: 39.8283, lng: -98.5795 };
       let zoom = 4;
 
       if (customerAddress) {
+        console.log('Geocoding address:', customerAddress);
         const geocodedCenter = await geocodeAddress(customerAddress);
         if (geocodedCenter) {
           center = geocodedCenter;
           zoom = 21;
+          console.log('Geocoded to:', center);
         }
       }
 
+      console.log('Creating map instance with center:', center);
       const map = new google.maps.Map(mapContainerRef.current, {
         center: center,
         zoom: zoom,
@@ -202,8 +218,13 @@ const MeasurementTools = ({
         ]
       });
 
+      console.log('Map instance created successfully');
       mapRef.current = map;
+      
+      console.log('Setting up drawing manager');
       setupDrawingManager(map);
+      
+      console.log('Map initialization complete');
       setMapLoading(false);
       
       // Auto-start drawing after a brief delay to ensure everything is ready
@@ -216,6 +237,7 @@ const MeasurementTools = ({
       
     } catch (error) {
       console.error('Map initialization failed:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       setMapError(`Unable to load map: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setMapLoading(false);
     }
@@ -405,10 +427,10 @@ const MeasurementTools = ({
       </div>
 
       {/* Map Section */}
-      <div className="relative flex-1 w-full overflow-hidden">
+      <div className="relative flex-1 w-full overflow-hidden min-h-[500px]">
         <div 
           ref={mapContainerRef}
-          className="w-full h-full"
+          className="w-full h-full absolute inset-0"
         />
         
         {mapLoading && (
