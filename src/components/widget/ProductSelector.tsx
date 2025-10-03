@@ -129,65 +129,69 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
   const allProductsCount = products.length;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      {/* Category filters - Prominent Pills */}
+    <div className="max-w-6xl mx-auto px-4 py-4">
+      {/* Category filters - Compact Pills */}
       {categories.length > 0 && (
-        <div className="mb-8">
-          <div className="flex flex-wrap gap-3">
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              size="lg"
+              size="sm"
               onClick={() => setSelectedCategory('')}
-              className={`rounded-full h-11 px-6 font-medium transition-all ${
+              className={`rounded-full h-8 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all ${
                 selectedCategory === '' 
                   ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
                   : 'bg-background text-foreground border-input hover:bg-accent/10 hover:text-accent-foreground'
               }`}
             >
-              All Categories ({allProductsCount})
+              <span className="hidden sm:inline">All Categories</span>
+              <span className="sm:hidden">All</span>
+              <span className="ml-1">({allProductsCount})</span>
             </Button>
             {categories.map((category) => (
               <Button
                 key={category.id}
                 variant="outline"
-                size="lg"
+                size="sm"
                 onClick={() => setSelectedCategory(category.name)}
-                className={`rounded-full h-11 px-6 font-medium transition-all ${
+                className={`rounded-full h-8 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all ${
                   selectedCategory === category.name 
                     ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
                     : 'bg-background text-foreground border-input hover:bg-accent/10 hover:text-accent-foreground'
                 }`}
               >
-                {category.name} ({categoryProductCounts[category.name] || 0})
+                <span className="truncate max-w-[120px]">{category.name}</span>
+                <span className="ml-1">({categoryProductCounts[category.name] || 0})</span>
               </Button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Products grid */}
-      {filteredProducts.length === 0 ? (
-        <div className="text-center py-12">
-          <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">No Products Available</h3>
-          <p className="text-muted-foreground">
-            {selectedCategory 
-              ? `No products found in the "${selectedCategory}" category.`
-              : 'No products are currently available for quoting.'
-            }
-          </p>
-          {selectedCategory && (
-            <Button
-              variant="outline"
-              onClick={() => setSelectedCategory('')}
-              className="mt-4"
-            >
-              View All Products
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Products grid - Scrollable */}
+      <div className="max-h-[calc(100vh-16rem)] overflow-y-auto pr-2 -mr-2">
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-12">
+            <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Products Available</h3>
+            <p className="text-muted-foreground">
+              {selectedCategory 
+                ? `No products found in the "${selectedCategory}" category.`
+                : 'No products are currently available for quoting.'
+              }
+            </p>
+            {selectedCategory && (
+              <Button
+                variant="outline"
+                onClick={() => setSelectedCategory('')}
+                className="mt-4"
+              >
+                View All Products
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
           {filteredProducts.map((product) => (
             <Card 
               key={product.id}
@@ -256,8 +260,9 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
               </CardContent>
             </Card>
           ))}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

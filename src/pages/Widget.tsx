@@ -359,8 +359,8 @@ const Widget = () => {
             {widgetState.quoteItems.length > 0 && (
               <Card className="bg-success/5 border-success/20">
                 <CardContent className="p-4">
-                  <h3 className="font-semibold text-success mb-2">Items in Your Quote</h3>
-                  <div className="space-y-2">
+                  <h3 className="font-semibold text-success mb-2">Items in Your Quote ({widgetState.quoteItems.length})</h3>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
                     {widgetState.quoteItems.map((item, index) => (
                       <div key={item.id} className="flex justify-between items-center text-sm">
                         <span>{item.customName || item.productName}</span>
@@ -370,23 +370,24 @@ const Widget = () => {
                       </div>
                     ))}
                   </div>
+                  <div className="mt-3 pt-3 border-t">
+                    <Button onClick={nextStep} variant="default" className="w-full">
+                      Continue to Review Quote
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )}
             
-            <Card className="p-8 text-center">
-              <h3 className="text-xl font-semibold mb-4">Item Added to Quote</h3>
-              <p className="text-muted-foreground mb-6">
-                Would you like to add another product to your quote?
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button onClick={goToProductSelection} variant="default">
-                  Add Another Product
-                </Button>
-                <Button onClick={nextStep} variant="outline">
-                  Continue to Review
-                </Button>
-              </div>
+            {/* Show products for quick selection */}
+            <Card className="p-4">
+              <h3 className="text-lg font-semibold mb-3">Add Another Product</h3>
+              <ProductSelector
+                categories={categories}
+                onProductSelect={setCurrentProduct}
+                settings={settings}
+                contractorId={contractorId!}
+              />
             </Card>
           </div>
         )}
