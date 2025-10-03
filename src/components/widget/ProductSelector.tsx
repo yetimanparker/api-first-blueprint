@@ -141,7 +141,7 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
               className={`rounded-full h-11 px-6 font-medium shadow-sm hover:shadow-md transition-all ${
                 selectedCategory === '' 
                   ? 'bg-primary text-primary-foreground border-primary' 
-                  : 'bg-background hover:bg-accent border-muted-foreground/30'
+                  : 'bg-background hover:bg-accent border-muted-foreground/30 text-foreground'
               }`}
             >
               All Categories ({allProductsCount})
