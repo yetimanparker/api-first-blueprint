@@ -155,16 +155,8 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
                 className={`rounded-full h-11 px-6 font-medium shadow-sm hover:shadow-md transition-all ${
                   selectedCategory === category.name 
                     ? 'bg-primary text-primary-foreground border-primary' 
-                    : 'bg-background hover:bg-accent'
+                    : 'bg-background hover:bg-accent border-muted-foreground/30 text-foreground'
                 }`}
-                style={
-                  selectedCategory !== category.name
-                    ? {
-                        borderColor: category.color_hex,
-                        color: category.color_hex,
-                      }
-                    : undefined
-                }
               >
                 {category.name} ({categoryProductCounts[category.name] || 0})
               </Button>
