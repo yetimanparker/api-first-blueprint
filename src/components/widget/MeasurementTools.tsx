@@ -361,76 +361,104 @@ const MeasurementTools = ({
   const unitAbbr = measurementType === 'area' ? 'sq ft' : 'ft';
 
   return (
-    <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Header Section */}
+      <div className="text-center space-y-3 px-4">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-2">
           {measurementType === 'area' ? (
-            <Square className="h-5 w-5 text-primary" />
+            <Square className="h-8 w-8 text-primary" />
           ) : (
-            <Ruler className="h-5 w-5 text-primary" />
+            <Ruler className="h-8 w-8 text-primary" />
           )}
-          Measure Your Project
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          {product && `Measuring for: ${product.name}`}
-          <br />
-          {measurementType === 'area' 
-            ? 'Draw the area on the map or enter the square footage manually'
-            : 'Draw the distance on the map or enter the linear feet manually'
-          }
-        </p>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Measurement Type Selector */}
-        <div className="flex justify-center">
+        </div>
+        <h2 className="text-3xl font-bold tracking-tight">Measure Your Project</h2>
+        {product && (
+          <p className="text-lg text-muted-foreground">
+            For: <span className="font-semibold text-foreground">{product.name}</span>
+          </p>
+        )}
+      </div>
+
+      {/* Measurement Type Selector */}
+      <Card className="border-2">
+        <CardContent className="pt-6">
+          <div className="text-center mb-4">
+            <p className="text-sm font-medium text-muted-foreground">Choose measurement type</p>
+          </div>
           <Tabs value={measurementType} onValueChange={(value) => setMeasurementType(value as 'area' | 'linear')}>
-            <TabsList className="grid w-full grid-cols-2 max-w-md">
-              <TabsTrigger value="area" className="flex items-center gap-2">
-                <Square className="h-4 w-4" />
-                Area ({unitAbbr})
+            <TabsList className="grid w-full grid-cols-2 h-14">
+              <TabsTrigger value="area" className="flex items-center gap-2 text-base">
+                <Square className="h-5 w-5" />
+                <span>Area <span className="text-muted-foreground">({unitAbbr})</span></span>
               </TabsTrigger>
-              <TabsTrigger value="linear" className="flex items-center gap-2">
-                <Ruler className="h-4 w-4" />
-                Length (ft)
+              <TabsTrigger value="linear" className="flex items-center gap-2 text-base">
+                <Ruler className="h-5 w-5" />
+                <span>Length <span className="text-muted-foreground">(ft)</span></span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
-        </div>
+        </CardContent>
+      </Card>
 
+      {/* Instructions Card */}
+      <Card className="bg-muted/50 border-dashed">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-primary font-bold">1</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium mb-1">Draw on the map or enter manually</p>
+              <p className="text-xs text-muted-foreground">
+                {measurementType === 'area' 
+                  ? 'Click points on the map to outline your area, or type the square footage if you already know it.'
+                  : 'Click points on the map to measure distance, or enter the linear feet directly.'
+                }
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid md:grid-cols-2 gap-6">
         {/* Map Measurement */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Map Measurement
+        <Card className="border-2 hover:border-primary/50 transition-colors">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <MapPin className="h-5 w-5 text-primary" />
+              </div>
+              <span>Draw on Map</span>
             </CardTitle>
+            <p className="text-sm text-muted-foreground">Use satellite imagery for precision</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="relative">
               <div 
                 ref={mapContainerRef}
-                className="w-full h-64 sm:h-80 bg-muted rounded-lg border"
-                style={{ minHeight: '320px' }}
+                className="w-full h-80 bg-muted rounded-lg border-2 overflow-hidden shadow-inner"
               />
               
               {/* Map Loading Overlay */}
               {mapLoading && (
-                <div className="absolute inset-0 bg-background/90 flex items-center justify-center rounded-lg">
+                <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center rounded-lg">
                   <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading Google Maps...</p>
+                    <Loader2 className="h-10 w-10 animate-spin mx-auto mb-3 text-primary" />
+                    <p className="text-sm font-medium">Loading Google Maps...</p>
+                    <p className="text-xs text-muted-foreground mt-1">This may take a moment</p>
                   </div>
                 </div>
               )}
               
               {/* Map Error State */}
               {mapError && (
-                <div className="absolute inset-0 bg-background/90 flex items-center justify-center rounded-lg">
-                  <div className="text-center p-4">
-                    <MapPin className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm font-medium mb-2">Map Unavailable</p>
-                    <p className="text-xs text-muted-foreground mb-3">{mapError}</p>
+                <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                  <div className="text-center p-6 max-w-xs">
+                    <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-3">
+                      <MapPin className="h-6 w-6 text-destructive" />
+                    </div>
+                    <p className="text-sm font-semibold mb-2">Unable to Load Map</p>
+                    <p className="text-xs text-muted-foreground mb-4">{mapError}</p>
                     <Button 
                       size="sm" 
                       variant="outline"
@@ -439,78 +467,102 @@ const MeasurementTools = ({
                         fetchApiKey();
                       }}
                     >
-                      Retry Map
+                      Try Again
                     </Button>
                   </div>
                 </div>
               )}
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                onClick={startDrawing}
-                disabled={isDrawing || !!mapError || mapLoading}
-                variant="outline"
-                className="flex-1"
-              >
-                {isDrawing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Drawing... Click to place points
-                  </>
-                ) : (
-                  <>
-                    <Edit3 className="h-4 w-4 mr-2" />
-                    {measurementType === 'area' ? 'Draw Area' : 'Draw Line'}
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                onClick={clearMapDrawing}
-                variant="outline"
-                disabled={(!mapMeasurement && !isDrawing) || !!mapError}
-              >
-                Clear
-              </Button>
-            </div>
+            {/* Drawing Instructions Banner */}
+            {isDrawing && (
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 animate-fade-in">
+                <div className="flex items-center gap-2 mb-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <p className="text-sm font-semibold text-primary">Drawing Mode Active</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {measurementType === 'area' 
+                    ? 'Click to add points. Double-click or click the first point to complete the shape.'
+                    : 'Click to add points along the line. Double-click to finish.'
+                  }
+                </p>
+              </div>
+            )}
 
-            {mapMeasurement && (
-              <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg border border-success/20">
-                <span className="text-sm font-medium">
-                  Measured: <strong>{mapMeasurement.toLocaleString()} {unitAbbr}</strong>
-                </span>
-                <Button onClick={handleMapSubmit} size="sm">
+            {/* Measurement Result */}
+            {mapMeasurement && !isDrawing && (
+              <div className="bg-primary/10 border border-primary rounded-lg p-4 animate-scale-in">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Measured from map</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {mapMeasurement.toLocaleString()} <span className="text-lg">{unitAbbr}</span>
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
+                    <MapPin className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                </div>
+                <Button onClick={handleMapSubmit} className="w-full" size="lg">
                   Use This Measurement
                 </Button>
               </div>
             )}
-
-            {isDrawing && (
-              <p className="text-sm text-muted-foreground text-center">
-                {measurementType === 'area' 
-                  ? 'Click on the map to create points for your area. Click the first point again to complete.'
-                  : 'Click on the map to create points for your line measurement.'
-                }
-              </p>
-            )}
+            
+            {/* Drawing Controls */}
+            <div className="flex gap-2">
+              <Button
+                onClick={startDrawing}
+                disabled={isDrawing || !!mapError || mapLoading}
+                variant={mapMeasurement ? "outline" : "default"}
+                className="flex-1"
+                size="lg"
+              >
+                {isDrawing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Drawing...
+                  </>
+                ) : (
+                  <>
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    {mapMeasurement ? 'Redraw' : (measurementType === 'area' ? 'Draw Area' : 'Draw Line')}
+                  </>
+                )}
+              </Button>
+              
+              {(mapMeasurement || isDrawing) && (
+                <Button
+                  onClick={clearMapDrawing}
+                  variant="outline"
+                  disabled={!!mapError}
+                  size="lg"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
 
         {/* Manual Entry */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Edit3 className="h-4 w-4" />
-              Manual Entry
+        <Card className="border-2 hover:border-primary/50 transition-colors">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Edit3 className="h-5 w-5 text-primary" />
+              </div>
+              <span>Enter Manually</span>
             </CardTitle>
+            <p className="text-sm text-muted-foreground">Already know the measurement?</p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Label htmlFor="manual-measurement">
-                  {measurementType === 'area' ? 'Square Feet' : 'Linear Feet'}
-                </Label>
+            <div className="space-y-3">
+              <Label htmlFor="manual-measurement" className="text-base">
+                {measurementType === 'area' ? 'Square Feet' : 'Linear Feet'}
+              </Label>
+              <div className="relative">
                 <Input
                   id="manual-measurement"
                   type="number"
@@ -519,43 +571,87 @@ const MeasurementTools = ({
                   value={manualValue}
                   onChange={(e) => setManualValue(e.target.value)}
                   placeholder={`Enter ${unitLabel}`}
+                  className="text-lg h-14 pr-16"
                 />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
+                  {unitAbbr}
+                </span>
               </div>
-              <div className="flex items-end">
-                <Button
+            </div>
+
+            {manualValue && parseFloat(manualValue) > 0 && (
+              <div className="bg-primary/10 border border-primary rounded-lg p-4 animate-scale-in">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Manual entry</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {parseFloat(manualValue).toLocaleString()} <span className="text-lg">{unitAbbr}</span>
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
+                    <Edit3 className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                </div>
+                <Button 
                   onClick={handleManualSubmit}
-                  disabled={!manualValue || parseFloat(manualValue) <= 0}
+                  className="w-full"
+                  size="lg"
                 >
-                  Use This
+                  Use This Measurement
                 </Button>
               </div>
+            )}
+
+            {/* Example Helper */}
+            <div className="bg-muted/50 rounded-lg p-4 border border-dashed">
+              <p className="text-xs font-medium text-muted-foreground mb-2">💡 Tip</p>
+              <p className="text-xs text-muted-foreground">
+                {measurementType === 'area' 
+                  ? 'For a rectangular area: multiply length × width. Example: 50 ft × 30 ft = 1,500 sq ft'
+                  : 'Measure along the edge or perimeter where the work will be done.'
+                }
+              </p>
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Current Selection Display */}
-        {currentMeasurement && (
-          <Card className="border-primary bg-primary/5">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+      {/* Current Selection Display */}
+      {currentMeasurement && (
+        <Card className="border-2 border-primary bg-gradient-to-br from-primary/5 to-primary/10 animate-fade-in">
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                  {currentMeasurement.manualEntry ? (
+                    <Edit3 className="h-8 w-8 text-primary-foreground" />
+                  ) : (
+                    <MapPin className="h-8 w-8 text-primary-foreground" />
+                  )}
+                </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Selected Measurement</p>
-                  <p className="text-2xl font-bold">
-                    {currentMeasurement.value.toLocaleString()} {currentMeasurement.unit.replace('_', ' ')}
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    ✓ Measurement Selected
+                  </p>
+                  <p className="text-3xl font-bold text-foreground">
+                    {currentMeasurement.value.toLocaleString()}{' '}
+                    <span className="text-xl text-muted-foreground">
+                      {currentMeasurement.unit.replace('_', ' ')}
+                    </span>
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {currentMeasurement.manualEntry ? 'Manual entry' : 'From map'}
+                    {currentMeasurement.manualEntry ? 'From manual entry' : 'From map drawing'}
                   </p>
                 </div>
-                <Button onClick={onNext} size="lg">
-                  Continue
-                </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </CardContent>
-    </Card>
+              <Button onClick={onNext} size="lg" className="w-full sm:w-auto px-8">
+                Continue to Next Step
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 
