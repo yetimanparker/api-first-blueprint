@@ -215,75 +215,66 @@ const Widget = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30" style={brandStyle}>
-      {/* Back to Dashboard Button */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/dashboard')}
-            className="mb-2"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </div>
-      </div>
-      
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Header with Branding */}
-        <div className="mb-8 text-center">
-          <div 
-            className="inline-block px-6 py-3 rounded-full text-primary-foreground font-semibold text-lg mb-4"
-            style={{ backgroundColor: brandColor }}
-          >
-            {contractorInfo?.business_name || 'Professional Services'}
+      {/* Header with Steps */}
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/dashboard')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: brandColor }}
+              />
+              <span className="text-sm font-medium">{contractorInfo?.business_name || 'Professional Services'}</span>
+            </div>
           </div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            {contractorInfo?.business_name || 'Professional Services'}
-          </h1>
-          <p className="text-muted-foreground text-lg">Professional outdoor services</p>
-        </div>
-
-        {/* Step Indicators */}
-        <div className="mb-8">
-          <div className="flex flex-col space-y-4">
+          
+          {/* Horizontal Step Progress */}
+          <div className="flex items-center gap-2">
             {stepConfig.map((step, index) => {
               const isActive = index === currentStepIndex;
               const isCompleted = index < currentStepIndex;
-              const isAccessible = index <= currentStepIndex;
               
               return (
-                <div
-                  key={step.key}
-                  className={`flex items-center p-4 rounded-lg border transition-all ${
-                    isActive 
-                      ? 'border-primary bg-primary/5 shadow-md' 
-                      : isCompleted
-                      ? 'border-success bg-success/5'
-                      : 'border-border bg-card'
-                  }`}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                      isActive 
-                        ? 'bg-primary text-primary-foreground' 
-                        : isCompleted
-                        ? 'bg-success text-success-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    {isCompleted ? '✓' : index + 1}
+                <div key={step.key} className="flex items-center flex-1">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
+                        isActive 
+                          ? 'bg-primary text-primary-foreground shadow-md' 
+                          : isCompleted
+                          ? 'bg-primary/80 text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {isCompleted ? '✓' : index + 1}
+                    </div>
+                    <span className={`text-xs font-medium hidden sm:inline ${
+                      isActive ? 'text-primary' : isCompleted ? 'text-primary/80' : 'text-muted-foreground'
+                    }`}>
+                      {step.label.replace(/^\d+\.\s*/, '')}
+                    </span>
                   </div>
-                  <h3 className={`ml-4 font-medium ${isActive ? 'text-primary' : isCompleted ? 'text-success' : 'text-muted-foreground'}`}>
-                    {step.label}
-                  </h3>
-                  {isActive && <span className="ml-auto text-sm text-muted-foreground">Current Step</span>}
+                  {index < stepConfig.length - 1 && (
+                    <div className={`h-0.5 flex-1 mx-2 transition-all ${
+                      isCompleted ? 'bg-primary/80' : 'bg-muted'
+                    }`} />
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
+      </div>
+      
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
 
             {(widgetState.currentStep === 'contact-before' || widgetState.currentStep === 'contact-after') && (
               <ContactForm
