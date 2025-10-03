@@ -55,16 +55,19 @@ const MeasurementTools = ({
     }
   }, [apiKey]);
 
+  // Auto-start drawing when map and drawing manager are ready
+  useEffect(() => {
+    if (mapRef.current && drawingManagerRef.current && !showManualEntry && !mapLoading) {
+      console.log('Map ready, auto-starting drawing for type:', measurementType);
+      setTimeout(() => startDrawing(), 300);
+    }
+  }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, mapLoading]);
+
   useEffect(() => {
     // Reset measurements when measurement type changes
     setMapMeasurement(null);
     setCurrentMeasurement(null);
     clearMapDrawing();
-    
-    // Auto start drawing when switching type
-    if (drawingManagerRef.current && !showManualEntry) {
-      setTimeout(() => startDrawing(), 100);
-    }
   }, [measurementType]);
 
   const fetchApiKey = async () => {
@@ -165,6 +168,14 @@ const MeasurementTools = ({
       setupDrawingManager(map);
       setMapLoading(false);
       
+      // Auto-start drawing after a brief delay to ensure everything is ready
+      console.log('Map initialized, preparing to auto-start drawing');
+      setTimeout(() => {
+        if (!showManualEntry) {
+          startDrawing();
+        }
+      }, 500);
+      
     } catch (error) {
       console.error('Map initialization failed:', error);
       setMapError(`Unable to load map: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -260,8 +271,12 @@ const MeasurementTools = ({
   };
 
   const startDrawing = () => {
-    if (!drawingManagerRef.current) return;
+    if (!drawingManagerRef.current) {
+      console.log('Cannot start drawing: drawingManager not ready');
+      return;
+    }
 
+    console.log('Starting drawing mode:', measurementType);
     setIsDrawing(true);
     setShowManualEntry(false);
     clearMapDrawing();
@@ -271,6 +286,7 @@ const MeasurementTools = ({
       : google.maps.drawing.OverlayType.POLYLINE;
     
     drawingManagerRef.current.setDrawingMode(mode);
+    console.log('Drawing mode activated:', mode);
   };
 
   const clearMapDrawing = () => {
@@ -417,6 +433,17 @@ const MeasurementTools = ({
           </div>
         )}
 
+        {/* Drawing Instructions */}
+        {isDrawing && !mapMeasurement && !showManualEntry && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground rounded-lg px-6 py-3 shadow-lg animate-pulse">
+            <p className="text-sm font-medium">
+              {measurementType === 'area' 
+                ? 'Click on the map to draw a shape. Click the first point again to close the shape.'
+                : 'Click on the map to start drawing a line. Double-click to finish.'}
+            </p>
+          </div>
+        )}
+
         {/* Bottom Control Bar */}
         {!mapLoading && !mapError && (
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
@@ -425,12 +452,14 @@ const MeasurementTools = ({
                 variant="ghost"
                 size="lg"
                 onClick={() => {
+                  console.log('Line button clicked');
                   setMeasurementType('linear');
                   setShowManualEntry(false);
+                  setTimeout(() => startDrawing(), 100);
                 }}
                 className={`gap-2 ${
                   measurementType === 'linear' && !showManualEntry
-                    ? 'text-foreground font-semibold' 
+                    ? 'text-foreground font-semibold bg-primary/10' 
                     : 'text-muted-foreground'
                 }`}
               >
@@ -442,12 +471,14 @@ const MeasurementTools = ({
                 variant="ghost"
                 size="lg"
                 onClick={() => {
+                  console.log('Area button clicked');
                   setMeasurementType('area');
                   setShowManualEntry(false);
+                  setTimeout(() => startDrawing(), 100);
                 }}
                 className={`gap-2 ${
                   measurementType === 'area' && !showManualEntry
-                    ? 'text-foreground font-semibold' 
+                    ? 'text-foreground font-semibold bg-primary/10' 
                     : 'text-muted-foreground'
                 }`}
               >
