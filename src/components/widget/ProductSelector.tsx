@@ -28,6 +28,14 @@ interface ProductCategory {
   color_hex: string;
 }
 
+interface ProductSubcategory {
+  id: string;
+  category_id: string;
+  name: string;
+  is_active: boolean;
+  display_order: number;
+}
+
 interface ProductSelectorProps {
   categories: ProductCategory[];
   onProductSelect: (productId: string) => void;
@@ -39,14 +47,22 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
+  const [subcategories, setSubcategories] = useState<ProductSubcategory[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (contractorId) {
       console.log('Fetching products for contractor:', contractorId);
       fetchProducts();
+      fetchSubcategories();
     }
   }, [contractorId]);
+
+  // Reset subcategory when category changes
+  useEffect(() => {
+    setSelectedSubcategory('');
+  }, [selectedCategory]);
 
   const fetchProducts = async () => {
     try {
@@ -86,9 +102,36 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     }
   };
 
-  const filteredProducts = selectedCategory 
-    ? products.filter(p => p.category === selectedCategory)
-    : products;
+  const fetchSubcategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('product_subcategories')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching subcategories:', error);
+        return;
+      }
+      
+      setSubcategories(data || []);
+    } catch (err) {
+      console.error('Error fetching subcategories:', err);
+    }
+  };
+
+  const filteredProducts = products.filter(p => {
+    if (selectedCategory && p.category !== selectedCategory) return false;
+    if (selectedSubcategory && p.subcategory !== selectedSubcategory) return false;
+    return true;
+  });
+
+  // Get subcategories for selected category
+  const selectedCategoryData = categories.find(c => c.name === selectedCategory);
+  const availableSubcategories = selectedCategoryData
+    ? subcategories.filter(sc => sc.category_id === selectedCategoryData.id)
+    : [];
 
   const shouldShowPricing = (product: Product) => {
     return product.show_pricing_before_submit;
@@ -120,19 +163,29 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     );
   }
 
-  // Get product counts per category
+  // Get product counts per category and subcategory
   const categoryProductCounts = categories.reduce((acc, category) => {
     acc[category.name] = products.filter(p => p.category === category.name).length;
     return acc;
   }, {} as Record<string, number>);
   
+  const subcategoryProductCounts = availableSubcategories.reduce((acc, subcategory) => {
+    acc[subcategory.name] = products.filter(p => 
+      p.category === selectedCategory && p.subcategory === subcategory.name
+    ).length;
+    return acc;
+  }, {} as Record<string, number>);
+  
   const allProductsCount = products.length;
+  const categoryFilteredCount = selectedCategory 
+    ? products.filter(p => p.category === selectedCategory).length 
+    : allProductsCount;
 
   return (
     <div className="w-full px-4 py-4">
       {/* Category filters - Compact Pills */}
       {categories.length > 0 && (
-        <div className="mb-4">
+        <div className="mb-4 space-y-3">
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
@@ -165,6 +218,42 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
               </Button>
             ))}
           </div>
+
+          {/* Subcategory filters - Only shown when category is selected */}
+          {selectedCategory && availableSubcategories.length > 0 && (
+            <div className="flex flex-wrap gap-2 pl-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedSubcategory('')}
+                className={`rounded-full h-8 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all ${
+                  selectedSubcategory === '' 
+                    ? 'bg-success text-success-foreground border-success hover:bg-success/90' 
+                    : 'bg-background text-foreground border-input hover:bg-success/10 hover:text-success-foreground'
+                }`}
+              >
+                <span className="hidden sm:inline">All Types</span>
+                <span className="sm:hidden">All</span>
+                <span className="ml-1">({categoryFilteredCount})</span>
+              </Button>
+              {availableSubcategories.map((subcategory) => (
+                <Button
+                  key={subcategory.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedSubcategory(subcategory.name)}
+                  className={`rounded-full h-8 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all ${
+                    selectedSubcategory === subcategory.name 
+                      ? 'bg-success text-success-foreground border-success hover:bg-success/90' 
+                      : 'bg-background text-foreground border-input hover:bg-success/10 hover:text-success-foreground'
+                  }`}
+                >
+                  <span className="truncate max-w-[120px]">{subcategory.name}</span>
+                  <span className="ml-1">({subcategoryProductCounts[subcategory.name] || 0})</span>
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
