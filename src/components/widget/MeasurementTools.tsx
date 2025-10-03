@@ -525,6 +525,7 @@ const MeasurementTools = ({
                     setShowManualEntry(false);
                     setTimeout(() => startDrawing(), 100);
                   }}
+                  disabled={product?.unit_type && !product.unit_type.toLowerCase().includes('linear')}
                   className={`gap-2 ${
                     measurementType === 'linear' && !showManualEntry
                       ? 'text-foreground font-semibold bg-primary/10' 
@@ -544,6 +545,7 @@ const MeasurementTools = ({
                     setShowManualEntry(false);
                     setTimeout(() => startDrawing(), 100);
                   }}
+                  disabled={product?.unit_type && !(product.unit_type.toLowerCase().includes('sq_') || product.unit_type.toLowerCase().includes('square') || product.unit_type.toLowerCase().includes('area'))}
                   className={`gap-2 ${
                     measurementType === 'area' && !showManualEntry
                       ? 'text-foreground font-semibold bg-primary/10' 
