@@ -615,8 +615,8 @@ const MeasurementTools = ({
                   </div>
                   <Button 
                     onClick={handleMapSubmit} 
+                    variant="outline"
                     size="lg"
-                    variant="default"
                   >
                     Use Measurement
                   </Button>
