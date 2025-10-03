@@ -147,7 +147,7 @@ const MeasurementTools = ({
         const geocodedCenter = await geocodeAddress(customerAddress);
         if (geocodedCenter) {
           center = geocodedCenter;
-          zoom = 18;
+          zoom = 21;
         }
       }
 
@@ -366,8 +366,8 @@ const MeasurementTools = ({
         </div>
       </div>
 
-      {/* Full-width Map */}
-      <div className="relative flex-1 w-full">
+      {/* Map Section */}
+      <div className="relative flex-1 w-full overflow-hidden">
         <div 
           ref={mapContainerRef}
           className="w-full h-full"
@@ -435,85 +435,12 @@ const MeasurementTools = ({
 
         {/* Drawing Instructions */}
         {isDrawing && !mapMeasurement && !showManualEntry && (
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground rounded-lg px-6 py-3 shadow-lg animate-pulse">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground rounded-lg px-6 py-3 shadow-lg animate-pulse">
             <p className="text-sm font-medium">
               {measurementType === 'area' 
                 ? 'Click on the map to draw a shape. Click the first point again to close the shape.'
                 : 'Click on the map to start drawing a line. Double-click to finish.'}
             </p>
-          </div>
-        )}
-
-        {/* Bottom Control Bar */}
-        {!mapLoading && !mapError && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
-            <div className="bg-background rounded-lg shadow-lg border px-2 py-2 flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={() => {
-                  console.log('Line button clicked');
-                  setMeasurementType('linear');
-                  setShowManualEntry(false);
-                  setTimeout(() => startDrawing(), 100);
-                }}
-                className={`gap-2 ${
-                  measurementType === 'linear' && !showManualEntry
-                    ? 'text-foreground font-semibold bg-primary/10' 
-                    : 'text-muted-foreground'
-                }`}
-              >
-                <Ruler className="h-4 w-4" />
-                Line
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={() => {
-                  console.log('Area button clicked');
-                  setMeasurementType('area');
-                  setShowManualEntry(false);
-                  setTimeout(() => startDrawing(), 100);
-                }}
-                className={`gap-2 ${
-                  measurementType === 'area' && !showManualEntry
-                    ? 'text-foreground font-semibold bg-primary/10' 
-                    : 'text-muted-foreground'
-                }`}
-              >
-                <Square className="h-4 w-4" />
-                Area
-              </Button>
-
-              <Separator orientation="vertical" className="h-8 mx-1" />
-
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={clearMapDrawing}
-                disabled={!mapMeasurement && !isDrawing}
-                className="gap-2"
-              >
-                <Undo2 className="h-4 w-4" />
-                Undo
-              </Button>
-
-              <Separator orientation="vertical" className="h-8 mx-1" />
-
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={() => {
-                  setShowManualEntry(true);
-                  clearMapDrawing();
-                }}
-                className="gap-2 text-orange-600 hover:text-orange-700"
-              >
-                <PencilRuler className="h-4 w-4" />
-                Enter Manually
-              </Button>
-            </div>
           </div>
         )}
 
@@ -557,33 +484,111 @@ const MeasurementTools = ({
             </div>
           </div>
         )}
+      </div>
 
-        {/* Measurement Display */}
-        {mapMeasurement && !isDrawing && !showManualEntry && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 bg-primary/10 border-2 border-primary rounded-lg px-6 py-4 shadow-lg">
-            <div className="flex items-center gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Measured on map</p>
-                <p className="text-2xl font-bold text-primary">
-                  {mapMeasurement.toLocaleString()} {unitAbbr}
-                </p>
+      {/* Bottom Control Bar and Measurement Display */}
+      {!mapLoading && !mapError && (
+        <div className="bg-background border-t px-6 py-4">
+          <div className="max-w-7xl mx-auto">
+            {/* Measurement Display */}
+            {mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement && (
+              <div className="mb-4 bg-primary/10 border-2 border-primary rounded-lg px-6 py-4 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Measured on map</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {mapMeasurement.toLocaleString()} {unitAbbr}
+                    </p>
+                  </div>
+                  <Button onClick={handleMapSubmit} size="lg">
+                    Use Measurement
+                  </Button>
+                </div>
               </div>
-              <Button onClick={handleMapSubmit} size="lg">
-                Use Measurement
-              </Button>
+            )}
+
+            {/* Continue Button */}
+            {currentMeasurement && (
+              <div className="mb-4 flex justify-center">
+                <Button onClick={onNext} size="lg" className="px-8">
+                  Continue with {currentMeasurement.value.toLocaleString()} {unitAbbr}
+                </Button>
+              </div>
+            )}
+
+            {/* Control Bar */}
+            <div className="flex justify-center">
+              <div className="bg-background rounded-lg shadow-lg border px-2 py-2 flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  onClick={() => {
+                    console.log('Line button clicked');
+                    setMeasurementType('linear');
+                    setShowManualEntry(false);
+                    setTimeout(() => startDrawing(), 100);
+                  }}
+                  className={`gap-2 ${
+                    measurementType === 'linear' && !showManualEntry
+                      ? 'text-foreground font-semibold bg-primary/10' 
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  <Ruler className="h-4 w-4" />
+                  Line
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  onClick={() => {
+                    console.log('Area button clicked');
+                    setMeasurementType('area');
+                    setShowManualEntry(false);
+                    setTimeout(() => startDrawing(), 100);
+                  }}
+                  className={`gap-2 ${
+                    measurementType === 'area' && !showManualEntry
+                      ? 'text-foreground font-semibold bg-primary/10' 
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  <Square className="h-4 w-4" />
+                  Area
+                </Button>
+
+                <Separator orientation="vertical" className="h-8 mx-1" />
+
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  onClick={clearMapDrawing}
+                  disabled={!mapMeasurement && !isDrawing}
+                  className="gap-2"
+                >
+                  <Undo2 className="h-4 w-4" />
+                  Undo
+                </Button>
+
+                <Separator orientation="vertical" className="h-8 mx-1" />
+
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  onClick={() => {
+                    setShowManualEntry(true);
+                    clearMapDrawing();
+                  }}
+                  className="gap-2 text-orange-600 hover:text-orange-700"
+                >
+                  <PencilRuler className="h-4 w-4" />
+                  Enter Manually
+                </Button>
+              </div>
             </div>
           </div>
-        )}
-
-        {/* Continue Button */}
-        {currentMeasurement && (
-          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10">
-            <Button onClick={onNext} size="lg" className="px-8">
-              Continue with {currentMeasurement.value.toLocaleString()} {unitAbbr}
-            </Button>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
