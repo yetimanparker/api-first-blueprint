@@ -276,7 +276,7 @@ const Widget = () => {
         </div>
       )}
       
-      <div className={`container mx-auto ${widgetState.currentStep === 'measurement' ? 'p-0 max-w-none' : 'px-4 py-6'}`}>
+      <div className={`${widgetState.currentStep === 'measurement' ? '' : 'px-4 py-6 max-w-[1920px] mx-auto'}`}>
 
             {(widgetState.currentStep === 'contact-before' || widgetState.currentStep === 'contact-after') && (
               <ContactForm

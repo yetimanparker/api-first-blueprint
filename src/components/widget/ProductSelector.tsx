@@ -129,7 +129,7 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
   const allProductsCount = products.length;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-4">
+    <div className="w-full px-4 py-4">
       {/* Category filters - Compact Pills */}
       {categories.length > 0 && (
         <div className="mb-4">
@@ -191,7 +191,7 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4 pb-4">
           {filteredProducts.map((product) => (
             <Card 
               key={product.id}
