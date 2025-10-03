@@ -184,6 +184,22 @@ const MeasurementTools = ({
         rotateControl: false,
         gestureHandling: 'greedy',
         disableDefaultUI: false,
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'poi.business',
+            stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'transit',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          }
+        ]
       });
 
       mapRef.current = map;
@@ -368,7 +384,7 @@ const MeasurementTools = ({
   return (
     <div className="flex flex-col h-screen w-full">
       {/* Header with Search and Title */}
-      <div ref={headerRef} className="bg-background border-b px-6 py-4 z-20">
+      <div ref={headerRef} className="bg-background border-b px-6 py-3 z-20">
         <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
           <h2 className="text-2xl font-semibold text-foreground whitespace-nowrap">
             Measure Your Project
@@ -511,7 +527,7 @@ const MeasurementTools = ({
 
       {/* Bottom Control Bar and Measurement Display */}
       {!mapLoading && !mapError && (
-        <div className="bg-background border-t px-6 py-4">
+        <div className="bg-background border-t px-6 py-3">
           <div className="max-w-7xl mx-auto">
             {/* Control Bar */}
             <div className="flex justify-center mb-4">
