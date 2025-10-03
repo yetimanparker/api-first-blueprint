@@ -1,11 +1,9 @@
 /// <reference types="@types/google.maps" />
 import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Ruler, Square, MapPin } from 'lucide-react';
+import { Loader2, Ruler, Square, MapPin, Search, Undo2, PencilRuler } from 'lucide-react';
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader } from '@googlemaps/js-api-loader';
@@ -32,13 +30,14 @@ const MeasurementTools = ({
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [measurementType, setMeasurementType] = useState<'area' | 'linear'>('area');
-  const [manualValue, setManualValue] = useState('');
   const [mapMeasurement, setMapMeasurement] = useState<number | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentMeasurement, setCurrentMeasurement] = useState<MeasurementData | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [mapLoading, setMapLoading] = useState(true);
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualValue, setManualValue] = useState('');
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -58,23 +57,13 @@ const MeasurementTools = ({
 
   useEffect(() => {
     // Reset measurements when measurement type changes
-    setManualValue('');
     setMapMeasurement(null);
     setCurrentMeasurement(null);
     clearMapDrawing();
     
-    // Update drawing manager mode if it exists
-    if (drawingManagerRef.current) {
-      const mode = measurementType === 'area' 
-        ? google.maps.drawing.OverlayType.POLYGON 
-        : google.maps.drawing.OverlayType.POLYLINE;
-      drawingManagerRef.current.setOptions({
-        drawingMode: null,
-        drawingControl: true,
-        drawingControlOptions: {
-          drawingModes: [mode],
-        },
-      });
+    // Auto start drawing when switching type
+    if (drawingManagerRef.current && !showManualEntry) {
+      setTimeout(() => startDrawing(), 100);
     }
   }, [measurementType]);
 
@@ -150,9 +139,13 @@ const MeasurementTools = ({
         center: center,
         zoom: zoom,
         mapTypeId: google.maps.MapTypeId.HYBRID,
-        mapTypeControl: true,
+        mapTypeControl: false,
         streetViewControl: false,
-        fullscreenControl: true,
+        fullscreenControl: false,
+        zoomControl: true,
+        zoomControlOptions: {
+          position: google.maps.ControlPosition.RIGHT_CENTER
+        }
       });
 
       mapRef.current = map;
@@ -189,16 +182,16 @@ const MeasurementTools = ({
       drawingMode: null,
       drawingControl: false,
       polygonOptions: {
-        fillColor: '#3B82F6',
+        fillColor: '#10B981',
         fillOpacity: 0.3,
-        strokeColor: '#3B82F6',
-        strokeWeight: 2,
+        strokeColor: '#10B981',
+        strokeWeight: 3,
         clickable: true,
         editable: true,
         zIndex: 1,
       },
       polylineOptions: {
-        strokeColor: '#3B82F6',
+        strokeColor: '#10B981',
         strokeWeight: 3,
         clickable: true,
         editable: true,
@@ -225,17 +218,14 @@ const MeasurementTools = ({
         const sqFt = Math.ceil(area * 10.764);
         setMapMeasurement(sqFt);
         
-        google.maps.event.addListener(path, 'set_at', () => {
+        const updateMeasurement = () => {
           const newArea = google.maps.geometry.spherical.computeArea(path);
           const newSqFt = Math.ceil(newArea * 10.764);
           setMapMeasurement(newSqFt);
-        });
+        };
         
-        google.maps.event.addListener(path, 'insert_at', () => {
-          const newArea = google.maps.geometry.spherical.computeArea(path);
-          const newSqFt = Math.ceil(newArea * 10.764);
-          setMapMeasurement(newSqFt);
-        });
+        google.maps.event.addListener(path, 'set_at', updateMeasurement);
+        google.maps.event.addListener(path, 'insert_at', updateMeasurement);
         
       } else if (event.type === google.maps.drawing.OverlayType.POLYLINE) {
         const polyline = event.overlay as google.maps.Polyline;
@@ -244,17 +234,14 @@ const MeasurementTools = ({
         const feet = Math.ceil(length * 3.28084);
         setMapMeasurement(feet);
         
-        google.maps.event.addListener(path, 'set_at', () => {
+        const updateMeasurement = () => {
           const newLength = google.maps.geometry.spherical.computeLength(path);
           const newFeet = Math.ceil(newLength * 3.28084);
           setMapMeasurement(newFeet);
-        });
+        };
         
-        google.maps.event.addListener(path, 'insert_at', () => {
-          const newLength = google.maps.geometry.spherical.computeLength(path);
-          const newFeet = Math.ceil(newLength * 3.28084);
-          setMapMeasurement(newFeet);
-        });
+        google.maps.event.addListener(path, 'set_at', updateMeasurement);
+        google.maps.event.addListener(path, 'insert_at', updateMeasurement);
       }
     });
   };
@@ -263,6 +250,7 @@ const MeasurementTools = ({
     if (!drawingManagerRef.current) return;
 
     setIsDrawing(true);
+    setShowManualEntry(false);
     clearMapDrawing();
 
     const mode = measurementType === 'area' 
@@ -327,9 +315,30 @@ const MeasurementTools = ({
   const unitAbbr = measurementType === 'area' ? 'sq ft' : 'ft';
 
   return (
-    <div className="relative w-full h-screen">
+    <div className="flex flex-col h-screen w-full">
+      {/* Header with Search and Title */}
+      <div className="bg-background border-b px-6 py-4 z-20">
+        <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
+          <h2 className="text-2xl font-semibold text-foreground whitespace-nowrap">
+            Measure Your Project
+          </h2>
+          <div className="flex items-center gap-2 flex-1 max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="4800 dry oak trl"
+                className="pl-10"
+              />
+            </div>
+            <Button className="px-6">
+              Search
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Full-width Map */}
-      <div className="relative w-full h-full">
+      <div className="relative flex-1 w-full">
         <div 
           ref={mapContainerRef}
           className="w-full h-full"
@@ -364,109 +373,172 @@ const MeasurementTools = ({
           </div>
         )}
 
-        {/* Measurement Type Tabs - Top Center */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-background/95 backdrop-blur-sm rounded-lg shadow-lg p-1">
-          <Tabs value={measurementType} onValueChange={(value) => setMeasurementType(value as 'area' | 'linear')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="area" className="flex items-center gap-2">
-                <Square className="h-4 w-4" />
-                Area
-              </TabsTrigger>
-              <TabsTrigger value="linear" className="flex items-center gap-2">
-                <Ruler className="h-4 w-4" />
-                Line
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+        {/* Map/Satellite Toggle - Top Right */}
+        {!mapLoading && !mapError && (
+          <div className="absolute top-4 right-4 z-10 bg-background rounded-lg shadow-lg border overflow-hidden">
+            <div className="flex">
+              <Button
+                variant="ghost"
+                className={`rounded-none px-6 h-10 ${
+                  mapRef.current?.getMapTypeId() === 'roadmap' || mapRef.current?.getMapTypeId() === 'terrain'
+                    ? 'bg-background font-semibold' 
+                    : 'bg-muted text-muted-foreground'
+                }`}
+                onClick={() => mapRef.current?.setMapTypeId('roadmap')}
+              >
+                Map
+              </Button>
+              <Separator orientation="vertical" className="h-10" />
+              <Button
+                variant="ghost"
+                className={`rounded-none px-6 h-10 ${
+                  mapRef.current?.getMapTypeId() === 'hybrid' || mapRef.current?.getMapTypeId() === 'satellite'
+                    ? 'bg-background font-semibold' 
+                    : 'bg-muted text-muted-foreground'
+                }`}
+                onClick={() => mapRef.current?.setMapTypeId('hybrid')}
+              >
+                Satellite
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Bottom Control Bar */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 w-full max-w-2xl px-4">
-          <Card className="bg-background/95 backdrop-blur-sm shadow-2xl border-2">
-            <CardContent className="p-4">
-              {/* Drawing Controls */}
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <Button
-                  onClick={startDrawing}
-                  disabled={mapLoading || !!mapError || isDrawing}
-                  size="lg"
-                  variant={isDrawing || mapMeasurement ? "secondary" : "default"}
+        {!mapLoading && !mapError && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
+            <div className="bg-background rounded-lg shadow-lg border px-2 py-2 flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="lg"
+                onClick={() => {
+                  setMeasurementType('linear');
+                  setShowManualEntry(false);
+                }}
+                className={`gap-2 ${
+                  measurementType === 'linear' && !showManualEntry
+                    ? 'text-foreground font-semibold' 
+                    : 'text-muted-foreground'
+                }`}
+              >
+                <Ruler className="h-4 w-4" />
+                Line
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="lg"
+                onClick={() => {
+                  setMeasurementType('area');
+                  setShowManualEntry(false);
+                }}
+                className={`gap-2 ${
+                  measurementType === 'area' && !showManualEntry
+                    ? 'text-foreground font-semibold' 
+                    : 'text-muted-foreground'
+                }`}
+              >
+                <Square className="h-4 w-4" />
+                Area
+              </Button>
+
+              <Separator orientation="vertical" className="h-8 mx-1" />
+
+              <Button
+                variant="ghost"
+                size="lg"
+                onClick={clearMapDrawing}
+                disabled={!mapMeasurement && !isDrawing}
+                className="gap-2"
+              >
+                <Undo2 className="h-4 w-4" />
+                Undo
+              </Button>
+
+              <Separator orientation="vertical" className="h-8 mx-1" />
+
+              <Button
+                variant="ghost"
+                size="lg"
+                onClick={() => {
+                  setShowManualEntry(true);
+                  clearMapDrawing();
+                }}
+                className="gap-2 text-orange-600 hover:text-orange-700"
+              >
+                <PencilRuler className="h-4 w-4" />
+                Enter Manually
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Manual Entry Modal */}
+        {showManualEntry && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-30">
+            <div className="bg-background border-2 rounded-lg shadow-2xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4">Enter Measurement</h3>
+              <div className="flex gap-2 mb-4">
+                <Input
+                  type="number"
+                  placeholder={`Enter ${unitLabel}`}
+                  value={manualValue}
+                  onChange={(e) => setManualValue(e.target.value)}
+                  min="0"
+                  step="0.01"
+                  className="flex-1"
+                  autoFocus
+                />
+                <span className="flex items-center text-sm text-muted-foreground">{unitAbbr}</span>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setShowManualEntry(false);
+                    setManualValue('');
+                  }}
                   className="flex-1"
                 >
-                  {measurementType === 'area' ? <Square className="mr-2 h-4 w-4" /> : <Ruler className="mr-2 h-4 w-4" />}
-                  {isDrawing ? 'Drawing...' : 'Start Drawing'}
+                  Cancel
                 </Button>
-                
-                {(isDrawing || mapMeasurement) && (
-                  <Button 
-                    onClick={clearMapDrawing}
-                    variant="outline"
-                    size="lg"
-                  >
-                    Undo
-                  </Button>
-                )}
+                <Button 
+                  onClick={handleManualSubmit}
+                  disabled={!manualValue || parseFloat(manualValue) <= 0}
+                  className="flex-1"
+                >
+                  Submit
+                </Button>
               </div>
+            </div>
+          </div>
+        )}
 
-              {/* Current Measurement Display */}
-              {mapMeasurement && !isDrawing && (
-                <div className="bg-primary/10 border border-primary rounded-lg p-4 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">Measured on map</p>
-                      <p className="text-2xl font-bold text-primary">
-                        {mapMeasurement.toLocaleString()} {unitAbbr}
-                      </p>
-                    </div>
-                    <Button onClick={handleMapSubmit} size="lg">
-                      Use Measurement
-                    </Button>
-                  </div>
-                </div>
-              )}
+        {/* Measurement Display */}
+        {mapMeasurement && !isDrawing && !showManualEntry && (
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 bg-primary/10 border-2 border-primary rounded-lg px-6 py-4 shadow-lg">
+            <div className="flex items-center gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Measured on map</p>
+                <p className="text-2xl font-bold text-primary">
+                  {mapMeasurement.toLocaleString()} {unitAbbr}
+                </p>
+              </div>
+              <Button onClick={handleMapSubmit} size="lg">
+                Use Measurement
+              </Button>
+            </div>
+          </div>
+        )}
 
-              {/* Manual Entry Option */}
-              {!mapMeasurement && !isDrawing && (
-                <>
-                  <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                      <Separator />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">Or enter manually</span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      placeholder={`Enter ${unitLabel}`}
-                      value={manualValue}
-                      onChange={(e) => setManualValue(e.target.value)}
-                      min="0"
-                      step="0.01"
-                      className="flex-1"
-                    />
-                    <Button 
-                      onClick={handleManualSubmit}
-                      disabled={!manualValue || parseFloat(manualValue) <= 0}
-                      size="lg"
-                    >
-                      Submit
-                    </Button>
-                  </div>
-                </>
-              )}
-
-              {/* Measurement Confirmed - Continue Button */}
-              {currentMeasurement && (
-                <Button onClick={onNext} size="lg" className="w-full mt-4">
-                  Continue with {currentMeasurement.value.toLocaleString()} {unitAbbr}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/* Continue Button */}
+        {currentMeasurement && (
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10">
+            <Button onClick={onNext} size="lg" className="px-8">
+              Continue with {currentMeasurement.value.toLocaleString()} {unitAbbr}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

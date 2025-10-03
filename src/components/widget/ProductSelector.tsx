@@ -135,27 +135,36 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
         <div className="mb-8">
           <div className="flex flex-wrap gap-3">
             <Button
-              variant={selectedCategory === '' ? 'default' : 'outline'}
+              variant="outline"
               size="lg"
               onClick={() => setSelectedCategory('')}
-              className="rounded-full h-11 px-6 font-medium shadow-sm hover:shadow-md transition-all"
+              className={`rounded-full h-11 px-6 font-medium shadow-sm hover:shadow-md transition-all ${
+                selectedCategory === '' 
+                  ? 'bg-primary text-primary-foreground border-primary' 
+                  : 'bg-background hover:bg-accent border-muted-foreground/30'
+              }`}
             >
               All Categories ({allProductsCount})
             </Button>
             {categories.map((category) => (
               <Button
                 key={category.id}
-                variant={selectedCategory === category.name ? 'default' : 'outline'}
+                variant="outline"
                 size="lg"
                 onClick={() => setSelectedCategory(category.name)}
-                className="rounded-full h-11 px-6 font-medium shadow-sm hover:shadow-md transition-all"
-                style={{
-                  backgroundColor: selectedCategory === category.name 
-                    ? category.color_hex 
-                    : undefined,
-                  borderColor: category.color_hex,
-                  color: selectedCategory === category.name ? 'white' : category.color_hex
-                }}
+                className={`rounded-full h-11 px-6 font-medium shadow-sm hover:shadow-md transition-all ${
+                  selectedCategory === category.name 
+                    ? 'bg-primary text-primary-foreground border-primary' 
+                    : 'bg-background hover:bg-accent'
+                }`}
+                style={
+                  selectedCategory !== category.name
+                    ? {
+                        borderColor: category.color_hex,
+                        color: category.color_hex,
+                      }
+                    : undefined
+                }
               >
                 {category.name} ({categoryProductCounts[category.name] || 0})
               </Button>
