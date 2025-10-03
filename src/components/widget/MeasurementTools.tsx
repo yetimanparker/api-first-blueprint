@@ -179,7 +179,11 @@ const MeasurementTools = ({
         zoomControl: true,
         zoomControlOptions: {
           position: google.maps.ControlPosition.RIGHT_CENTER
-        }
+        },
+        tilt: 0,
+        rotateControl: false,
+        gestureHandling: 'greedy',
+        disableDefaultUI: false,
       });
 
       mapRef.current = map;
