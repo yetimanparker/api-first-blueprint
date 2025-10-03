@@ -215,66 +215,68 @@ const Widget = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30" style={brandStyle}>
-      {/* Header with Steps */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
+      {/* Header with Steps - Hidden during measurement */}
+      {widgetState.currentStep !== 'measurement' && (
+        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: brandColor }}
+                />
+                <span className="text-sm font-medium">{contractorInfo?.business_name || 'Professional Services'}</span>
+              </div>
+            </div>
+            
+            {/* Horizontal Step Progress */}
             <div className="flex items-center gap-2">
-              <div 
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: brandColor }}
-              />
-              <span className="text-sm font-medium">{contractorInfo?.business_name || 'Professional Services'}</span>
+              {stepConfig.map((step, index) => {
+                const isActive = index === currentStepIndex;
+                const isCompleted = index < currentStepIndex;
+                
+                return (
+                  <div key={step.key} className="flex items-center flex-1">
+                    <div className="flex items-center gap-2 flex-1">
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
+                          isActive 
+                            ? 'bg-primary text-primary-foreground shadow-md' 
+                            : isCompleted
+                            ? 'bg-primary/80 text-primary-foreground'
+                            : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {isCompleted ? '✓' : index + 1}
+                      </div>
+                      <span className={`text-xs font-medium hidden sm:inline ${
+                        isActive ? 'text-primary' : isCompleted ? 'text-primary/80' : 'text-muted-foreground'
+                      }`}>
+                        {step.label.replace(/^\d+\.\s*/, '')}
+                      </span>
+                    </div>
+                    {index < stepConfig.length - 1 && (
+                      <div className={`h-0.5 flex-1 mx-2 transition-all ${
+                        isCompleted ? 'bg-primary/80' : 'bg-muted'
+                      }`} />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
-          
-          {/* Horizontal Step Progress */}
-          <div className="flex items-center gap-2">
-            {stepConfig.map((step, index) => {
-              const isActive = index === currentStepIndex;
-              const isCompleted = index < currentStepIndex;
-              
-              return (
-                <div key={step.key} className="flex items-center flex-1">
-                  <div className="flex items-center gap-2 flex-1">
-                    <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                        isActive 
-                          ? 'bg-primary text-primary-foreground shadow-md' 
-                          : isCompleted
-                          ? 'bg-primary/80 text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      }`}
-                    >
-                      {isCompleted ? '✓' : index + 1}
-                    </div>
-                    <span className={`text-xs font-medium hidden sm:inline ${
-                      isActive ? 'text-primary' : isCompleted ? 'text-primary/80' : 'text-muted-foreground'
-                    }`}>
-                      {step.label.replace(/^\d+\.\s*/, '')}
-                    </span>
-                  </div>
-                  {index < stepConfig.length - 1 && (
-                    <div className={`h-0.5 flex-1 mx-2 transition-all ${
-                      isCompleted ? 'bg-primary/80' : 'bg-muted'
-                    }`} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
         </div>
-      </div>
+      )}
       
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className={`container mx-auto ${widgetState.currentStep === 'measurement' ? 'p-0 max-w-none' : 'px-4 py-6 max-w-4xl'}`}>
 
             {(widgetState.currentStep === 'contact-before' || widgetState.currentStep === 'contact-after') && (
               <ContactForm
