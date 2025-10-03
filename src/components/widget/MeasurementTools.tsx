@@ -53,6 +53,7 @@ const MeasurementTools = ({
   const mapRef = useRef<google.maps.Map | null>(null);
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const currentShapeRef = useRef<google.maps.Polygon | google.maps.Polyline | null>(null);
+  const measurementLabelRef = useRef<google.maps.InfoWindow | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -269,14 +270,14 @@ const MeasurementTools = ({
         fillColor: '#10B981',
         fillOpacity: 0.3,
         strokeColor: '#10B981',
-        strokeWeight: 3,
+        strokeWeight: 2,
         clickable: true,
         editable: true,
         zIndex: 1,
       },
       polylineOptions: {
         strokeColor: '#10B981',
-        strokeWeight: 3,
+        strokeWeight: 2,
         clickable: true,
         editable: true,
       },
@@ -290,6 +291,10 @@ const MeasurementTools = ({
       
       if (currentShapeRef.current) {
         currentShapeRef.current.setMap(null);
+      }
+      
+      if (measurementLabelRef.current) {
+        measurementLabelRef.current.close();
       }
       
       currentShapeRef.current = event.overlay;
@@ -306,7 +311,10 @@ const MeasurementTools = ({
           const newArea = google.maps.geometry.spherical.computeArea(path);
           const newSqFt = Math.ceil(newArea * 10.764);
           setMapMeasurement(newSqFt);
+          updateMeasurementLabel(polygon, newSqFt, 'sq ft');
         };
+        
+        updateMeasurementLabel(polygon, sqFt, 'sq ft');
         
         google.maps.event.addListener(path, 'set_at', updateMeasurement);
         google.maps.event.addListener(path, 'insert_at', updateMeasurement);
@@ -322,12 +330,50 @@ const MeasurementTools = ({
           const newLength = google.maps.geometry.spherical.computeLength(path);
           const newFeet = Math.ceil(newLength * 3.28084);
           setMapMeasurement(newFeet);
+          updateMeasurementLabel(polyline, newFeet, 'ft');
         };
+        
+        updateMeasurementLabel(polyline, feet, 'ft');
         
         google.maps.event.addListener(path, 'set_at', updateMeasurement);
         google.maps.event.addListener(path, 'insert_at', updateMeasurement);
       }
     });
+  };
+
+  const updateMeasurementLabel = (
+    shape: google.maps.Polygon | google.maps.Polyline,
+    value: number,
+    unit: string
+  ) => {
+    if (!mapRef.current) return;
+
+    let center: google.maps.LatLng;
+    
+    if (shape instanceof google.maps.Polygon) {
+      const bounds = new google.maps.LatLngBounds();
+      shape.getPath().forEach((coord) => bounds.extend(coord));
+      center = bounds.getCenter();
+    } else {
+      const path = shape.getPath();
+      const midIndex = Math.floor(path.getLength() / 2);
+      center = path.getAt(midIndex);
+    }
+
+    if (measurementLabelRef.current) {
+      measurementLabelRef.current.close();
+    }
+
+    const infoWindow = new google.maps.InfoWindow({
+      content: `<div style="padding: 8px 12px; font-weight: 600; font-size: 16px; color: #10B981;">
+        ${value.toLocaleString()} ${unit}
+      </div>`,
+      position: center,
+      disableAutoPan: true,
+    });
+
+    infoWindow.open(mapRef.current);
+    measurementLabelRef.current = infoWindow;
   };
 
   const startDrawing = () => {
@@ -353,6 +399,11 @@ const MeasurementTools = ({
     if (currentShapeRef.current) {
       currentShapeRef.current.setMap(null);
       currentShapeRef.current = null;
+    }
+    
+    if (measurementLabelRef.current) {
+      measurementLabelRef.current.close();
+      measurementLabelRef.current = null;
     }
     
     if (drawingManagerRef.current) {
