@@ -21,6 +21,7 @@ interface MeasurementToolsProps {
     unit_price: number;
   } | null;
   onChangeProduct?: () => void;
+  isConfigurationMode?: boolean;
 }
 
 interface Product {
@@ -35,7 +36,8 @@ const MeasurementTools = ({
   onNext,
   customerAddress,
   selectedProduct,
-  onChangeProduct
+  onChangeProduct,
+  isConfigurationMode = false
 }: MeasurementToolsProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -470,7 +472,7 @@ const MeasurementTools = ({
   const unitAbbr = measurementType === 'area' ? 'sq ft' : 'ft';
 
   return (
-    <div className="flex flex-col h-screen w-full">
+    <div className={`flex flex-col w-full ${isConfigurationMode ? 'h-[500px]' : 'h-screen'}`}>
       {/* Header with Search and Title */}
       <div ref={headerRef} className="bg-background border-b px-6 py-3 z-20">
         <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">

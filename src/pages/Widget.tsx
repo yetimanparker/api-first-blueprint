@@ -248,29 +248,28 @@ const Widget = () => {
          widgetState.currentProductId && (
           <div className="flex flex-col">
             {/* Map Section - Always visible during measurement and configuration */}
-            <div className={widgetState.currentStep === 'product-configuration' ? 'h-[400px]' : ''}>
-              <MeasurementTools
-                productId={widgetState.currentProductId}
-                onMeasurementComplete={updateCurrentMeasurement}
-                onNext={() => {
-                  setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }));
-                  // Auto-scroll to configuration section after a brief delay
-                  setTimeout(() => {
-                    const configSection = document.getElementById('product-configuration-section');
-                    if (configSection) {
-                      configSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                  }, 100);
-                }}
-                customerAddress={widgetState.customerInfo.address}
-                selectedProduct={selectedProduct}
-                onChangeProduct={goToProductSelection}
-              />
-            </div>
+            <MeasurementTools
+              productId={widgetState.currentProductId}
+              onMeasurementComplete={updateCurrentMeasurement}
+              onNext={() => {
+                setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }));
+                // Auto-scroll to configuration section after a brief delay
+                setTimeout(() => {
+                  const configSection = document.getElementById('product-configuration-section');
+                  if (configSection) {
+                    configSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }, 100);
+              }}
+              customerAddress={widgetState.customerInfo.address}
+              selectedProduct={selectedProduct}
+              onChangeProduct={goToProductSelection}
+              isConfigurationMode={widgetState.currentStep === 'product-configuration'}
+            />
             
             {/* Configuration Section - Only visible during configuration step */}
             {widgetState.currentStep === 'product-configuration' && widgetState.currentMeasurement && (
-              <div id="product-configuration-section" className="bg-background">
+              <div id="product-configuration-section" className="bg-background px-4 py-6">
                 <ProductConfiguration
                   productId={widgetState.currentProductId}
                   measurement={widgetState.currentMeasurement}
