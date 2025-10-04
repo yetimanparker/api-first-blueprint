@@ -269,7 +269,7 @@ const Widget = () => {
             
             {/* Configuration Section - Only visible during configuration step */}
             {widgetState.currentStep === 'product-configuration' && widgetState.currentMeasurement && (
-              <div id="product-configuration-section" className="bg-background px-4 py-6">
+              <div id="product-configuration-section" className="w-full">
                 <ProductConfiguration
                   productId={widgetState.currentProductId}
                   measurement={widgetState.currentMeasurement}
