@@ -438,24 +438,25 @@ const MeasurementTools = ({
     setCurrentMeasurement(measurement);
     onMeasurementComplete(measurement);
     // Automatically proceed to configuration
-    onNext();
+    setTimeout(() => onNext(), 100);
   };
 
-  const handleMapSubmit = () => {
-    if (!mapMeasurement) return;
+  // Auto-submit measurement when map measurement is complete
+  useEffect(() => {
+    if (mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement) {
+      const measurement: MeasurementData = {
+        type: measurementType,
+        value: mapMeasurement,
+        unit: measurementType === 'area' ? 'sq_ft' : 'linear_ft',
+        manualEntry: false
+      };
 
-    const measurement: MeasurementData = {
-      type: measurementType,
-      value: mapMeasurement,
-      unit: measurementType === 'area' ? 'sq_ft' : 'linear_ft',
-      manualEntry: false
-    };
-
-    setCurrentMeasurement(measurement);
-    onMeasurementComplete(measurement);
-    // Automatically proceed to configuration
-    onNext();
-  };
+      setCurrentMeasurement(measurement);
+      onMeasurementComplete(measurement);
+      // Automatically proceed to configuration
+      setTimeout(() => onNext(), 500);
+    }
+  }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement]);
 
   if (loading) {
     return (
@@ -689,59 +690,6 @@ const MeasurementTools = ({
               </div>
             </div>
 
-            {/* Selected Product Display */}
-            {selectedProduct && (
-              <div className="mb-4 bg-primary/5 border border-primary/20 rounded-lg px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-primary mb-1">Selected Product</h3>
-                    <p className="text-sm font-medium">{selectedProduct.name}</p>
-                    {selectedProduct.description && (
-                      <p className="text-xs text-muted-foreground mt-1">{selectedProduct.description}</p>
-                    )}
-                  </div>
-                  {onChangeProduct && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={onChangeProduct}
-                    >
-                      Change Product
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Measurement Display - Auto-submits now */}
-            {mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement && (
-              <div className="mb-4 bg-primary/10 border-2 border-primary rounded-lg px-6 py-4 shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Measured on map</p>
-                    <p className="text-2xl font-bold text-primary">
-                      {mapMeasurement.toLocaleString()} {unitAbbr}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleUndo}
-                      variant="outline"
-                      size="lg"
-                    >
-                      Undo
-                    </Button>
-                    <Button 
-                      onClick={handleMapSubmit} 
-                      variant="default"
-                      size="lg"
-                    >
-                      Continue
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
