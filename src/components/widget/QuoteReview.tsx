@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Loader2, FileText, Send, DollarSign, Plus, MessageSquare, Calculator } from 'lucide-react';
+import { Loader2, FileText, DollarSign, Plus, MessageSquare, Calculator, Trash2 } from 'lucide-react';
 import { QuoteItem, CustomerInfo, WorkflowStep } from '@/types/widget';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
 import { supabase } from '@/integrations/supabase/client';
@@ -216,132 +216,101 @@ const QuoteReview = ({
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
       {/* Quote Items Card */}
       <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-green-600" />
+        <CardHeader className="bg-green-50 dark:bg-green-950">
+          <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+            <DollarSign className="h-5 w-5" />
             Quote Items ({quoteItems.length})
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <Accordion type="single" collapsible className="w-full">
+        <CardContent className="pt-6">
+          <div className="space-y-4">
             {quoteItems.map((item, index) => (
-              <AccordionItem key={item.id} value={`item-${index}`}>
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex items-start justify-between w-full pr-4">
-                    <div className="flex items-start gap-3">
-                      <div 
-                        className="w-2 h-2 rounded-full flex-shrink-0 mt-2"
-                        style={{ backgroundColor: '#3B82F6' }}
-                      />
-                      <div className="text-left">
-                        <p className="font-semibold">{item.productName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
-                        </p>
-                      </div>
+              <div key={item.id} className="border rounded-lg p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div 
+                      className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
+                      style={{ backgroundColor: '#10B981' }}
+                    />
+                    <div>
+                      <p className="font-semibold text-lg">{item.productName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
+                        {item.variations && item.variations.length > 0 && (
+                          <span> • {item.variations[0].name}</span>
+                        )}
+                      </p>
                     </div>
-                    <p className="font-semibold">
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p className="font-bold text-xl text-green-600">
                       {formatExactPrice(item.lineTotal, {
                         currency_symbol: settings.currency_symbol,
                         decimal_precision: settings.decimal_precision
                       })}
                     </p>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                </AccordionTrigger>
-                <AccordionContent className="pl-9">
-                  {item.variations && item.variations.length > 0 && (
-                    <div className="mb-3">
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Variations:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {item.variations.map((variation, idx) => (
-                          <Badge key={idx} className="bg-purple-500">
-                            {variation.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {item.addons && item.addons.length > 0 && (
-                    <div className="mb-3">
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Add-ons:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {item.addons.map((addon, idx) => (
-                          <Badge key={idx} className="bg-orange-500">
-                            {addon.name} (×{addon.quantity})
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {item.notes && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Notes:</p>
-                      <p className="text-sm">{item.notes}</p>
-                    </div>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
+                </div>
+                <p className="text-sm text-muted-foreground ml-6">
+                  Base {item.productName}: {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')} × {formatExactPrice(item.unitPrice, {
+                    currency_symbol: settings.currency_symbol,
+                    decimal_precision: settings.decimal_precision
+                  })} = {formatExactPrice(item.lineTotal, {
+                    currency_symbol: settings.currency_symbol,
+                    decimal_precision: settings.decimal_precision
+                  })}
+                </p>
+              </div>
             ))}
-          </Accordion>
+          </div>
         </CardContent>
       </Card>
 
       {/* Add Another Product Card */}
       {onAddAnother && (
         <Card 
-          className="border-2 border-dashed cursor-pointer hover:bg-accent transition-colors"
+          className="border-2 border-dashed border-primary cursor-pointer hover:bg-accent transition-colors"
           onClick={onAddAnother}
         >
-          <CardContent className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <Plus className="h-12 w-12 mx-auto mb-2 text-primary" />
-              <p className="text-primary font-semibold">Add Another Product</p>
+          <CardContent className="flex items-center justify-center py-6">
+            <div className="flex items-center gap-2 text-primary font-semibold">
+              <Plus className="h-5 w-5" />
+              <span>Add Another Product</span>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Project Comments Display */}
-      {projectComments && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Project Comments
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">{projectComments}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Customer Information */}
+      {/* Project Comments Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Contact Information</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <MessageSquare className="h-5 w-5" />
+            Project Comments
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p><strong>Name:</strong> {customerInfo.firstName} {customerInfo.lastName}</p>
-          {customerInfo.email && <p><strong>Email:</strong> {customerInfo.email}</p>}
-          {customerInfo.phone && <p><strong>Phone:</strong> {customerInfo.phone}</p>}
-          {customerInfo.address && (
-            <p><strong>Address:</strong> {customerInfo.address}
-              {customerInfo.city && `, ${customerInfo.city}`}
-              {customerInfo.state && `, ${customerInfo.state}`}
-              {customerInfo.zipCode && ` ${customerInfo.zipCode}`}
-            </p>
-          )}
+        <CardContent className="space-y-3">
+          <Textarea
+            value={projectComments}
+            onChange={(e) => handleCommentsChange(e.target.value)}
+            placeholder="Tell us about your project in detail. Please provide access information, ground type, slope/elevation change etc."
+            rows={5}
+            className="resize-none"
+          />
+          <p className="text-xs text-muted-foreground">
+            This information helps us provide a more accurate quote and better service.
+          </p>
         </CardContent>
       </Card>
 
       {/* Quote Summary Card */}
       <Card className="bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-green-600" />
+          <CardTitle className="text-lg flex items-center gap-2 text-green-700 dark:text-green-400">
+            <Calculator className="h-5 w-5" />
             Quote Summary
           </CardTitle>
         </CardHeader>
@@ -382,9 +351,9 @@ const QuoteReview = ({
           
           <Separator />
           
-          <div className="flex justify-between text-xl font-bold text-green-700 dark:text-green-400">
+          <div className="flex justify-between text-2xl font-bold">
             <span>Total:</span>
-            <span>
+            <span className="text-green-600">
               {formatExactPrice(total, {
                 currency_symbol: settings.currency_symbol,
                 decimal_precision: settings.decimal_precision
@@ -395,7 +364,7 @@ const QuoteReview = ({
           <Button 
             onClick={handleSubmitQuote} 
             disabled={isSubmitting}
-            className="w-full bg-green-600 hover:bg-green-700 mt-4"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-4"
             size="lg"
           >
             {isSubmitting ? (
@@ -405,19 +374,13 @@ const QuoteReview = ({
               </>
             ) : (
               <>
-                <Send className="h-4 w-4 mr-2" />
+                <FileText className="h-4 w-4 mr-2" />
                 Review and Download Quote
               </>
             )}
           </Button>
         </CardContent>
       </Card>
-
-      <div className="text-center text-sm text-muted-foreground">
-        By submitting this quote request, you agree to be contacted about your project.
-        <br />
-        This is an estimate and final pricing may vary based on site conditions.
-      </div>
     </div>
   );
 };

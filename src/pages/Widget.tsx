@@ -103,7 +103,7 @@ const Widget = () => {
     setWidgetState(prev => ({
       ...prev,
       quoteItems: [...prev.quoteItems, item],
-      currentStep: 'add-another-check'
+      currentStep: 'quote-review'
     }));
   };
 
@@ -348,6 +348,7 @@ const Widget = () => {
                 quoteSummary: { ...prev.quoteSummary!, projectComments: comments }
               }))
             }
+            onAddAnother={goToProductSelection}
           />
         )}
 
