@@ -472,7 +472,7 @@ const MeasurementTools = ({
   const unitAbbr = measurementType === 'area' ? 'sq ft' : 'ft';
 
   return (
-    <div className={`flex flex-col w-full ${isConfigurationMode ? 'h-[500px]' : 'h-screen'}`}>
+    <div className={`flex flex-col w-full ${isConfigurationMode ? 'h-full' : 'h-screen'}`}>
       {/* Header with Search and Title */}
       <div ref={headerRef} className="bg-background border-b px-6 py-3 z-20">
         <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">

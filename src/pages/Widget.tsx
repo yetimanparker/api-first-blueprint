@@ -246,30 +246,32 @@ const Widget = () => {
 
         {(widgetState.currentStep === 'measurement' || widgetState.currentStep === 'product-configuration') && 
          widgetState.currentProductId && (
-          <div className="flex flex-col">
-            {/* Map Section - Always visible during measurement and configuration */}
-            <MeasurementTools
-              productId={widgetState.currentProductId}
-              onMeasurementComplete={updateCurrentMeasurement}
-              onNext={() => {
-                setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }));
-                // Auto-scroll to configuration section after a brief delay
-                setTimeout(() => {
-                  const configSection = document.getElementById('product-configuration-section');
-                  if (configSection) {
-                    configSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                }, 100);
-              }}
-              customerAddress={widgetState.customerInfo.address}
-              selectedProduct={selectedProduct}
-              onChangeProduct={goToProductSelection}
-              isConfigurationMode={widgetState.currentStep === 'product-configuration'}
-            />
+          <>
+            {/* Map Section - Fixed height during configuration */}
+            <div className={widgetState.currentStep === 'product-configuration' ? 'h-[500px] overflow-hidden' : 'flex-1'}>
+              <MeasurementTools
+                productId={widgetState.currentProductId}
+                onMeasurementComplete={updateCurrentMeasurement}
+                onNext={() => {
+                  setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }));
+                  // Auto-scroll to configuration section after a brief delay
+                  setTimeout(() => {
+                    const configSection = document.getElementById('product-configuration-section');
+                    if (configSection) {
+                      configSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }, 100);
+                }}
+                customerAddress={widgetState.customerInfo.address}
+                selectedProduct={selectedProduct}
+                onChangeProduct={goToProductSelection}
+                isConfigurationMode={widgetState.currentStep === 'product-configuration'}
+              />
+            </div>
             
-            {/* Configuration Section - Only visible during configuration step */}
+            {/* Configuration Section - Appears below map */}
             {widgetState.currentStep === 'product-configuration' && widgetState.currentMeasurement && (
-              <div id="product-configuration-section" className="w-full">
+              <div id="product-configuration-section" className="w-full bg-background">
                 <ProductConfiguration
                   productId={widgetState.currentProductId}
                   measurement={widgetState.currentMeasurement}
@@ -278,7 +280,7 @@ const Widget = () => {
                 />
               </div>
             )}
-          </div>
+          </>
         )}
 
         {widgetState.currentStep === 'add-another-check' && (
