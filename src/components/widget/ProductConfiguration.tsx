@@ -5,9 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { Plus, Minus, Package, Loader2, Trash2 } from 'lucide-react';
+import { Plus, Minus, Package, Loader2, Trash2, Calculator } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { QuoteItem, MeasurementData, ProductVariation, ProductAddon } from '@/types/widget';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
@@ -76,7 +75,7 @@ const ProductConfiguration = ({
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [selectedVariations, setSelectedVariations] = useState<string[]>([]);
+  const [selectedVariation, setSelectedVariation] = useState<string>('');
   const [selectedAddons, setSelectedAddons] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState('');
 
@@ -148,8 +147,8 @@ const ProductConfiguration = ({
       basePrice = calculateTieredPrice(quantity, simplifiedTiers, product.unit_price);
     }
 
-    selectedVariations.forEach(variationId => {
-      const variation = variations.find(v => v.id === variationId);
+    if (selectedVariation) {
+      const variation = variations.find(v => v.id === selectedVariation);
       if (variation) {
         if (variation.adjustment_type === 'percentage') {
           basePrice += basePrice * (variation.price_adjustment / 100);
@@ -163,7 +162,7 @@ const ProductConfiguration = ({
           }
         }
       }
-    });
+    }
 
     let subtotal = basePrice * quantity;
 
@@ -191,15 +190,18 @@ const ProductConfiguration = ({
   const handleAddToQuote = () => {
     if (!product) return;
 
-    const selectedVariationObjects: ProductVariation[] = selectedVariations.map(variationId => {
-      const variation = variations.find(v => v.id === variationId)!;
-      return {
-        id: variation.id,
-        name: variation.name,
-        priceAdjustment: variation.price_adjustment,
-        adjustmentType: variation.adjustment_type
-      };
-    });
+    const selectedVariationObjects: ProductVariation[] = [];
+    if (selectedVariation) {
+      const variation = variations.find(v => v.id === selectedVariation);
+      if (variation) {
+        selectedVariationObjects.push({
+          id: variation.id,
+          name: variation.name,
+          priceAdjustment: variation.price_adjustment,
+          adjustmentType: variation.adjustment_type
+        });
+      }
+    }
 
     const selectedAddonObjects: ProductAddon[] = Object.entries(selectedAddons)
       .filter(([_, quantity]) => quantity > 0)
@@ -230,13 +232,6 @@ const ProductConfiguration = ({
     onAddToQuote(quoteItem);
   };
 
-  const toggleVariation = (variationId: string) => {
-    setSelectedVariations(prev => 
-      prev.includes(variationId)
-        ? prev.filter(id => id !== variationId)
-        : [...prev, variationId]
-    );
-  };
 
   const updateAddonQuantity = (addonId: string, quantity: number) => {
     setSelectedAddons(prev => ({
@@ -263,182 +258,132 @@ const ProductConfiguration = ({
   }
 
   const lineTotal = calculateItemPrice();
-  const perimeter = measurement.type === 'area' ? Math.sqrt(measurement.value) * 4 : undefined;
+  const selectedVariationObj = selectedVariation ? variations.find(v => v.id === selectedVariation) : null;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-      {/* Product Summary Card */}
-      <Card className="border-2 shadow-lg" style={{ borderColor: product.color_hex }}>
-        <CardContent className="p-6">
-          <div className="flex items-start gap-4">
-            <div 
-              className="w-3 h-3 rounded-full flex-shrink-0 mt-2"
-              style={{ backgroundColor: product.color_hex }}
-            />
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold mb-2">{product.name}</h2>
-              {product.description && (
-                <p className="text-sm text-muted-foreground mb-4">{product.description}</p>
-              )}
-              
-              <div className="flex flex-wrap gap-2 text-sm">
-                <Badge variant="secondary" className="text-base px-3 py-1">
-                  {measurement.value.toLocaleString()} {measurement.unit.replace('_', ' ')}
-                </Badge>
-                {perimeter && (
-                  <Badge variant="outline" className="text-base px-3 py-1">
-                    {Math.ceil(perimeter).toLocaleString()} ft perimeter
-                  </Badge>
-                )}
-              </div>
-            </div>
+    <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-2">
+          <Calculator className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl sm:text-3xl font-bold">Configure & Quote</h1>
+        </div>
+        <p className="text-muted-foreground">Configure your product options and add to quote</p>
+      </div>
+
+      {/* Configure Product Options Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Calculator className="h-5 w-5 text-primary" />
+            <CardTitle>Configure Product Options</CardTitle>
           </div>
-        </CardContent>
-      </Card>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Variations Dropdown */}
+          {variations.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="variation-select" className="text-base font-semibold">
+                Select Height for {product.name}
+              </Label>
+              <Select value={selectedVariation} onValueChange={setSelectedVariation}>
+                <SelectTrigger id="variation-select" className="w-full">
+                  <SelectValue placeholder="Select a height option" />
+                </SelectTrigger>
+                <SelectContent>
+                  {variations.map((variation) => (
+                    <SelectItem key={variation.id} value={variation.id}>
+                      {variation.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
-      {/* Variations Section */}
-      {variations.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Badge className="bg-purple-500">Height Options</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {variations.map((variation) => (
-              <Card 
-                key={variation.id}
-                className={`cursor-pointer transition-all ${
-                  selectedVariations.includes(variation.id) 
-                    ? 'ring-2 ring-primary bg-primary/5' 
-                    : 'hover:bg-accent'
-                }`}
-                onClick={() => toggleVariation(variation.id)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold">{variation.name}</p>
-                      {variation.description && (
-                        <p className="text-sm text-muted-foreground">{variation.description}</p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">
-                        {variation.adjustment_type === 'percentage' ? '+' : ''}
-                        {formatExactPrice(variation.price_adjustment, {
-                          currency_symbol: settings.currency_symbol,
-                          decimal_precision: settings.decimal_precision
-                        })}
-                        {variation.adjustment_type === 'percentage' && '%'}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Add-ons Section */}
-      {addons.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Badge className="bg-orange-500">Available Add-ons</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {addons.map((addon) => (
-              <Card key={addon.id} className="bg-muted/30">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
+          {/* Add-ons Section */}
+          {addons.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-base font-semibold">Available Add-ons</h3>
+              <div className="space-y-3">
+                {addons.map((addon) => (
+                  <div key={addon.id} className="flex items-center justify-between p-4 border rounded-lg bg-card">
                     <div className="flex-1">
-                      <p className="font-semibold">{addon.name}</p>
-                      {addon.description && (
-                        <p className="text-sm text-muted-foreground">{addon.description}</p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">
+                      <p className="font-medium">{addon.name}</p>
+                      <p className="text-sm text-muted-foreground">
                         {formatExactPrice(addon.price_value, {
                           currency_symbol: settings.currency_symbol,
                           decimal_precision: settings.decimal_precision
-                        })}
-                        {addon.calculation_type === 'per_unit' && ` per ${product.unit_type}`}
+                        })} per {addon.calculation_type === 'per_unit' ? 'unit' : 'each'}
                       </p>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm">Quantity:</Label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="outline"
                         onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) - 1)}
                         disabled={(selectedAddons[addon.id] || 0) <= 0}
+                        className="h-9 w-9"
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
-                      <span className="w-12 text-center font-medium">
+                      <span className="w-8 text-center font-semibold">
                         {selectedAddons[addon.id] || 0}
                       </span>
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="outline"
                         onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) + 1)}
+                        className="h-9 w-9"
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Notes */}
-      <Card>
-        <CardContent className="p-4">
-          <Label htmlFor="notes" className="text-base font-semibold mb-2 block">Special Notes</Label>
-          <Textarea
-            id="notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Any special requirements or notes for this item..."
-            rows={3}
-          />
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Action Card */}
-      <Card className="border-2 shadow-lg bg-muted/20" style={{ borderColor: product.color_hex }}>
+      {/* Product Summary Card at Bottom */}
+      <Card className="border-l-4 shadow-sm" style={{ borderLeftColor: product.color_hex }}>
         <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Total Price</p>
-              <p className="text-3xl font-bold text-primary">
-                {formatExactPrice(lineTotal, {
-                  currency_symbol: settings.currency_symbol,
-                  decimal_precision: settings.decimal_precision
-                })}
-              </p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3 flex-1">
+              <div 
+                className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
+                style={{ backgroundColor: product.color_hex }}
+              />
+              <div>
+                <h3 className="font-semibold text-lg">{product.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {measurement.value.toLocaleString()} {measurement.unit.replace('_', ' ')}
+                </p>
+                <p className="text-2xl font-bold text-green-600 mt-1">
+                  {formatExactPrice(lineTotal, {
+                    currency_symbol: settings.currency_symbol,
+                    decimal_precision: settings.decimal_precision
+                  })}
+                  {selectedVariationObj && (
+                    <span className="text-sm text-muted-foreground ml-2">
+                      @ {selectedVariationObj.name}
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
-          </div>
-
-          <div className="flex gap-3">
-            <Button variant="destructive" size="lg" className="flex-1">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Remove
-            </Button>
-            <Button onClick={handleAddToQuote} size="lg" className="flex-1">
-              <Plus className="h-4 w-4 mr-2" />
-              Add to Quote
-            </Button>
+            <div className="flex gap-3 w-full sm:w-auto">
+              <Button variant="destructive" size="lg" className="flex-1 sm:flex-none">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Remove
+              </Button>
+              <Button onClick={handleAddToQuote} size="lg" className="flex-1 sm:flex-none">
+                <Plus className="h-4 w-4 mr-2" />
+                Add to Quote
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
