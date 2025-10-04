@@ -215,68 +215,14 @@ const Widget = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30" style={brandStyle}>
-      {/* Header with Steps - Hidden during measurement */}
-      {widgetState.currentStep !== 'measurement' && (
+      {/* Header with Steps - Hidden during measurement and configuration */}
+      {widgetState.currentStep !== 'measurement' && widgetState.currentStep !== 'product-configuration' && (
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/dashboard')}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: brandColor }}
-                />
-                <span className="text-sm font-medium">{contractorInfo?.business_name || 'Professional Services'}</span>
-              </div>
-            </div>
-            
-            {/* Horizontal Step Progress */}
-            <div className="flex items-center gap-2">
-              {stepConfig.map((step, index) => {
-                const isActive = index === currentStepIndex;
-                const isCompleted = index < currentStepIndex;
-                
-                return (
-                  <div key={step.key} className="flex items-center flex-1">
-                    <div className="flex items-center gap-2 flex-1">
-                      <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                          isActive 
-                            ? 'bg-primary text-primary-foreground shadow-md' 
-                            : isCompleted
-                            ? 'bg-primary/80 text-primary-foreground'
-                            : 'bg-muted text-muted-foreground'
-                        }`}
-                      >
-                        {isCompleted ? '✓' : index + 1}
-                      </div>
-                      <span className={`text-xs font-medium hidden sm:inline ${
-                        isActive ? 'text-primary' : isCompleted ? 'text-primary/80' : 'text-muted-foreground'
-                      }`}>
-                        {step.label.replace(/^\d+\.\s*/, '')}
-                      </span>
-                    </div>
-                    {index < stepConfig.length - 1 && (
-                      <div className={`h-0.5 flex-1 mx-2 transition-all ${
-                        isCompleted ? 'bg-primary/80' : 'bg-muted'
-                      }`} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+...
         </div>
       )}
       
-      <div className={`${widgetState.currentStep === 'measurement' ? '' : 'px-4 py-6 max-w-[1920px] mx-auto'}`}>
+      <div className={`${(widgetState.currentStep === 'measurement' || widgetState.currentStep === 'product-configuration') ? '' : 'px-4 py-6 max-w-[1920px] mx-auto'}`}>
 
             {(widgetState.currentStep === 'contact-before' || widgetState.currentStep === 'contact-after') && (
               <ContactForm
@@ -298,60 +244,41 @@ const Widget = () => {
           />
         )}
 
-        {widgetState.currentStep === 'measurement' && widgetState.currentProductId && (
-          <MeasurementTools
-            productId={widgetState.currentProductId}
-            onMeasurementComplete={updateCurrentMeasurement}
-            onNext={() => setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }))}
-            customerAddress={widgetState.customerInfo.address}
-            selectedProduct={selectedProduct}
-            onChangeProduct={goToProductSelection}
-          />
-        )}
-
-        {widgetState.currentStep === 'product-configuration' && 
-         widgetState.currentProductId && 
-         widgetState.currentMeasurement && (
-          <div className="space-y-4">
-            {/* Selected Product Context */}
-            {selectedProduct && (
-              <Card className="bg-primary/5 border-primary/20">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-primary">Configuring Product</h3>
-                      <p className="text-sm">{selectedProduct.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Measurement: {widgetState.currentMeasurement.value.toLocaleString()} {widgetState.currentMeasurement.unit.replace('_', ' ')}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setWidgetState(prev => ({ ...prev, currentStep: 'measurement' }))}
-                      >
-                        Change Measurement
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={goToProductSelection}
-                      >
-                        Change Product
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+        {(widgetState.currentStep === 'measurement' || widgetState.currentStep === 'product-configuration') && 
+         widgetState.currentProductId && (
+          <div className="flex flex-col">
+            {/* Map Section - Always visible during measurement and configuration */}
+            <div className={widgetState.currentStep === 'product-configuration' ? 'h-[400px]' : ''}>
+              <MeasurementTools
+                productId={widgetState.currentProductId}
+                onMeasurementComplete={updateCurrentMeasurement}
+                onNext={() => {
+                  setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }));
+                  // Auto-scroll to configuration section after a brief delay
+                  setTimeout(() => {
+                    const configSection = document.getElementById('product-configuration-section');
+                    if (configSection) {
+                      configSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }, 100);
+                }}
+                customerAddress={widgetState.customerInfo.address}
+                selectedProduct={selectedProduct}
+                onChangeProduct={goToProductSelection}
+              />
+            </div>
             
-            <ProductConfiguration
-              productId={widgetState.currentProductId}
-              measurement={widgetState.currentMeasurement}
-              onAddToQuote={addQuoteItem}
-              settings={settings}
-            />
+            {/* Configuration Section - Only visible during configuration step */}
+            {widgetState.currentStep === 'product-configuration' && widgetState.currentMeasurement && (
+              <div id="product-configuration-section" className="bg-background">
+                <ProductConfiguration
+                  productId={widgetState.currentProductId}
+                  measurement={widgetState.currentMeasurement}
+                  onAddToQuote={addQuoteItem}
+                  settings={settings}
+                />
+              </div>
+            )}
           </div>
         )}
 

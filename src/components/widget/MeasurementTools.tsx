@@ -437,6 +437,8 @@ const MeasurementTools = ({
 
     setCurrentMeasurement(measurement);
     onMeasurementComplete(measurement);
+    // Automatically proceed to configuration
+    onNext();
   };
 
   const handleMapSubmit = () => {
@@ -451,6 +453,8 @@ const MeasurementTools = ({
 
     setCurrentMeasurement(measurement);
     onMeasurementComplete(measurement);
+    // Automatically proceed to configuration
+    onNext();
   };
 
   if (loading) {
@@ -709,7 +713,7 @@ const MeasurementTools = ({
               </div>
             )}
 
-            {/* Measurement Display */}
+            {/* Measurement Display - Auto-submits now */}
             {mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement && (
               <div className="mb-4 bg-primary/10 border-2 border-primary rounded-lg px-6 py-4 shadow-lg">
                 <div className="flex items-center justify-between">
@@ -719,23 +723,23 @@ const MeasurementTools = ({
                       {mapMeasurement.toLocaleString()} {unitAbbr}
                     </p>
                   </div>
-                  <Button 
-                    onClick={handleMapSubmit} 
-                    variant="outline"
-                    size="lg"
-                  >
-                    Use Measurement
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleUndo}
+                      variant="outline"
+                      size="lg"
+                    >
+                      Undo
+                    </Button>
+                    <Button 
+                      onClick={handleMapSubmit} 
+                      variant="default"
+                      size="lg"
+                    >
+                      Continue
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Continue Button */}
-            {currentMeasurement && (
-              <div className="flex justify-center">
-                <Button onClick={onNext} size="lg" variant="outline" className="px-8">
-                  Continue with {currentMeasurement.value.toLocaleString()} {unitAbbr}
-                </Button>
               </div>
             )}
           </div>
