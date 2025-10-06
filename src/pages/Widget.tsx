@@ -277,6 +277,7 @@ const Widget = () => {
                   measurement={widgetState.currentMeasurement}
                   onAddToQuote={addQuoteItem}
                   settings={settings}
+                  onRemove={goToProductSelection}
                 />
               </div>
             )}
@@ -349,6 +350,17 @@ const Widget = () => {
               }))
             }
             onAddAnother={goToProductSelection}
+            onRemoveItem={(itemId) => {
+              setWidgetState(prev => ({
+                ...prev,
+                quoteItems: prev.quoteItems.filter(item => item.id !== itemId)
+              }));
+              // If no items left, go back to product selection
+              const remainingItems = widgetState.quoteItems.filter(item => item.id !== itemId);
+              if (remainingItems.length === 0) {
+                goToProductSelection();
+              }
+            }}
           />
         )}
 

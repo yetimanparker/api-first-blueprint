@@ -27,6 +27,7 @@ interface QuoteReviewProps {
   onNext: () => void;
   onUpdateComments: (comments: string) => void;
   onAddAnother?: () => void;
+  onRemoveItem?: (itemId: string) => void;
 }
 
 const QuoteReview = ({ 
@@ -37,7 +38,8 @@ const QuoteReview = ({
   currentStep,
   onNext,
   onUpdateComments,
-  onAddAnother
+  onAddAnother,
+  onRemoveItem
 }: QuoteReviewProps) => {
   const [projectComments, setProjectComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -249,7 +251,12 @@ const QuoteReview = ({
                         decimal_precision: settings.decimal_precision
                       })}
                     </p>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => onRemoveItem?.(item.id)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>

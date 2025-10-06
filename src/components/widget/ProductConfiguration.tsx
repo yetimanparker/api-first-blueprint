@@ -61,13 +61,15 @@ interface ProductConfigurationProps {
   measurement: MeasurementData;
   onAddToQuote: (item: QuoteItem) => void;
   settings: GlobalSettings;
+  onRemove?: () => void;
 }
 
 const ProductConfiguration = ({ 
   productId, 
   measurement, 
   onAddToQuote, 
-  settings 
+  settings,
+  onRemove
 }: ProductConfigurationProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [variations, setVariations] = useState<Variation[]>([]);
@@ -379,7 +381,7 @@ const ProductConfiguration = ({
               </div>
             </div>
             <div className="flex gap-3 w-full sm:w-auto">
-              <Button variant="destructive" size="lg" className="flex-1 sm:flex-none">
+              <Button variant="destructive" size="lg" className="flex-1 sm:flex-none" onClick={onRemove}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Remove
               </Button>
