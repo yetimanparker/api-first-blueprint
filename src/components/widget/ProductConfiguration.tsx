@@ -80,6 +80,7 @@ const ProductConfiguration = ({
   const [selectedVariation, setSelectedVariation] = useState<string>('');
   const [selectedAddons, setSelectedAddons] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState('');
+  const [isAdded, setIsAdded] = useState(false);
 
   useEffect(() => {
     fetchProductData();
@@ -232,6 +233,7 @@ const ProductConfiguration = ({
     };
 
     onAddToQuote(quoteItem);
+    setIsAdded(true);
   };
 
 
@@ -261,6 +263,10 @@ const ProductConfiguration = ({
 
   const lineTotal = calculateItemPrice();
   const selectedVariationObj = selectedVariation ? variations.find(v => v.id === selectedVariation) : null;
+
+  if (isAdded) {
+    return null;
+  }
 
   return (
     <div className="w-full bg-background">
