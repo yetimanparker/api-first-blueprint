@@ -102,6 +102,7 @@ const MeasurementTools = ({
 
   // Re-render existing measurements when quote items change
   useEffect(() => {
+    console.log('🗑️ Quote items changed, updating map. Count:', existingQuoteItems.length);
     if (mapRef.current) {
       renderExistingMeasurements(mapRef.current);
     }
@@ -284,7 +285,10 @@ const MeasurementTools = ({
   };
 
   const renderExistingMeasurements = (map: google.maps.Map) => {
+    console.log('🗺️ Rendering existing measurements. Items:', existingQuoteItems.length);
+    
     // Clear any existing previous shapes and labels
+    console.log('🧹 Clearing previous shapes:', previousShapesRef.current.length);
     previousShapesRef.current.forEach(shape => shape.setMap(null));
     previousShapesRef.current = [];
     previousLabelsRef.current.forEach(label => label.setMap(null));

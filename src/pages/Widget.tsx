@@ -414,13 +414,17 @@ const Widget = () => {
               }
               onAddAnother={goToProductSelection}
               onRemoveItem={(itemId) => {
+                console.log('🗑️ Deleting item:', itemId);
+                console.log('📋 Current quote items:', widgetState.quoteItems.length);
                 const remainingItems = widgetState.quoteItems.filter(item => item.id !== itemId);
+                console.log('📋 Remaining items after delete:', remainingItems.length);
                 setWidgetState(prev => ({
                   ...prev,
                   quoteItems: remainingItems
                 }));
                 // If no items left, go back to product selection
                 if (remainingItems.length === 0) {
+                  console.log('⚠️ No items left, going back to product selection');
                   goToProductSelection();
                 }
               }}
