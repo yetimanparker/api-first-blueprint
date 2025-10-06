@@ -103,7 +103,7 @@ const Widget = () => {
     setWidgetState(prev => ({
       ...prev,
       quoteItems: [...prev.quoteItems, item],
-      currentStep: 'add-another-check'
+      currentStep: 'quote-review'
     }));
   };
 
@@ -247,13 +247,20 @@ const Widget = () => {
         {(widgetState.currentStep === 'measurement' || widgetState.currentStep === 'product-configuration') && 
          widgetState.currentProductId && (
           <>
-            {/* Map Section - Always full height and scrollable */}
-            <div className="flex-1">
+            {/* Map Section - Fixed height during configuration */}
+            <div className={widgetState.currentStep === 'product-configuration' ? 'h-[500px] overflow-hidden' : 'flex-1'}>
               <MeasurementTools
                 productId={widgetState.currentProductId}
                 onMeasurementComplete={updateCurrentMeasurement}
                 onNext={() => {
                   setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }));
+                  // Auto-scroll to configuration section after a brief delay
+                  setTimeout(() => {
+                    const configSection = document.getElementById('product-configuration-section');
+                    if (configSection) {
+                      configSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }, 100);
                 }}
                 customerAddress={widgetState.customerInfo.address}
                 selectedProduct={selectedProduct}
