@@ -454,28 +454,6 @@ const QuoteReview = ({
         </Button>
       </div>
 
-      {/* Project Comments Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MessageSquare className="h-5 w-5" />
-            Project Comments
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Textarea
-            value={projectComments}
-            onChange={(e) => handleCommentsChange(e.target.value)}
-            placeholder="Tell us about your project in detail. Please provide access information, ground type, slope/elevation change etc."
-            rows={5}
-            className="resize-none"
-          />
-          <p className="text-xs text-muted-foreground">
-            This information helps us provide a more accurate quote and better service.
-          </p>
-        </CardContent>
-      </Card>
-
       {/* Quote Summary Card */}
       <Card ref={quoteSummaryRef} className="bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
         <CardHeader>
