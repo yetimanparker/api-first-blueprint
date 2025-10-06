@@ -302,21 +302,37 @@ const QuoteReview = ({
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-      {/* Quote Items Card */}
-      <Card className="shadow-lg">
-        <CardHeader className="bg-green-50 dark:bg-green-950">
-          <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
-            <DollarSign className="h-5 w-5" />
-            Quote Items ({items.length})
+      {/* Action Buttons */}
+      {onAddAnother && (
+        <div className="flex items-center justify-center py-4">
+          <Button
+            onClick={onAddAnother}
+            variant="outline"
+            size="lg"
+            className="border-2 border-dashed border-primary hover:bg-accent"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Add Another Product
+          </Button>
+        </div>
+      )}
+
+      {/* Quote Summary Card with Items */}
+      <Card ref={quoteSummaryRef} className="bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2 text-green-700 dark:text-green-400">
+            <Calculator className="h-5 w-5" />
+            Quote Summary ({items.length} {items.length === 1 ? 'Item' : 'Items'})
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
+        <CardContent className="space-y-4">
+          {/* Detailed Quote Items */}
+          <div className="space-y-4 mb-6">
             {items.map((item) => {
               const basePrice = item.measurement.value * item.unitPrice;
               
               return (
-                <div key={item.id} className="border rounded-lg p-4">
+                <div key={item.id} className="bg-background rounded-lg p-4 border border-green-200 dark:border-green-800">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start gap-3 flex-1">
                       <div 
@@ -411,128 +427,50 @@ const QuoteReview = ({
               );
             })}
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Action Buttons */}
-      <div className="flex items-center justify-center gap-4 py-6">
-        {onAddAnother && (
-          <Button
-            onClick={onAddAnother}
-            variant="outline"
-            size="lg"
-            className="border-2 border-dashed border-primary hover:bg-accent"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Add Another Product
-          </Button>
-        )}
-        <Button 
-          onClick={() => {
-            quoteSummaryRef.current?.scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'center' 
-            });
-          }} 
-          disabled={isSubmitting}
-          variant="success"
-          size="lg"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Submitting...
-            </>
-          ) : (
-            <>
-              <FileText className="h-4 w-4 mr-2" />
-              Review Summary
-            </>
-          )}
-        </Button>
-      </div>
+          <Separator className="my-4 bg-green-300 dark:bg-green-700" />
 
-      {/* Quote Summary Card */}
-      <Card ref={quoteSummaryRef} className="bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2 text-green-700 dark:text-green-400">
-            <Calculator className="h-5 w-5" />
-            Quote Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Line Items */}
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-semibold text-green-700 dark:text-green-400">Items:</p>
-            {items.map((item) => (
-              <div key={item.id} className="flex justify-between items-start text-sm py-2 border-b border-green-200 dark:border-green-800">
-                <div className="flex-1">
-                  <p className="font-medium">{item.productName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
-                  </p>
-                  {item.variations && item.variations.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {item.variations.map(v => v.name).join(', ')}
-                    </p>
-                  )}
-                  {item.addons && item.addons.filter(a => a.quantity > 0).length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      Add-ons: {item.addons.filter(a => a.quantity > 0).map(a => `${a.name} (×${a.quantity})`).join(', ')}
-                    </p>
-                  )}
-                </div>
-                <span className="font-medium ml-4">
-                  {formatExactPrice(item.lineTotal, {
-                    currency_symbol: settings.currency_symbol,
-                    decimal_precision: settings.decimal_precision
-                  })}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <Separator />
-
-          <div className="flex justify-between text-sm">
-            <span>Subtotal:</span>
-            <span>
-              {formatExactPrice(subtotal, {
-                currency_symbol: settings.currency_symbol,
-                decimal_precision: settings.decimal_precision
-              })}
-            </span>
-          </div>
-          
-          {taxAmount > 0 && (
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Tax ({settings.global_tax_rate}%):</span>
-              <span>
-                {formatExactPrice(taxAmount, {
+          <div className="space-y-2">
+            <div className="flex justify-between text-base">
+              <span>Subtotal:</span>
+              <span className="font-semibold">
+                {formatExactPrice(subtotal, {
                   currency_symbol: settings.currency_symbol,
                   decimal_precision: settings.decimal_precision
                 })}
               </span>
             </div>
-          )}
-          
-          <Separator />
-          
-          <div className="flex justify-between text-2xl font-bold">
-            <span>Total:</span>
-            <span className="text-green-600">
-              {formatExactPrice(total, {
-                currency_symbol: settings.currency_symbol,
-                decimal_precision: settings.decimal_precision
-              })}
-            </span>
+            
+            {taxAmount > 0 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Tax ({settings.global_tax_rate}%):</span>
+                <span>
+                  {formatExactPrice(taxAmount, {
+                    currency_symbol: settings.currency_symbol,
+                    decimal_precision: settings.decimal_precision
+                  })}
+                </span>
+              </div>
+            )}
+            
+            <Separator className="my-2 bg-green-300 dark:bg-green-700" />
+            
+            <div className="flex justify-between text-2xl font-bold pt-2">
+              <span>Total:</span>
+              <span className="text-green-600">
+                {formatExactPrice(total, {
+                  currency_symbol: settings.currency_symbol,
+                  decimal_precision: settings.decimal_precision
+                })}
+              </span>
+            </div>
           </div>
 
           <Button 
             onClick={handleSubmitQuote} 
             disabled={isSubmitting}
             variant="success"
-            className="w-full mt-4"
+            className="w-full mt-6"
             size="lg"
           >
             {isSubmitting ? (
