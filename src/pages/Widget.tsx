@@ -91,36 +91,55 @@ const Widget = () => {
     }
   }, [isServiceAreaValid, toast]);
 
-  // Auto-scroll to current step
+  // Auto-scroll to current step with debugging
   useEffect(() => {
+    console.log('🔄 Step changed to:', widgetState.currentStep);
+    
     const scrollToStep = () => {
       // For product-selection step, scroll to show categories at top
       if (widgetState.currentStep === 'product-selection') {
+        console.log('📍 Attempting to scroll to product-selection');
         let attempts = 0;
-        const maxAttempts = 10;
+        const maxAttempts = 15;
         
         const attemptScroll = () => {
           const productSection = document.getElementById('step-product-selection');
+          console.log(`🔍 Attempt ${attempts + 1}: Element found:`, !!productSection);
+          
           if (productSection) {
             // Get the sticky header height
             const header = document.querySelector('.sticky.top-0');
             const headerHeight = header?.getBoundingClientRect().height || 0;
             
-            // Scroll so the product section starts right below the header
-            const elementPosition = productSection.getBoundingClientRect().top + window.pageYOffset;
-            const offsetPosition = elementPosition - headerHeight;
+            console.log('📏 Header height:', headerHeight);
+            console.log('📐 Current scroll position:', window.pageYOffset);
+            
+            // Get absolute position of product section
+            const rect = productSection.getBoundingClientRect();
+            const absolutePosition = rect.top + window.pageYOffset;
+            
+            console.log('📍 Product section absolute position:', absolutePosition);
+            console.log('📍 Product section viewport position:', rect.top);
+            
+            // Scroll to position the product section right below header
+            const targetScroll = absolutePosition - headerHeight;
+            
+            console.log('🎯 Scrolling to position:', targetScroll);
             
             window.scrollTo({
-              top: offsetPosition,
+              top: targetScroll,
               behavior: 'smooth'
             });
           } else if (attempts < maxAttempts) {
             attempts++;
-            setTimeout(attemptScroll, 50);
+            setTimeout(attemptScroll, 100);
+          } else {
+            console.error('❌ Failed to find product-selection element after', maxAttempts, 'attempts');
           }
         };
         
-        setTimeout(attemptScroll, 100);
+        // Delay initial attempt to ensure DOM is ready
+        setTimeout(attemptScroll, 200);
       } else {
         // For other steps, use default scroll behavior
         const stepId = `step-${widgetState.currentStep}`;
@@ -137,7 +156,7 @@ const Widget = () => {
               behavior: 'smooth'
             });
           }
-        }, 100);
+        }, 200);
       }
     };
     scrollToStep();
