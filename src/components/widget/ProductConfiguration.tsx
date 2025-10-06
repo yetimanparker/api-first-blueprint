@@ -356,36 +356,140 @@ const ProductConfiguration = ({
       {/* Product Summary Card at Bottom */}
       <Card className="border-l-4 shadow-sm" style={{ borderLeftColor: product.color_hex }}>
         <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3 flex-1">
+          <div className="space-y-4">
+            {/* Product Header */}
+            <div className="flex items-start gap-3">
               <div 
                 className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
                 style={{ backgroundColor: product.color_hex }}
               />
-              <div>
+              <div className="flex-1">
                 <h3 className="font-semibold text-lg">{product.name}</h3>
                 <p className="text-sm text-muted-foreground">
                   {measurement.value.toLocaleString()} {measurement.unit.replace('_', ' ')}
                 </p>
-                <p className="text-2xl font-bold text-green-600 mt-1">
+              </div>
+            </div>
+
+            {/* Itemized Pricing Breakdown */}
+            <div className="space-y-2 pl-6">
+              {/* Base Price */}
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">
+                  Base Price ({measurement.value.toLocaleString()} {measurement.unit.replace('_', ' ')} × {formatExactPrice(product.unit_price, {
+                    currency_symbol: settings.currency_symbol,
+                    decimal_precision: settings.decimal_precision
+                  })})
+                </span>
+                <span className="font-medium">
+                  {formatExactPrice(product.unit_price * measurement.value, {
+                    currency_symbol: settings.currency_symbol,
+                    decimal_precision: settings.decimal_precision
+                  })}
+                </span>
+              </div>
+
+              {/* Variation Adjustment */}
+              {selectedVariationObj && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">
+                    {selectedVariationObj.name} {selectedVariationObj.adjustment_type === 'percentage' 
+                      ? `(+${selectedVariationObj.price_adjustment}%)`
+                      : `(+${formatExactPrice(selectedVariationObj.price_adjustment, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })})`
+                    }
+                  </span>
+                  <span className="font-medium text-primary">
+                    +{formatExactPrice(
+                      selectedVariationObj.adjustment_type === 'percentage'
+                        ? (product.unit_price * measurement.value * selectedVariationObj.price_adjustment / 100)
+                        : (selectedVariationObj.price_adjustment * measurement.value),
+                      {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      }
+                    )}
+                  </span>
+                </div>
+              )}
+
+              {/* Add-ons */}
+              {Object.entries(selectedAddons)
+                .filter(([_, quantity]) => quantity > 0)
+                .map(([addonId, addonQuantity]) => {
+                  const addon = addons.find(a => a.id === addonId);
+                  if (!addon) return null;
+                  
+                  let quantity = measurement.value;
+                  if (selectedVariationObj?.affects_area_calculation && selectedVariationObj.height_value) {
+                    if (measurement.type === 'area') {
+                      quantity = quantity * selectedVariationObj.height_value;
+                    }
+                  }
+
+                  const addonPrice = calculateAddonWithAreaData(
+                    addon.price_value,
+                    quantity,
+                    addon.calculation_type
+                  );
+                  const addonTotal = addonPrice * addonQuantity;
+
+                  return (
+                    <div key={addonId} className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">
+                        {addon.name} {addonQuantity > 1 ? `(×${addonQuantity})` : ''}
+                      </span>
+                      <span className="font-medium text-primary">
+                        +{formatExactPrice(addonTotal, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}
+                      </span>
+                    </div>
+                  );
+                })}
+
+              {/* Markup */}
+              {settings.global_markup_percentage > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">
+                    Markup ({settings.global_markup_percentage}%)
+                  </span>
+                  <span className="font-medium text-primary">
+                    +{formatExactPrice(
+                      (lineTotal / (1 + settings.global_markup_percentage / 100)) * (settings.global_markup_percentage / 100),
+                      {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      }
+                    )}
+                  </span>
+                </div>
+              )}
+
+              <Separator className="my-2" />
+
+              {/* Total */}
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">Total</span>
+                <span className="text-2xl font-bold text-green-600">
                   {formatExactPrice(lineTotal, {
                     currency_symbol: settings.currency_symbol,
                     decimal_precision: settings.decimal_precision
                   })}
-                  {selectedVariationObj && (
-                    <span className="text-sm text-muted-foreground ml-2">
-                      @ {selectedVariationObj.name}
-                    </span>
-                  )}
-                </p>
+                </span>
               </div>
             </div>
-            <div className="flex gap-3 w-full sm:w-auto">
-              <Button variant="destructive" size="lg" className="flex-1 sm:flex-none" onClick={onRemove}>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button variant="destructive" size="lg" className="flex-1" onClick={onRemove}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Remove
               </Button>
-              <Button onClick={handleAddToQuote} variant="success" size="lg" className="flex-1 sm:flex-none">
+              <Button onClick={handleAddToQuote} variant="success" size="lg" className="flex-1">
                 <Plus className="h-4 w-4 mr-2" />
                 Add to Quote
               </Button>
