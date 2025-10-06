@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,6 +46,7 @@ const QuoteReview = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [items, setItems] = useState<QuoteItem[]>(quoteItems);
   const { toast } = useToast();
+  const quoteSummaryRef = useRef<HTMLDivElement>(null);
 
   // Sync local items state with parent quoteItems prop
   useEffect(() => {
@@ -429,7 +430,12 @@ const QuoteReview = ({
           </Button>
         )}
         <Button 
-          onClick={handleSubmitQuote} 
+          onClick={() => {
+            quoteSummaryRef.current?.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center' 
+            });
+          }} 
           disabled={isSubmitting}
           variant="success"
           size="lg"
@@ -442,7 +448,7 @@ const QuoteReview = ({
           ) : (
             <>
               <FileText className="h-4 w-4 mr-2" />
-              Review and Submit
+              Review Summary
             </>
           )}
         </Button>
@@ -471,7 +477,7 @@ const QuoteReview = ({
       </Card>
 
       {/* Quote Summary Card */}
-      <Card className="bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
+      <Card ref={quoteSummaryRef} className="bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2 text-green-700 dark:text-green-400">
             <Calculator className="h-5 w-5" />
@@ -524,6 +530,26 @@ const QuoteReview = ({
               })}
             </span>
           </div>
+
+          <Button 
+            onClick={handleSubmitQuote} 
+            disabled={isSubmitting}
+            variant="success"
+            className="w-full mt-4"
+            size="lg"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4 mr-2" />
+                Submit Quote
+              </>
+            )}
+          </Button>
 
         </CardContent>
       </Card>
