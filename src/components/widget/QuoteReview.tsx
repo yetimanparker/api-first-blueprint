@@ -431,7 +431,7 @@ const QuoteReview = ({
         <Button 
           onClick={handleSubmitQuote} 
           disabled={isSubmitting}
-          variant="default"
+          variant="success"
           size="lg"
         >
           {isSubmitting ? (
