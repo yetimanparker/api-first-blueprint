@@ -609,6 +609,14 @@ const MeasurementTools = ({
 
       setCurrentMeasurement(measurement);
       onMeasurementComplete(measurement);
+      
+      // Scroll to show the measurement tools after completing measurement
+      setTimeout(() => {
+        const bottomControls = document.querySelector('.measurement-controls');
+        if (bottomControls) {
+          bottomControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 300);
     }
   }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement]);
 
@@ -769,18 +777,27 @@ const MeasurementTools = ({
 
       {/* Bottom Control Bar and Measurement Display */}
       {!mapLoading && !mapError && (
-        <div className="bg-background border-t px-6 py-3">
+        <div className="bg-background border-t px-6 py-3 measurement-controls">
           <div className="max-w-7xl mx-auto">
             {/* Show Next Button when measurement is complete */}
             {currentMeasurement && (
-              <div className="flex justify-center mb-4">
+              <div className="flex justify-center gap-3 mb-4">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={handleUndo}
+                  className="px-6 shadow-lg gap-2"
+                >
+                  <Undo2 className="h-4 w-4" />
+                  Remeasure
+                </Button>
                 <Button
                   variant="success"
                   size="lg"
                   onClick={onNext}
                   className="px-8 shadow-lg gap-3"
                 >
-                  <span>Configure & Quote</span>
+                  <span>NEXT (configure)</span>
                   <span className="text-success-foreground/90 font-semibold">
                     ({currentMeasurement.value.toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : 'ft'})
                   </span>
