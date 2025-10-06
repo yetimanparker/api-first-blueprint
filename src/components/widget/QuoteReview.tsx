@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Loader2, FileText, DollarSign, Plus, MessageSquare, Calculator, Trash2 } from 'lucide-react';
 import { QuoteItem, CustomerInfo, WorkflowStep } from '@/types/widget';
@@ -43,9 +44,10 @@ const QuoteReview = ({
 }: QuoteReviewProps) => {
   const [projectComments, setProjectComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [items, setItems] = useState<QuoteItem[]>(quoteItems);
   const { toast } = useToast();
 
-  const subtotal = quoteItems.reduce((sum, item) => sum + item.lineTotal, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const markupAmount = settings.global_markup_percentage > 0 
     ? applyGlobalMarkup(subtotal, settings.global_markup_percentage) - subtotal 
     : 0;
@@ -54,6 +56,54 @@ const QuoteReview = ({
     ? applyGlobalTax(taxableAmount, settings.global_tax_rate) - taxableAmount 
     : 0;
   const total = calculateFinalPrice(subtotal, settings.global_markup_percentage, settings.global_tax_rate);
+
+  const toggleAddon = (itemId: string, addonId: string) => {
+    setItems(prevItems => prevItems.map(item => {
+      if (item.id !== itemId) return item;
+      
+      const updatedAddons = item.addons?.map(addon => {
+        if (addon.id === addonId) {
+          const newQuantity = addon.quantity > 0 ? 0 : 1;
+          return { ...addon, quantity: newQuantity };
+        }
+        return addon;
+      }) || [];
+
+      // Recalculate line total
+      let basePrice = item.measurement.value * item.unitPrice;
+      
+      // Apply variations
+      if (item.variations && item.variations.length > 0) {
+        item.variations.forEach(variation => {
+          if (variation.adjustmentType === 'percentage') {
+            basePrice += basePrice * (variation.priceAdjustment / 100);
+          } else {
+            basePrice += variation.priceAdjustment * item.measurement.value;
+          }
+        });
+      }
+      
+      // Apply active addons
+      let addonsTotal = 0;
+      updatedAddons.forEach(addon => {
+        if (addon.quantity > 0) {
+          if (addon.calculationType === 'per_unit') {
+            addonsTotal += addon.priceValue * item.measurement.value * addon.quantity;
+          } else {
+            addonsTotal += addon.priceValue * addon.quantity;
+          }
+        }
+      });
+
+      const newLineTotal = basePrice + addonsTotal;
+
+      return {
+        ...item,
+        addons: updatedAddons,
+        lineTotal: newLineTotal
+      };
+    }));
+  };
 
   const handleCommentsChange = (comments: string) => {
     setProjectComments(comments);
@@ -111,7 +161,7 @@ const QuoteReview = ({
 
       if (quoteError) throw quoteError;
 
-      const quoteItemsData = quoteItems.map(item => ({
+      const quoteItemsData = items.map(item => ({
         quote_id: quote.id,
         product_id: item.productId,
         quantity: item.quantity,
@@ -221,57 +271,109 @@ const QuoteReview = ({
         <CardHeader className="bg-green-50 dark:bg-green-950">
           <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
             <DollarSign className="h-5 w-5" />
-            Quote Items ({quoteItems.length})
+            Quote Items ({items.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="space-y-4">
-            {quoteItems.map((item, index) => (
-              <div key={item.id} className="border rounded-lg p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div 
-                      className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
-                      style={{ backgroundColor: '#10B981' }}
-                    />
-                    <div>
-                      <p className="font-semibold text-lg">{item.productName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
-                        {item.variations && item.variations.length > 0 && (
-                          <span> • {item.variations[0].name}</span>
-                        )}
+            {items.map((item) => {
+              const basePrice = item.measurement.value * item.unitPrice;
+              
+              return (
+                <div key={item.id} className="border rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div 
+                        className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
+                        style={{ backgroundColor: '#10B981' }}
+                      />
+                      <div>
+                        <p className="font-semibold text-lg">{item.productName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <p className="font-bold text-xl text-green-600">
+                        {formatExactPrice(item.lineTotal, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}
                       </p>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => onRemoveItem?.(item.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <p className="font-bold text-xl text-green-600">
-                      {formatExactPrice(item.lineTotal, {
+                  
+                  {/* Itemized Breakdown */}
+                  <div className="ml-6 space-y-2 text-sm">
+                    {/* Base Product */}
+                    <div className="text-muted-foreground">
+                      Base {item.productName}: {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')} × {formatExactPrice(item.unitPrice, {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      })} = {formatExactPrice(basePrice, {
                         currency_symbol: settings.currency_symbol,
                         decimal_precision: settings.decimal_precision
                       })}
-                    </p>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => onRemoveItem?.(item.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </div>
+
+                    {/* Variations */}
+                    {item.variations && item.variations.length > 0 && item.variations.map((variation) => {
+                      const variationPrice = variation.adjustmentType === 'percentage'
+                        ? basePrice * (variation.priceAdjustment / 100)
+                        : variation.priceAdjustment * item.measurement.value;
+                      
+                      return (
+                        <div key={variation.id} className="text-muted-foreground">
+                          {variation.name}: {variation.adjustmentType === 'percentage' ? `${variation.priceAdjustment}%` : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')} × ${formatExactPrice(variation.priceAdjustment, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })}`} = {formatExactPrice(variationPrice, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })}
+                        </div>
+                      );
+                    })}
+
+                    {/* Add-ons with Toggles */}
+                    {item.addons && item.addons.length > 0 && item.addons.map((addon) => {
+                      const addonPrice = addon.calculationType === 'per_unit'
+                        ? addon.priceValue * item.measurement.value
+                        : addon.priceValue;
+                      const isEnabled = addon.quantity > 0;
+                      
+                      return (
+                        <div key={addon.id} className="flex items-center gap-2">
+                          <Switch
+                            checked={isEnabled}
+                            onCheckedChange={() => toggleAddon(item.id, addon.id)}
+                            className="scale-75"
+                          />
+                          <span className={isEnabled ? 'text-foreground' : 'text-muted-foreground line-through'}>
+                            {addon.name}: {addon.calculationType === 'per_unit' ? `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')} × ` : ''}{formatExactPrice(addon.priceValue, {
+                              currency_symbol: settings.currency_symbol,
+                              decimal_precision: settings.decimal_precision
+                            })} = {formatExactPrice(addonPrice, {
+                              currency_symbol: settings.currency_symbol,
+                              decimal_precision: settings.decimal_precision
+                            })}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground ml-6">
-                  Base {item.productName}: {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')} × {formatExactPrice(item.unitPrice, {
-                    currency_symbol: settings.currency_symbol,
-                    decimal_precision: settings.decimal_precision
-                  })} = {formatExactPrice(item.lineTotal, {
-                    currency_symbol: settings.currency_symbol,
-                    decimal_precision: settings.decimal_precision
-                  })}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
