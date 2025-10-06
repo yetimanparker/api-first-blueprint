@@ -293,10 +293,9 @@ const Widget = () => {
   } as React.CSSProperties;
 
   const stepConfig = [
-    { key: 'contact-before', label: '1. Contact Information', active: true },
-    { key: 'product-selection', label: '2. Select Your Products', active: false },
-    { key: 'measurement', label: '3. Measure Your Project', active: false },
-    { key: 'quote-review', label: '4. Review Your Quote', active: false }
+    { key: 'product-selection', label: '1. Select Your Products', active: false },
+    { key: 'measurement', label: '2. Measure Your Project', active: false },
+    { key: 'quote-review', label: '3. Review Your Quote', active: false }
   ];
 
   const currentStepIndex = stepConfig.findIndex(step => {
