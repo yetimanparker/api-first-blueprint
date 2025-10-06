@@ -637,12 +637,12 @@ const MeasurementTools = ({
   return (
     <div className={`flex flex-col w-full ${isConfigurationMode ? 'h-full' : 'h-screen'}`}>
       {/* Header with Search and Title */}
-      <div ref={headerRef} className="bg-background border-b px-6 py-3 z-20">
+      <div ref={headerRef} className="bg-background border-b px-6 py-4 z-20 shadow-md">
         <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
           <h2 className="text-2xl font-semibold text-foreground whitespace-nowrap">
             Measure Your Project
           </h2>
-          <div className="flex items-center gap-2 flex-1 max-w-md">
+          <div className="flex items-center gap-2 flex-1 max-w-2xl">
             <AddressAutocomplete
               value={searchAddress}
               onAddressSelect={(address: ParsedAddress) => {
@@ -655,7 +655,7 @@ const MeasurementTools = ({
                     if (status === 'OK' && results && results[0]) {
                       const location = results[0].geometry.location;
                       mapRef.current?.setCenter(location);
-                      mapRef.current?.setZoom(20);
+                      mapRef.current?.setZoom(21);
                     }
                   });
                 }
