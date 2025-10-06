@@ -189,13 +189,15 @@ const QuoteReview = ({
         quote_number: quoteNumberData || `Q-${Date.now()}`
       };
 
-      const { data: quote, error: quoteError } = await supabase
+      const { data: quoteResult, error: quoteError } = await supabase
         .from('quotes')
         .insert([quoteData])
-        .select()
-        .single();
+        .select();
 
       if (quoteError) throw quoteError;
+      if (!quoteResult || quoteResult.length === 0) throw new Error('Failed to create quote');
+      
+      const quote = quoteResult[0];
 
       const quoteItemsData = items.map(item => ({
         quote_id: quote.id,
