@@ -324,47 +324,33 @@ const Widget = () => {
         {/* Add Another Product Section */}
         {isStepVisible('add-another-check') && (
           <div id="step-add-another-check" className="px-4 py-6">
-            {/* Quote Summary */}
-            {widgetState.quoteItems.length > 0 && (
-              <Card className="bg-success/5 border-success/20">
-                <CardContent className="p-4">
-                  <h3 className="font-semibold text-success mb-2">Items in Your Quote ({widgetState.quoteItems.length})</h3>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {widgetState.quoteItems.map((item, index) => (
-                      <div key={item.id} className="flex justify-between items-center text-sm">
-                        <span>{item.customName || item.productName}</span>
-                        <span className="text-muted-foreground">
-                          {item.quantity.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-success/30 flex gap-3">
-                    <Button 
-                      onClick={() => {
-                        const productSection = document.getElementById('step-product-selection');
-                        if (productSection) {
-                          productSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                      }} 
-                      variant="outline" 
-                      size="lg"
-                      className="flex-1 font-semibold"
-                    >
-                      Add Another Product
-                    </Button>
-                    <Button 
-                      onClick={nextStep} 
-                      variant="success" 
-                      size="lg"
-                      className="flex-1 font-semibold shadow-lg"
-                    >
-                      Continue to Review Quote
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <Card className="bg-background border">
+              <CardContent className="p-4">
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={() => {
+                      const productSection = document.getElementById('step-product-selection');
+                      if (productSection) {
+                        productSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }} 
+                    variant="outline" 
+                    size="lg"
+                    className="flex-1 font-semibold"
+                  >
+                    Add Another Product
+                  </Button>
+                  <Button 
+                    onClick={nextStep} 
+                    variant="success" 
+                    size="lg"
+                    className="flex-1 font-semibold shadow-lg"
+                  >
+                    Continue to Review Quote
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
