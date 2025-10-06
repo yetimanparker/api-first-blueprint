@@ -558,6 +558,7 @@ const MeasurementTools = ({
 
   const handleUndo = () => {
     clearMapDrawing();
+    setCurrentMeasurement(null); // Clear the saved measurement to allow new one
     // Restart drawing mode immediately after clearing
     setTimeout(() => {
       if (!showManualEntry) {
@@ -579,8 +580,6 @@ const MeasurementTools = ({
 
     setCurrentMeasurement(measurement);
     onMeasurementComplete(measurement);
-    // Automatically proceed to configuration
-    setTimeout(() => onNext(), 100);
   };
 
   // Save measurement when map measurement is complete
@@ -610,8 +609,6 @@ const MeasurementTools = ({
 
       setCurrentMeasurement(measurement);
       onMeasurementComplete(measurement);
-      // Automatically proceed to configuration
-      setTimeout(() => onNext(), 500);
     }
   }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement]);
 
@@ -781,9 +778,12 @@ const MeasurementTools = ({
                   variant="success"
                   size="lg"
                   onClick={onNext}
-                  className="px-8 shadow-lg"
+                  className="px-8 shadow-lg gap-3"
                 >
-                  Continue to Configuration
+                  <span>Configure & Quote</span>
+                  <span className="text-success-foreground/90 font-semibold">
+                    ({currentMeasurement.value.toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : 'ft'})
+                  </span>
                 </Button>
               </div>
             )}
