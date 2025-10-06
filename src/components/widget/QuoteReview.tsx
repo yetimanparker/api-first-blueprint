@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,6 +46,11 @@ const QuoteReview = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [items, setItems] = useState<QuoteItem[]>(quoteItems);
   const { toast } = useToast();
+
+  // Sync local items state with parent quoteItems prop
+  useEffect(() => {
+    setItems(quoteItems);
+  }, [quoteItems]);
 
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const markupAmount = settings.global_markup_percentage > 0 
