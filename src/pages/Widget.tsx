@@ -94,33 +94,51 @@ const Widget = () => {
   // Auto-scroll to current step
   useEffect(() => {
     const scrollToStep = () => {
-      const stepId = `step-${widgetState.currentStep}`;
-      // Try multiple times to ensure element is rendered
-      let attempts = 0;
-      const maxAttempts = 10;
-      
-      const attemptScroll = () => {
-        const element = document.getElementById(stepId);
-        if (element) {
-          // Get the sticky header height to offset the scroll
-          const header = document.querySelector('.sticky.top-0');
-          const headerHeight = header?.getBoundingClientRect().height || 0;
-          
-          // Calculate the position to scroll to
-          const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-          const offsetPosition = elementPosition - headerHeight - 20; // 20px extra padding
-          
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-          });
-        } else if (attempts < maxAttempts) {
-          attempts++;
-          setTimeout(attemptScroll, 50);
-        }
-      };
-      
-      setTimeout(attemptScroll, 100);
+      // For product-selection step, scroll to show categories at top
+      if (widgetState.currentStep === 'product-selection') {
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        const attemptScroll = () => {
+          const productSection = document.getElementById('step-product-selection');
+          if (productSection) {
+            // Get the sticky header height
+            const header = document.querySelector('.sticky.top-0');
+            const headerHeight = header?.getBoundingClientRect().height || 0;
+            
+            // Scroll so the product section starts right below the header
+            const elementPosition = productSection.getBoundingClientRect().top + window.pageYOffset;
+            const offsetPosition = elementPosition - headerHeight;
+            
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+          } else if (attempts < maxAttempts) {
+            attempts++;
+            setTimeout(attemptScroll, 50);
+          }
+        };
+        
+        setTimeout(attemptScroll, 100);
+      } else {
+        // For other steps, use default scroll behavior
+        const stepId = `step-${widgetState.currentStep}`;
+        setTimeout(() => {
+          const element = document.getElementById(stepId);
+          if (element) {
+            const header = document.querySelector('.sticky.top-0');
+            const headerHeight = header?.getBoundingClientRect().height || 0;
+            const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+            const offsetPosition = elementPosition - headerHeight - 20;
+            
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+          }
+        }, 100);
+      }
     };
     scrollToStep();
   }, [widgetState.currentStep]);
