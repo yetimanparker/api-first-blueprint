@@ -264,16 +264,6 @@ const ProductConfiguration = ({
 
   return (
     <div className="w-full bg-background">
-      {/* Header */}
-      <div className="border-b bg-background px-6 py-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-2">
-            <Calculator className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl sm:text-3xl font-bold">Configure & Quote</h1>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
       {/* Configure Product Options Section */}
