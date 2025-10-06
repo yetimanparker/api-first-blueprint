@@ -22,6 +22,12 @@ interface MeasurementToolsProps {
   } | null;
   onChangeProduct?: () => void;
   isConfigurationMode?: boolean;
+  existingQuoteItems?: Array<{
+    id: string;
+    productName: string;
+    customName?: string;
+    measurement: MeasurementData;
+  }>;
 }
 
 interface Product {
@@ -37,7 +43,8 @@ const MeasurementTools = ({
   customerAddress,
   selectedProduct,
   onChangeProduct,
-  isConfigurationMode = false
+  isConfigurationMode = false,
+  existingQuoteItems = []
 }: MeasurementToolsProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +64,7 @@ const MeasurementTools = ({
   const currentShapeRef = useRef<google.maps.Polygon | google.maps.Polyline | null>(null);
   const measurementLabelRef = useRef<google.maps.InfoWindow | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
+  const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
 
   useEffect(() => {
     fetchProduct();
@@ -230,6 +238,9 @@ const MeasurementTools = ({
       console.log('Map initialization complete');
       setMapLoading(false);
       
+      // Render existing measurements from quote items
+      renderExistingMeasurements(map);
+      
       // Auto-start drawing after a brief delay to ensure everything is ready
       console.log('Map initialized, preparing to auto-start drawing');
       setTimeout(() => {
@@ -262,6 +273,89 @@ const MeasurementTools = ({
       console.error('Error geocoding address:', error);
     }
     return null;
+  };
+
+  const renderExistingMeasurements = (map: google.maps.Map) => {
+    // Clear any existing previous shapes
+    previousShapesRef.current.forEach(shape => shape.setMap(null));
+    previousShapesRef.current = [];
+
+    // Color palette for different products
+    const colors = [
+      '#3B82F6', // blue
+      '#F59E0B', // amber
+      '#8B5CF6', // purple
+      '#EC4899', // pink
+      '#14B8A6', // teal
+      '#F97316', // orange
+    ];
+
+    existingQuoteItems.forEach((item, index) => {
+      if (!item.measurement.coordinates || item.measurement.coordinates.length === 0) {
+        return;
+      }
+
+      const color = colors[index % colors.length];
+      const latLngs = item.measurement.coordinates.map(coord => ({
+        lat: coord[0],
+        lng: coord[1]
+      }));
+
+      if (item.measurement.type === 'area') {
+        const polygon = new google.maps.Polygon({
+          paths: latLngs,
+          fillColor: color,
+          fillOpacity: 0.25,
+          strokeColor: color,
+          strokeWeight: 2,
+          clickable: false,
+          editable: false,
+          zIndex: 0,
+        });
+        polygon.setMap(map);
+        previousShapesRef.current.push(polygon);
+
+        // Add label
+        const bounds = new google.maps.LatLngBounds();
+        latLngs.forEach(coord => bounds.extend(coord));
+        const center = bounds.getCenter();
+
+        const label = new google.maps.InfoWindow({
+          content: `<div style="padding: 6px 10px; font-weight: 500; font-size: 14px; color: ${color};">
+            ${item.customName || item.productName}<br/>
+            ${item.measurement.value.toLocaleString()} sq ft
+          </div>`,
+          position: center,
+          disableAutoPan: true,
+        });
+        label.open(map);
+      } else if (item.measurement.type === 'linear') {
+        const polyline = new google.maps.Polyline({
+          path: latLngs,
+          strokeColor: color,
+          strokeWeight: 2,
+          clickable: false,
+          editable: false,
+          zIndex: 0,
+        });
+        polyline.setMap(map);
+        previousShapesRef.current.push(polyline);
+
+        // Add label
+        const midIndex = Math.floor(latLngs.length / 2);
+        const center = latLngs[midIndex];
+
+        const label = new google.maps.InfoWindow({
+          content: `<div style="padding: 6px 10px; font-weight: 500; font-size: 14px; color: ${color};">
+            ${item.customName || item.productName}<br/>
+            ${item.measurement.value.toLocaleString()} ft
+          </div>`,
+          position: center,
+          disableAutoPan: true,
+        });
+        label.open(map);
+      }
+    });
   };
 
   const setupDrawingManager = (map: google.maps.Map) => {
@@ -307,6 +401,13 @@ const MeasurementTools = ({
         const path = polygon.getPath();
         const area = google.maps.geometry.spherical.computeArea(path);
         const sqFt = Math.ceil(area * 10.764);
+        
+        // Store coordinates
+        const coordinates: number[][] = [];
+        path.forEach((latLng) => {
+          coordinates.push([latLng.lat(), latLng.lng()]);
+        });
+        
         setMapMeasurement(sqFt);
         
         const updateMeasurement = () => {
@@ -326,6 +427,13 @@ const MeasurementTools = ({
         const path = polyline.getPath();
         const length = google.maps.geometry.spherical.computeLength(path);
         const feet = Math.ceil(length * 3.28084);
+        
+        // Store coordinates
+        const coordinates: number[][] = [];
+        path.forEach((latLng) => {
+          coordinates.push([latLng.lat(), latLng.lng()]);
+        });
+        
         setMapMeasurement(feet);
         
         const updateMeasurement = () => {
@@ -445,11 +553,26 @@ const MeasurementTools = ({
 
   // Save measurement when map measurement is complete
   useEffect(() => {
-    if (mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement) {
+    if (mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement && currentShapeRef.current) {
+      // Get coordinates from the current shape
+      const coordinates: number[][] = [];
+      if (currentShapeRef.current instanceof google.maps.Polygon) {
+        const path = currentShapeRef.current.getPath();
+        path.forEach((latLng) => {
+          coordinates.push([latLng.lat(), latLng.lng()]);
+        });
+      } else if (currentShapeRef.current instanceof google.maps.Polyline) {
+        const path = currentShapeRef.current.getPath();
+        path.forEach((latLng) => {
+          coordinates.push([latLng.lat(), latLng.lng()]);
+        });
+      }
+
       const measurement: MeasurementData = {
         type: measurementType,
         value: mapMeasurement,
         unit: measurementType === 'area' ? 'sq_ft' : 'linear_ft',
+        coordinates: coordinates,
         manualEntry: false
       };
 

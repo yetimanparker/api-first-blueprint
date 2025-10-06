@@ -266,6 +266,7 @@ const Widget = () => {
                 selectedProduct={selectedProduct}
                 onChangeProduct={goToProductSelection}
                 isConfigurationMode={widgetState.currentStep === 'product-configuration'}
+                existingQuoteItems={widgetState.quoteItems}
               />
             </div>
             
