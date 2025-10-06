@@ -252,7 +252,7 @@ const ContactForm = ({
             type="submit" 
             variant="default"
             size="lg"
-            className="w-full mt-6 bg-black text-white hover:bg-gray-800"
+            className="w-full mt-6"
           >
             Continue
           </Button>

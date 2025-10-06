@@ -342,9 +342,9 @@ const Widget = () => {
                   <div className="mt-4 pt-4 border-t border-success/30">
                     <Button 
                       onClick={nextStep} 
-                      variant="default" 
+                      variant="success" 
                       size="lg"
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md"
+                      className="w-full font-semibold shadow-lg"
                     >
                       Continue to Review Quote
                     </Button>

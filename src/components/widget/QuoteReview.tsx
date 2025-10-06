@@ -473,7 +473,8 @@ const QuoteReview = ({
           <Button 
             onClick={handleSubmitQuote} 
             disabled={isSubmitting}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-4"
+            variant="success"
+            className="w-full mt-4"
             size="lg"
           >
             {isSubmitting ? (
