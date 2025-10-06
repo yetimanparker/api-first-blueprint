@@ -655,7 +655,7 @@ const MeasurementTools = ({
                     if (status === 'OK' && results && results[0]) {
                       const location = results[0].geometry.location;
                       mapRef.current?.setCenter(location);
-                      mapRef.current?.setZoom(18);
+                      mapRef.current?.setZoom(20);
                     }
                   });
                 }
