@@ -245,6 +245,32 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         throw new Error("Please set up your contractor profile first by going to Settings");
       }
 
+      // Upload photo if a new file was selected
+      let photoUrl = data.photo_url || null;
+      if (photoFile) {
+        const fileExt = photoFile.name.split('.').pop();
+        const fileName = `${contractorData.id}/${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('product-photos')
+          .upload(fileName, photoFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Photo upload error:', uploadError);
+          throw new Error('Failed to upload photo');
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-photos')
+          .getPublicUrl(fileName);
+        
+        photoUrl = publicUrl;
+      }
+
       let productData = {
         name: data.name,
         description: data.description || null,
@@ -256,7 +282,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         show_pricing_before_submit: data.show_pricing_before_submit,
         use_tiered_pricing: data.use_tiered_pricing,
         display_order: data.display_order || 0,
-        photo_url: data.photo_url || null,
+        photo_url: photoUrl,
         category: data.category,
         subcategory: data.subcategory || null,
         contractor_id: contractorData.id,
