@@ -114,10 +114,14 @@ const Widget = () => {
   };
 
   const addQuoteItem = (item: QuoteItem) => {
+    const nextStep = settings.contact_capture_timing === 'after_quote' 
+      ? 'contact-after' 
+      : 'quote-review';
+    
     setWidgetState(prev => ({
       ...prev,
       quoteItems: [...prev.quoteItems, item],
-      currentStep: 'add-another-check'
+      currentStep: nextStep
     }));
   };
 
@@ -318,39 +322,6 @@ const Widget = () => {
               settings={settings}
               onRemove={goToProductSelection}
             />
-          </div>
-        )}
-
-        {/* Add Another Product Section */}
-        {isStepVisible('add-another-check') && (
-          <div id="step-add-another-check" className="px-4 py-6">
-            <Card className="bg-background border">
-              <CardContent className="p-4">
-                <div className="flex gap-3">
-                  <Button 
-                    onClick={() => {
-                      const productSection = document.getElementById('step-product-selection');
-                      if (productSection) {
-                        productSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
-                    }} 
-                    variant="outline" 
-                    size="lg"
-                    className="flex-1 font-semibold"
-                  >
-                    Add Another Product
-                  </Button>
-                  <Button 
-                    onClick={nextStep} 
-                    variant="success" 
-                    size="lg"
-                    className="flex-1 font-semibold shadow-lg"
-                  >
-                    Continue to Review Quote
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         )}
 
