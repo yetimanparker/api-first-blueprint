@@ -102,7 +102,18 @@ const Widget = () => {
       const attemptScroll = () => {
         const element = document.getElementById(stepId);
         if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Get the sticky header height to offset the scroll
+          const header = document.querySelector('.sticky.top-0');
+          const headerHeight = header?.getBoundingClientRect().height || 0;
+          
+          // Calculate the position to scroll to
+          const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+          const offsetPosition = elementPosition - headerHeight - 20; // 20px extra padding
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
         } else if (attempts < maxAttempts) {
           attempts++;
           setTimeout(attemptScroll, 50);
