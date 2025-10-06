@@ -95,12 +95,6 @@ const Widget = () => {
   useEffect(() => {
     console.log('🔄 Step changed to:', widgetState.currentStep);
     
-    // Don't auto-scroll for product-configuration step - user stays on map
-    if (widgetState.currentStep === 'product-configuration') {
-      console.log('⏸️ Skipping auto-scroll for product-configuration');
-      return;
-    }
-    
     const scrollToStep = () => {
       // For product-selection step, scroll to show categories at top
       if (widgetState.currentStep === 'product-selection') {
