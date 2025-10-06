@@ -91,6 +91,20 @@ const Widget = () => {
     }
   }, [isServiceAreaValid, toast]);
 
+  // Auto-scroll to current step
+  useEffect(() => {
+    const scrollToStep = () => {
+      const stepId = `step-${widgetState.currentStep}`;
+      const element = document.getElementById(stepId);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    };
+    scrollToStep();
+  }, [widgetState.currentStep]);
+
   const updateCustomerInfo = (info: Partial<CustomerInfo>) => {
     console.log('Updating customer info:', info);
     setWidgetState(prev => ({
@@ -223,20 +237,6 @@ const Widget = () => {
     const stepIndex = stepOrder.indexOf(step);
     return stepIndex <= currentIndex;
   };
-
-  // Auto-scroll to current step
-  useEffect(() => {
-    const scrollToStep = () => {
-      const stepId = `step-${widgetState.currentStep}`;
-      const element = document.getElementById(stepId);
-      if (element) {
-        setTimeout(() => {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-      }
-    };
-    scrollToStep();
-  }, [widgetState.currentStep]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30" style={brandStyle}>
