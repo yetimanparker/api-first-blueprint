@@ -119,33 +119,65 @@ const QuoteReview = ({
     setIsSubmitting(true);
     
     try {
-      const customerData = {
-        contractor_id: contractorId,
-        first_name: customerInfo.firstName || '',
-        last_name: customerInfo.lastName || '',
-        email: customerInfo.email || '',
-        phone: customerInfo.phone || null,
-        address: customerInfo.address || null,
-        city: customerInfo.city || null,
-        state: customerInfo.state || null,
-        zip_code: customerInfo.zipCode || null,
-        status: 'lead',
-        lead_source: 'widget'
-      };
-
-      const { data: customer, error: customerError } = await supabase
+      // Check if customer already exists by email
+      let customerId: string;
+      const { data: existingCustomer, error: customerCheckError } = await supabase
         .from('customers')
-        .insert(customerData)
-        .select()
-        .single();
+        .select('id')
+        .eq('email', customerInfo.email || '')
+        .eq('contractor_id', contractorId)
+        .maybeSingle();
 
-      if (customerError) throw customerError;
+      if (customerCheckError) throw customerCheckError;
+
+      if (existingCustomer) {
+        // Update existing customer with latest information
+        customerId = existingCustomer.id;
+        const { error: updateError } = await supabase
+          .from('customers')
+          .update({
+            first_name: customerInfo.firstName || '',
+            last_name: customerInfo.lastName || '',
+            phone: customerInfo.phone || null,
+            address: customerInfo.address || null,
+            city: customerInfo.city || null,
+            state: customerInfo.state || null,
+            zip_code: customerInfo.zipCode || null,
+          })
+          .eq('id', existingCustomer.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Create new customer
+        const customerData = {
+          contractor_id: contractorId,
+          first_name: customerInfo.firstName || '',
+          last_name: customerInfo.lastName || '',
+          email: customerInfo.email || '',
+          phone: customerInfo.phone || null,
+          address: customerInfo.address || null,
+          city: customerInfo.city || null,
+          state: customerInfo.state || null,
+          zip_code: customerInfo.zipCode || null,
+          status: 'lead',
+          lead_source: 'widget'
+        };
+
+        const { data: customer, error: customerError } = await supabase
+          .from('customers')
+          .insert(customerData)
+          .select()
+          .single();
+
+        if (customerError) throw customerError;
+        customerId = customer.id;
+      }
 
       const { data: quoteNumberData } = await supabase.rpc('generate_quote_number');
       
       const quoteData = {
         contractor_id: contractorId,
-        customer_id: customer.id,
+        customer_id: customerId,
         total_amount: total,
         status: 'draft' as const,
         notes: projectComments || null,
