@@ -62,9 +62,10 @@ const MeasurementTools = ({
   const mapRef = useRef<google.maps.Map | null>(null);
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const currentShapeRef = useRef<google.maps.Polygon | google.maps.Polyline | null>(null);
-  const measurementLabelRef = useRef<google.maps.InfoWindow | null>(null);
+  const measurementLabelRef = useRef<google.maps.Marker | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
+  const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
 
   useEffect(() => {
     fetchProduct();
@@ -276,9 +277,11 @@ const MeasurementTools = ({
   };
 
   const renderExistingMeasurements = (map: google.maps.Map) => {
-    // Clear any existing previous shapes
+    // Clear any existing previous shapes and labels
     previousShapesRef.current.forEach(shape => shape.setMap(null));
     previousShapesRef.current = [];
+    previousLabelsRef.current.forEach(label => label.setMap(null));
+    previousLabelsRef.current = [];
 
     // Color palette for different products
     const colors = [
@@ -315,21 +318,26 @@ const MeasurementTools = ({
         polygon.setMap(map);
         previousShapesRef.current.push(polygon);
 
-        // Add label
+        // Add label marker
         const bounds = new google.maps.LatLngBounds();
         latLngs.forEach(coord => bounds.extend(coord));
         const center = bounds.getCenter();
 
-        const label = new google.maps.InfoWindow({
-          content: `<div style="padding: 4px 8px; font-weight: 500; font-size: 12px; color: ${color};">
-            ${item.customName || item.productName}<br/>
-            ${item.measurement.value.toLocaleString()} sq ft
-          </div>`,
+        const marker = new google.maps.Marker({
           position: center,
-          disableAutoPan: true,
-          maxWidth: 200,
+          map: map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 0,
+          },
+          label: {
+            text: `${item.customName || item.productName}\n${item.measurement.value.toLocaleString()} sq ft`,
+            color: color,
+            fontSize: '12px',
+            fontWeight: '500',
+          },
         });
-        label.open(map);
+        previousLabelsRef.current.push(marker);
       } else if (item.measurement.type === 'linear') {
         const polyline = new google.maps.Polyline({
           path: latLngs,
@@ -342,20 +350,25 @@ const MeasurementTools = ({
         polyline.setMap(map);
         previousShapesRef.current.push(polyline);
 
-        // Add label
+        // Add label marker
         const midIndex = Math.floor(latLngs.length / 2);
         const center = latLngs[midIndex];
 
-        const label = new google.maps.InfoWindow({
-          content: `<div style="padding: 4px 8px; font-weight: 500; font-size: 12px; color: ${color};">
-            ${item.customName || item.productName}<br/>
-            ${item.measurement.value.toLocaleString()} ft
-          </div>`,
+        const marker = new google.maps.Marker({
           position: center,
-          disableAutoPan: true,
-          maxWidth: 200,
+          map: map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 0,
+          },
+          label: {
+            text: `${item.customName || item.productName}\n${item.measurement.value.toLocaleString()} ft`,
+            color: color,
+            fontSize: '12px',
+            fontWeight: '500',
+          },
         });
-        label.open(map);
+        previousLabelsRef.current.push(marker);
       }
     });
   };
@@ -392,7 +405,7 @@ const MeasurementTools = ({
       }
       
       if (measurementLabelRef.current) {
-        measurementLabelRef.current.close();
+        measurementLabelRef.current.setMap(null);
       }
       
       currentShapeRef.current = event.overlay;
@@ -473,20 +486,25 @@ const MeasurementTools = ({
     }
 
     if (measurementLabelRef.current) {
-      measurementLabelRef.current.close();
+      measurementLabelRef.current.setMap(null);
     }
 
-    const infoWindow = new google.maps.InfoWindow({
-      content: `<div style="padding: 4px 8px; font-weight: 600; font-size: 13px; color: #10B981;">
-        ${value.toLocaleString()} ${unit}
-      </div>`,
+    const marker = new google.maps.Marker({
       position: center,
-      disableAutoPan: true,
-      maxWidth: 150,
+      map: mapRef.current,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 0,
+      },
+      label: {
+        text: `${value.toLocaleString()} ${unit}`,
+        color: '#10B981',
+        fontSize: '13px',
+        fontWeight: '600',
+      },
     });
 
-    infoWindow.open(mapRef.current);
-    measurementLabelRef.current = infoWindow;
+    measurementLabelRef.current = marker;
   };
 
   const startDrawing = () => {
@@ -515,7 +533,7 @@ const MeasurementTools = ({
     }
     
     if (measurementLabelRef.current) {
-      measurementLabelRef.current.close();
+      measurementLabelRef.current.setMap(null);
       measurementLabelRef.current = null;
     }
     
