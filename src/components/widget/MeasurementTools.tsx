@@ -1,9 +1,11 @@
 /// <reference types="@types/google.maps" />
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { Input } from '@/components/ui/input';
+import type { ParsedAddress } from '@/hooks/useGooglePlaces';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Ruler, Square, MapPin, Search, Undo2, PencilRuler } from 'lucide-react';
+import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler } from 'lucide-react';
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader } from '@googlemaps/js-api-loader';
@@ -57,6 +59,7 @@ const MeasurementTools = ({
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [manualValue, setManualValue] = useState('');
+  const [searchAddress, setSearchAddress] = useState(customerAddress || '');
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -640,16 +643,26 @@ const MeasurementTools = ({
             Measure Your Project
           </h2>
           <div className="flex items-center gap-2 flex-1 max-w-md">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="4800 dry oak trl"
-                className="pl-10"
-              />
-            </div>
-            <Button className="px-6" variant="outline">
-              Search
-            </Button>
+            <AddressAutocomplete
+              value={searchAddress}
+              onAddressSelect={(address: ParsedAddress) => {
+                const fullAddress = `${address.streetAddress}, ${address.city}, ${address.state} ${address.zipCode}`;
+                setSearchAddress(fullAddress);
+                
+                if (mapRef.current && window.google) {
+                  const geocoder = new google.maps.Geocoder();
+                  geocoder.geocode({ address: fullAddress }, (results, status) => {
+                    if (status === 'OK' && results && results[0]) {
+                      const location = results[0].geometry.location;
+                      mapRef.current?.setCenter(location);
+                      mapRef.current?.setZoom(18);
+                    }
+                  });
+                }
+              }}
+              onInputChange={(value: string) => setSearchAddress(value)}
+              placeholder="Search for an address..."
+            />
           </div>
         </div>
       </div>

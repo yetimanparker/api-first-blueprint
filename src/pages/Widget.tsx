@@ -140,6 +140,25 @@ const Widget = () => {
         
         // Delay initial attempt to ensure DOM is ready
         setTimeout(attemptScroll, 200);
+      } else if (widgetState.currentStep === 'measurement') {
+        // For measurement step, scroll to show the header with address search
+        setTimeout(() => {
+          const measurementHeader = document.querySelector('[class*="bg-background border-b"]') as HTMLElement;
+          
+          if (measurementHeader) {
+            console.log('📍 Found measurement header, scrolling to show address search');
+            
+            // Scroll to position the header at the top with some padding
+            const yOffset = -100; // Negative to show header fully
+            const elementPosition = measurementHeader.getBoundingClientRect().top + window.pageYOffset;
+            const offsetPosition = elementPosition + yOffset;
+            
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+          }
+        }, 300);
       } else {
         // For other steps, use default scroll behavior
         const stepId = `step-${widgetState.currentStep}`;
