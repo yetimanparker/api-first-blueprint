@@ -100,6 +100,13 @@ const MeasurementTools = ({
     clearMapDrawing();
   }, [measurementType]);
 
+  // Re-render existing measurements when quote items change
+  useEffect(() => {
+    if (mapRef.current) {
+      renderExistingMeasurements(mapRef.current);
+    }
+  }, [existingQuoteItems]);
+
   const fetchApiKey = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('get-google-maps-key');
