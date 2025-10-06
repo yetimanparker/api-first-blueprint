@@ -69,7 +69,9 @@ const MeasurementTools = ({
   const headerRef = useRef<HTMLDivElement>(null);
   const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
   const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
-  const savedMapStateRef = useRef<{ center: google.maps.LatLng | null; zoom: number | null }>({ center: null, zoom: null });
+  
+  // Store map state in sessionStorage to persist across component unmounts
+  const STORAGE_KEY = `map-state-${customerAddress || 'default'}`;
 
   useEffect(() => {
     fetchProduct();
@@ -83,19 +85,24 @@ const MeasurementTools = ({
     }, 300);
   }, []);
 
-  // Save map state whenever it changes
+  // Save map state to sessionStorage whenever it changes
   useEffect(() => {
     if (mapRef.current) {
-      const updateMapState = () => {
+      const saveMapState = () => {
         const center = mapRef.current?.getCenter();
         const zoom = mapRef.current?.getZoom();
         if (center && zoom) {
-          savedMapStateRef.current = { center, zoom };
+          const state = {
+            center: { lat: center.lat(), lng: center.lng() },
+            zoom: zoom
+          };
+          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          console.log('💾 Saved map state:', state);
         }
       };
       
-      const zoomListener = mapRef.current.addListener('zoom_changed', updateMapState);
-      const centerListener = mapRef.current.addListener('center_changed', updateMapState);
+      const zoomListener = mapRef.current.addListener('zoom_changed', saveMapState);
+      const centerListener = mapRef.current.addListener('center_changed', saveMapState);
       
       return () => {
         google.maps.event.removeListener(zoomListener);
@@ -104,12 +111,8 @@ const MeasurementTools = ({
     }
   }, [mapRef.current]);
 
-  // When productId changes, preserve map state
+  // When productId changes, just refetch product without reinitializing map
   useEffect(() => {
-    if (mapRef.current && savedMapStateRef.current.center && savedMapStateRef.current.zoom) {
-      mapRef.current.setCenter(savedMapStateRef.current.center);
-      mapRef.current.setZoom(savedMapStateRef.current.zoom);
-    }
     fetchProduct();
   }, [productId]);
 
@@ -230,7 +233,19 @@ const MeasurementTools = ({
       let center = { lat: 39.8283, lng: -98.5795 };
       let zoom = 4;
 
-      if (customerAddress) {
+      // Try to restore saved map state first
+      const savedState = sessionStorage.getItem(STORAGE_KEY);
+      if (savedState) {
+        try {
+          const parsed = JSON.parse(savedState);
+          center = parsed.center;
+          zoom = parsed.zoom;
+          console.log('📍 Restored map state from storage:', { center, zoom });
+        } catch (e) {
+          console.error('Failed to parse saved map state:', e);
+        }
+      } else if (customerAddress) {
+        // Only geocode if no saved state
         console.log('Geocoding address:', customerAddress);
         const geocodedCenter = await geocodeAddress(customerAddress);
         if (geocodedCenter) {
