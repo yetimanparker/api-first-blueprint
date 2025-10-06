@@ -34,7 +34,7 @@ const settingsSchema = z.object({
   require_phone: z.boolean(),
   require_address: z.boolean(),
   pricing_visibility: z.enum(["before_submit", "after_submit", "never"]),
-  contact_capture_timing: z.enum(["before_quote", "after_quote"]),
+  contact_capture_timing: z.enum(["before_quote", "on_submit", "optional"]),
   widget_theme_color: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color"),
   use_price_ranges: z.boolean(),
   price_range_percentage: z.number().min(1).max(50),
@@ -176,7 +176,7 @@ const Settings = () => {
             require_phone: settings.require_phone ?? true,
             require_address: settings.require_address ?? true,
             pricing_visibility: (settings.pricing_visibility as "before_submit" | "after_submit" | "never") || "before_submit",
-            contact_capture_timing: (settings.contact_capture_timing as "before_quote" | "after_quote") || "before_quote",
+            contact_capture_timing: (settings.contact_capture_timing as "before_quote" | "on_submit" | "optional") || "before_quote",
             widget_theme_color: settings.widget_theme_color || "#3B82F6",
             use_price_ranges: settings.use_price_ranges || false,
             price_range_percentage: settings.price_range_percentage || 15,
@@ -702,7 +702,8 @@ const Settings = () => {
                                 </FormControl>
                                 <SelectContent>
                                   <SelectItem value="before_quote">Before Quote</SelectItem>
-                                  <SelectItem value="after_quote">After Quote</SelectItem>
+                                  <SelectItem value="on_submit">On Submit</SelectItem>
+                                  <SelectItem value="optional">Optional</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormDescription>
