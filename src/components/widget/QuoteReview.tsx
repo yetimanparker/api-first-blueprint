@@ -302,21 +302,6 @@ const QuoteReview = ({
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-      {/* Action Buttons */}
-      {onAddAnother && (
-        <div className="flex items-center justify-center py-4">
-          <Button
-            onClick={onAddAnother}
-            variant="outline"
-            size="lg"
-            className="border-2 border-dashed border-primary hover:bg-accent"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Add Another Product
-          </Button>
-        </div>
-      )}
-
       {/* Quote Summary Card with Items */}
       <Card ref={quoteSummaryRef} className="bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
         <CardHeader>
@@ -466,25 +451,38 @@ const QuoteReview = ({
             </div>
           </div>
 
-          <Button 
-            onClick={handleSubmitQuote} 
-            disabled={isSubmitting}
-            variant="success"
-            className="w-full mt-6"
-            size="lg"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Submitting...
-              </>
-            ) : (
-              <>
-                <FileText className="h-4 w-4 mr-2" />
-                Submit Quote
-              </>
+          <div className="flex flex-col sm:flex-row gap-3 mt-6">
+            {onAddAnother && (
+              <Button
+                onClick={onAddAnother}
+                variant="outline"
+                size="lg"
+                className="border-2 border-dashed border-primary hover:bg-accent"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Add Another Product
+              </Button>
             )}
-          </Button>
+            <Button 
+              onClick={handleSubmitQuote} 
+              disabled={isSubmitting}
+              variant="success"
+              className="flex-1"
+              size="lg"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Submit Quote
+                </>
+              )}
+            </Button>
+          </div>
 
         </CardContent>
       </Card>
