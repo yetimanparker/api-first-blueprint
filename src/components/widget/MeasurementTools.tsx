@@ -83,6 +83,36 @@ const MeasurementTools = ({
     }, 300);
   }, []);
 
+  // Save map state whenever it changes
+  useEffect(() => {
+    if (mapRef.current) {
+      const updateMapState = () => {
+        const center = mapRef.current?.getCenter();
+        const zoom = mapRef.current?.getZoom();
+        if (center && zoom) {
+          savedMapStateRef.current = { center, zoom };
+        }
+      };
+      
+      const zoomListener = mapRef.current.addListener('zoom_changed', updateMapState);
+      const centerListener = mapRef.current.addListener('center_changed', updateMapState);
+      
+      return () => {
+        google.maps.event.removeListener(zoomListener);
+        google.maps.event.removeListener(centerListener);
+      };
+    }
+  }, [mapRef.current]);
+
+  // When productId changes, preserve map state
+  useEffect(() => {
+    if (mapRef.current && savedMapStateRef.current.center && savedMapStateRef.current.zoom) {
+      mapRef.current.setCenter(savedMapStateRef.current.center);
+      mapRef.current.setZoom(savedMapStateRef.current.zoom);
+    }
+    fetchProduct();
+  }, [productId]);
+
   useEffect(() => {
     if (apiKey && !mapRef.current) {
       initializeMap();
@@ -98,27 +128,12 @@ const MeasurementTools = ({
   }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, mapLoading]);
 
   useEffect(() => {
-    // Save current map state before resetting measurements
-    if (mapRef.current) {
-      const center = mapRef.current.getCenter();
-      const zoom = mapRef.current.getZoom();
-      if (center && zoom) {
-        savedMapStateRef.current = { center, zoom };
-      }
-    }
-    
     // Reset measurements when measurement type changes
     setMapMeasurement(null);
     setCurrentMeasurement(null);
     clearMapDrawing();
     
-    // Restore map state after a brief delay
-    setTimeout(() => {
-      if (mapRef.current && savedMapStateRef.current.center && savedMapStateRef.current.zoom) {
-        mapRef.current.setCenter(savedMapStateRef.current.center);
-        mapRef.current.setZoom(savedMapStateRef.current.zoom);
-      }
-    }, 100);
+    // Map state is now automatically preserved via listeners
   }, [measurementType]);
 
   // Re-render existing measurements when quote items change
