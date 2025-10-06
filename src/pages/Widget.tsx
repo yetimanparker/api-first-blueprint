@@ -95,12 +95,21 @@ const Widget = () => {
   useEffect(() => {
     const scrollToStep = () => {
       const stepId = `step-${widgetState.currentStep}`;
-      const element = document.getElementById(stepId);
-      if (element) {
-        setTimeout(() => {
+      // Try multiple times to ensure element is rendered
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      const attemptScroll = () => {
+        const element = document.getElementById(stepId);
+        if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-      }
+        } else if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(attemptScroll, 50);
+        }
+      };
+      
+      setTimeout(attemptScroll, 100);
     };
     scrollToStep();
   }, [widgetState.currentStep]);
