@@ -267,11 +267,10 @@ const ProductConfiguration = ({
       {/* Header */}
       <div className="border-b bg-background px-6 py-4">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2">
             <Calculator className="h-6 w-6 text-primary" />
             <h1 className="text-2xl sm:text-3xl font-bold">Configure & Quote</h1>
           </div>
-          <p className="text-muted-foreground">Configure your product options and add to quote</p>
         </div>
       </div>
 
