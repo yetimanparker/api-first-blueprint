@@ -162,14 +162,14 @@ const QuoteReview = ({
           lead_source: 'widget'
         };
 
-        const { data: customer, error: customerError } = await supabase
+        const { data: customerResult, error: customerError } = await supabase
           .from('customers')
           .insert(customerData)
-          .select()
-          .single();
+          .select();
 
         if (customerError) throw customerError;
-        customerId = customer.id;
+        if (!customerResult || customerResult.length === 0) throw new Error('Failed to create customer');
+        customerId = customerResult[0].id;
       }
 
       const { data: quoteNumberData } = await supabase.rpc('generate_quote_number');
