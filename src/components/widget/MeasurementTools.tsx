@@ -455,6 +455,8 @@ const MeasurementTools = ({
 
       setCurrentMeasurement(measurement);
       onMeasurementComplete(measurement);
+      // Automatically proceed to configuration
+      setTimeout(() => onNext(), 500);
     }
   }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement]);
 
