@@ -357,12 +357,12 @@ const Widget = () => {
               }
               onAddAnother={goToProductSelection}
               onRemoveItem={(itemId) => {
+                const remainingItems = widgetState.quoteItems.filter(item => item.id !== itemId);
                 setWidgetState(prev => ({
                   ...prev,
-                  quoteItems: prev.quoteItems.filter(item => item.id !== itemId)
+                  quoteItems: remainingItems
                 }));
                 // If no items left, go back to product selection
-                const remainingItems = widgetState.quoteItems.filter(item => item.id !== itemId);
                 if (remainingItems.length === 0) {
                   goToProductSelection();
                 }
