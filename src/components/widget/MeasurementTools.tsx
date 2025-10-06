@@ -69,6 +69,7 @@ const MeasurementTools = ({
   const headerRef = useRef<HTMLDivElement>(null);
   const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
   const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
+  const savedMapStateRef = useRef<{ center: google.maps.LatLng | null; zoom: number | null }>({ center: null, zoom: null });
 
   useEffect(() => {
     fetchProduct();
@@ -97,10 +98,27 @@ const MeasurementTools = ({
   }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, mapLoading]);
 
   useEffect(() => {
+    // Save current map state before resetting measurements
+    if (mapRef.current) {
+      const center = mapRef.current.getCenter();
+      const zoom = mapRef.current.getZoom();
+      if (center && zoom) {
+        savedMapStateRef.current = { center, zoom };
+      }
+    }
+    
     // Reset measurements when measurement type changes
     setMapMeasurement(null);
     setCurrentMeasurement(null);
     clearMapDrawing();
+    
+    // Restore map state after a brief delay
+    setTimeout(() => {
+      if (mapRef.current && savedMapStateRef.current.center && savedMapStateRef.current.zoom) {
+        mapRef.current.setCenter(savedMapStateRef.current.center);
+        mapRef.current.setZoom(savedMapStateRef.current.zoom);
+      }
+    }, 100);
   }, [measurementType]);
 
   // Re-render existing measurements when quote items change
