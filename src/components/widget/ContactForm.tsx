@@ -250,9 +250,9 @@ const ContactForm = ({
 
           <Button 
             type="submit" 
-            variant="default"
+            variant="success"
             size="lg"
-            className="w-full mt-6"
+            className="w-full mt-6 shadow-lg"
           >
             Continue
           </Button>

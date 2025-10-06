@@ -767,9 +767,10 @@ const MeasurementTools = ({
             {currentMeasurement && (
               <div className="flex justify-center mb-4">
                 <Button
+                  variant="success"
                   size="lg"
                   onClick={onNext}
-                  className="px-8"
+                  className="px-8 shadow-lg"
                 >
                   Continue to Configuration
                 </Button>
