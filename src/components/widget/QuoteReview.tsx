@@ -415,20 +415,38 @@ const QuoteReview = ({
         </CardContent>
       </Card>
 
-      {/* Add Another Product Card */}
-      {onAddAnother && (
-        <Card 
-          className="border-2 border-dashed border-primary cursor-pointer hover:bg-accent transition-colors"
-          onClick={onAddAnother}
+      {/* Action Buttons */}
+      <div className="flex items-center justify-center gap-4 py-6">
+        {onAddAnother && (
+          <Button
+            onClick={onAddAnother}
+            variant="outline"
+            size="lg"
+            className="border-2 border-dashed border-primary hover:bg-accent"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Add Another Product
+          </Button>
+        )}
+        <Button 
+          onClick={handleSubmitQuote} 
+          disabled={isSubmitting}
+          variant="default"
+          size="lg"
         >
-          <CardContent className="flex items-center justify-center py-6">
-            <div className="flex items-center gap-2 text-primary font-semibold">
-              <Plus className="h-5 w-5" />
-              <span>Add Another Product</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Submitting...
+            </>
+          ) : (
+            <>
+              <FileText className="h-4 w-4 mr-2" />
+              Review and Submit
+            </>
+          )}
+        </Button>
+      </div>
 
       {/* Project Comments Section */}
       <Card>
@@ -507,25 +525,6 @@ const QuoteReview = ({
             </span>
           </div>
 
-          <Button 
-            onClick={handleSubmitQuote} 
-            disabled={isSubmitting}
-            variant="success"
-            className="w-full mt-4"
-            size="lg"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Submitting...
-              </>
-            ) : (
-              <>
-                <FileText className="h-4 w-4 mr-2" />
-                Review and Download Quote
-              </>
-            )}
-          </Button>
         </CardContent>
       </Card>
     </div>
