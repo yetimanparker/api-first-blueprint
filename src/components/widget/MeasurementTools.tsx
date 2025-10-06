@@ -443,7 +443,7 @@ const MeasurementTools = ({
     setTimeout(() => onNext(), 100);
   };
 
-  // Auto-submit measurement when map measurement is complete
+  // Save measurement when map measurement is complete
   useEffect(() => {
     if (mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement) {
       const measurement: MeasurementData = {
@@ -455,8 +455,6 @@ const MeasurementTools = ({
 
       setCurrentMeasurement(measurement);
       onMeasurementComplete(measurement);
-      // Automatically proceed to configuration
-      setTimeout(() => onNext(), 500);
     }
   }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement]);
 
@@ -619,6 +617,19 @@ const MeasurementTools = ({
       {!mapLoading && !mapError && (
         <div className="bg-background border-t px-6 py-3">
           <div className="max-w-7xl mx-auto">
+            {/* Show Next Button when measurement is complete */}
+            {currentMeasurement && (
+              <div className="flex justify-center mb-4">
+                <Button
+                  size="lg"
+                  onClick={onNext}
+                  className="px-8"
+                >
+                  Continue to Configuration
+                </Button>
+              </div>
+            )}
+            
             {/* Control Bar */}
             <div className="flex justify-center mb-4">
               <div className="bg-background rounded-lg shadow-lg border px-2 py-2 flex items-center gap-1">
