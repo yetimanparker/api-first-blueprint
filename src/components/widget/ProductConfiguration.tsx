@@ -183,10 +183,6 @@ const ProductConfiguration = ({
       }
     });
 
-    if (settings.global_markup_percentage > 0) {
-      subtotal = applyGlobalMarkup(subtotal, settings.global_markup_percentage);
-    }
-
     return subtotal;
   };
 
@@ -445,24 +441,6 @@ const ProductConfiguration = ({
                     </div>
                   );
                 })}
-
-              {/* Markup */}
-              {settings.global_markup_percentage > 0 && (
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">
-                    Markup ({settings.global_markup_percentage}%)
-                  </span>
-                  <span className="font-medium text-primary">
-                    +{formatExactPrice(
-                      (lineTotal / (1 + settings.global_markup_percentage / 100)) * (settings.global_markup_percentage / 100),
-                      {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      }
-                    )}
-                  </span>
-                </div>
-              )}
 
               <Separator className="my-2" />
 
