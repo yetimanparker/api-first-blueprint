@@ -25,7 +25,7 @@ const Widget = () => {
 
   const [widgetState, setWidgetState] = useState<WidgetState>({
     contractorId: contractorId!,
-    currentStep: 'contact-before', // Start with contact based on settings
+    currentStep: 'product-selection', // Will be updated by useEffect based on settings
     customerInfo: {},
     quoteItems: [],
   });
@@ -60,9 +60,9 @@ const Widget = () => {
   // Initialize workflow based on contractor settings
   useEffect(() => {
     if (settings && !settingsLoading) {
-      const initialStep: WorkflowStep = settings.contact_capture_timing === 'after_quote' 
-        ? 'product-selection' 
-        : 'contact-before';
+      const initialStep: WorkflowStep = settings.contact_capture_timing === 'before_quote' 
+        ? 'contact-before' 
+        : 'product-selection';
       
       console.log('Initializing widget with step:', initialStep);
       console.log('Settings:', settings);
