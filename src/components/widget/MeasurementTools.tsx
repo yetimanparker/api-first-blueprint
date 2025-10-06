@@ -321,12 +321,13 @@ const MeasurementTools = ({
         const center = bounds.getCenter();
 
         const label = new google.maps.InfoWindow({
-          content: `<div style="padding: 6px 10px; font-weight: 500; font-size: 14px; color: ${color};">
+          content: `<div style="padding: 4px 8px; font-weight: 500; font-size: 12px; color: ${color};">
             ${item.customName || item.productName}<br/>
             ${item.measurement.value.toLocaleString()} sq ft
           </div>`,
           position: center,
           disableAutoPan: true,
+          maxWidth: 200,
         });
         label.open(map);
       } else if (item.measurement.type === 'linear') {
@@ -346,12 +347,13 @@ const MeasurementTools = ({
         const center = latLngs[midIndex];
 
         const label = new google.maps.InfoWindow({
-          content: `<div style="padding: 6px 10px; font-weight: 500; font-size: 14px; color: ${color};">
+          content: `<div style="padding: 4px 8px; font-weight: 500; font-size: 12px; color: ${color};">
             ${item.customName || item.productName}<br/>
             ${item.measurement.value.toLocaleString()} ft
           </div>`,
           position: center,
           disableAutoPan: true,
+          maxWidth: 200,
         });
         label.open(map);
       }
@@ -475,11 +477,12 @@ const MeasurementTools = ({
     }
 
     const infoWindow = new google.maps.InfoWindow({
-      content: `<div style="padding: 8px 12px; font-weight: 600; font-size: 16px; color: #10B981;">
+      content: `<div style="padding: 4px 8px; font-weight: 600; font-size: 13px; color: #10B981;">
         ${value.toLocaleString()} ${unit}
       </div>`,
       position: center,
       disableAutoPan: true,
+      maxWidth: 150,
     });
 
     infoWindow.open(mapRef.current);
