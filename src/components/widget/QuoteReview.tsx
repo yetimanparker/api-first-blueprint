@@ -485,6 +485,39 @@ const QuoteReview = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Line Items */}
+          <div className="space-y-2 mb-4">
+            <p className="text-sm font-semibold text-green-700 dark:text-green-400">Items:</p>
+            {items.map((item) => (
+              <div key={item.id} className="flex justify-between items-start text-sm py-2 border-b border-green-200 dark:border-green-800">
+                <div className="flex-1">
+                  <p className="font-medium">{item.productName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
+                  </p>
+                  {item.variations && item.variations.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {item.variations.map(v => v.name).join(', ')}
+                    </p>
+                  )}
+                  {item.addons && item.addons.filter(a => a.quantity > 0).length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Add-ons: {item.addons.filter(a => a.quantity > 0).map(a => `${a.name} (×${a.quantity})`).join(', ')}
+                    </p>
+                  )}
+                </div>
+                <span className="font-medium ml-4">
+                  {formatExactPrice(item.lineTotal, {
+                    currency_symbol: settings.currency_symbol,
+                    decimal_precision: settings.decimal_precision
+                  })}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <Separator />
+
           <div className="flex justify-between text-sm">
             <span>Subtotal:</span>
             <span>
