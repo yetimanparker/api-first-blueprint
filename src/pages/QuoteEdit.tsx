@@ -600,38 +600,48 @@ export default function QuoteEdit() {
         </Card>
 
         {/* Measurement Overview Map */}
-        {quoteItems.some(item => item.measurement_data?.coordinates?.length) && (
+        {quoteItems.length > 0 && (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>Project Site Overview</CardTitle>
             </CardHeader>
             <CardContent>
-              <MeasurementMap
-                measurements={quoteItems
-                  .filter(item => item.measurement_data?.coordinates?.length)
-                  .map(item => ({
-                    type: item.measurement_data!.type,
-                    coordinates: item.measurement_data!.coordinates,
-                    productName: item.product.name,
-                    productColor: item.product.color_hex,
-                    value: item.measurement_data!.value,
-                    unit: item.measurement_data!.unit,
-                  }))}
-                className="h-[500px]"
-              />
-              <div className="mt-4 flex flex-wrap gap-3">
-                {quoteItems
-                  .filter(item => item.measurement_data?.coordinates?.length)
-                  .map((item, index) => (
-                    <div key={item.id} className="flex items-center gap-2">
-                      <div 
-                        className="w-4 h-4 rounded" 
-                        style={{ backgroundColor: item.product.color_hex }}
-                      />
-                      <span className="text-sm">{item.product.name}</span>
-                    </div>
-                  ))}
-              </div>
+              {quoteItems.some(item => item.measurement_data?.coordinates?.length) ? (
+                <>
+                  <MeasurementMap
+                    measurements={quoteItems
+                      .filter(item => item.measurement_data?.coordinates?.length)
+                      .map(item => ({
+                        type: item.measurement_data!.type,
+                        coordinates: item.measurement_data!.coordinates,
+                        productName: item.product.name,
+                        productColor: item.product.color_hex,
+                        value: item.measurement_data!.value,
+                        unit: item.measurement_data!.unit,
+                      }))}
+                    className="h-[500px]"
+                  />
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {quoteItems
+                      .filter(item => item.measurement_data?.coordinates?.length)
+                      .map((item) => (
+                        <div key={item.id} className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded" 
+                            style={{ backgroundColor: item.product.color_hex }}
+                          />
+                          <span className="text-sm">{item.product.name}</span>
+                        </div>
+                      ))}
+                  </div>
+                </>
+              ) : (
+                <div className="bg-muted/50 rounded-lg p-8 text-center">
+                  <MapPin className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                  <p className="text-muted-foreground">No measurement locations recorded for this quote</p>
+                  <p className="text-sm text-muted-foreground mt-1">Measurements were likely entered manually</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -675,19 +685,90 @@ export default function QuoteEdit() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Detailed Pricing Breakdown */}
+                    {!settings?.use_price_ranges && (
+                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                        <h4 className="font-medium text-sm mb-3">Price Breakdown</h4>
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Base: {item.quantity.toLocaleString()} {item.product.unit_type} × ${item.unit_price.toFixed(2)}
+                            </span>
+                            <span className="font-medium">
+                              ${(item.quantity * item.unit_price).toFixed(2)}
+                            </span>
+                          </div>
+                          
+                          {/* Variations */}
+                          {item.measurement_data?.variations && item.measurement_data.variations.length > 0 && (
+                            <>
+                              {item.measurement_data.variations.map((variation, idx) => {
+                                const variationCost = variation.adjustmentType === 'percentage'
+                                  ? (item.quantity * item.unit_price * variation.priceAdjustment / 100)
+                                  : variation.priceAdjustment;
+                                return (
+                                  <div key={idx} className="flex justify-between text-muted-foreground">
+                                    <span className="pl-4">+ {variation.name}</span>
+                                    <span>
+                                      {variation.adjustmentType === 'percentage' 
+                                        ? `${variation.priceAdjustment > 0 ? '+' : ''}${variation.priceAdjustment}% ($${variationCost.toFixed(2)})`
+                                        : `$${variationCost.toFixed(2)}`
+                                      }
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </>
+                          )}
+                          
+                          {/* Addons */}
+                          {item.measurement_data?.addons && item.measurement_data.addons.length > 0 && (
+                            <>
+                              {item.measurement_data.addons.map((addon, idx) => {
+                                const addonTotal = addon.calculationType === 'per_unit' 
+                                  ? addon.priceValue * item.quantity * (addon.quantity || 1)
+                                  : addon.priceValue * (addon.quantity || 1);
+                                return (
+                                  <div key={idx} className="flex justify-between text-muted-foreground">
+                                    <span className="pl-4">
+                                      + {addon.name} 
+                                      {addon.calculationType === 'per_unit' 
+                                        ? ` ($${addon.priceValue.toFixed(2)}/${item.product.unit_type})`
+                                        : ` (qty: ${addon.quantity || 1})`
+                                      }
+                                    </span>
+                                    <span>
+                                      ${addonTotal.toFixed(2)}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </>
+                          )}
+                          
+                          <Separator className="my-2" />
+                          
+                          <div className="flex justify-between font-bold text-base pt-1">
+                            <span>Item Total</span>
+                            <span className="text-primary">
+                              ${item.line_total.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                       {/* Basic Info */}
                       <div className="space-y-2">
                         <div className="text-sm">
                           <span className="text-muted-foreground">Quantity: </span>
                           <span className="font-medium">{item.quantity} {item.product.unit_type}</span>
                         </div>
-                        {!settings?.use_price_ranges && (
+                        {item.notes && (
                           <div className="text-sm">
-                            <span className="text-muted-foreground">Unit Price: </span>
-                            <span className="font-medium">
-                              {settings ? displayLineItemPrice(item.unit_price, settings) : `$${item.unit_price.toLocaleString()}`}
-                            </span>
+                            <span className="text-muted-foreground">Notes: </span>
+                            <p className="text-sm mt-1">{item.notes}</p>
                           </div>
                         )}
                       </div>
@@ -703,7 +784,7 @@ export default function QuoteEdit() {
                     </div>
 
                     {/* Individual Item Map */}
-                    {item.measurement_data?.coordinates?.length && (
+                    {item.measurement_data?.coordinates && item.measurement_data.coordinates.length > 0 ? (
                       <div className="mt-4">
                         <p className="text-sm font-medium mb-2">Measurement Location</p>
                         <MeasurementMap
@@ -718,7 +799,11 @@ export default function QuoteEdit() {
                           className="h-[300px]"
                         />
                       </div>
-                    )}
+                    ) : item.measurement_data ? (
+                      <div className="mt-4 bg-muted/30 rounded-lg p-4 text-center">
+                        <p className="text-sm text-muted-foreground">Manual entry - no map location</p>
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>

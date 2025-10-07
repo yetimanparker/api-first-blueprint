@@ -17,6 +17,9 @@ export interface MeasurementData {
   unit: string;
   coordinates?: number[][];
   manualEntry?: boolean;
+  customName?: string;
+  variations?: ProductVariation[];
+  addons?: ProductAddon[];
 }
 
 export interface QuoteItem {
