@@ -449,121 +449,43 @@ export default function QuoteEdit() {
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CardTitle>Quote Summary ({quoteItems.length} {quoteItems.length === 1 ? 'Item' : 'Items'})</CardTitle>
-              </div>
-              <div className="flex items-center gap-2">
+              <CardTitle>Quote Summary ({quoteItems.length} {quoteItems.length === 1 ? 'Item' : 'Items'})</CardTitle>
+              <div className="flex items-center gap-3">
                 <Badge variant={getStatusBadgeVariant(quote.status)}>
                   {quote.status}
                 </Badge>
                 <span className="text-sm text-muted-foreground">
                   Created {new Date(quote.created_at).toLocaleDateString()}
                 </span>
-                {quote.expires_at && (
-                  <span className="text-sm text-muted-foreground">
-                    • Expires {new Date(quote.expires_at).toLocaleDateString()}
-                  </span>
-                )}
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            {quoteItems.length > 0 && !settings?.use_price_ranges ? (
-              <div className="space-y-4">
-                {/* Line Items */}
-                {quoteItems.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-4 bg-muted/20">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div 
-                          className="w-3 h-3 rounded-full mt-1 flex-shrink-0" 
-                          style={{ backgroundColor: item.product.color_hex }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-base">{item.product.name}</h3>
-                          <p className="text-sm text-muted-foreground mt-0.5">
-                            {item.quantity.toLocaleString()} {item.product.unit_type}
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Base {item.product.name}: {item.quantity.toLocaleString()} {item.product.unit_type} × ${item.unit_price.toFixed(2)} = ${item.line_total.toFixed(2)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg font-bold text-green-600">
-                          ${item.line_total.toFixed(2)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeletingItemId(item.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                <Separator className="my-4" />
-                
-                {/* Summary */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-base">
-                    <span>Subtotal:</span>
-                    <span className="font-medium">
-                      ${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toFixed(2)}
-                    </span>
-                  </div>
-                  
-                  {settings?.global_markup_percentage > 0 && (
-                    <div className="flex justify-between items-center text-sm text-muted-foreground">
-                      <span>Markup ({settings.global_markup_percentage}%):</span>
-                      <span>
-                        ${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_markup_percentage) / 100).toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {settings?.global_tax_rate > 0 && (
-                    <div className="flex justify-between items-center text-sm text-muted-foreground">
-                      <span>Tax ({settings.global_tax_rate}%):</span>
-                      <span>
-                        ${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * (1 + (settings.global_markup_percentage || 0) / 100) * settings.global_tax_rate) / 100).toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <Separator className="my-3" />
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-xl font-bold">Total:</span>
-                    <span className="text-2xl font-bold text-green-600">
-                      {settings ? displayQuoteTotal(quote.total_amount, settings, quote.status) : `$${quote.total_amount.toFixed(2)}`}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : settings?.use_price_ranges ? (
-              <div className="text-center py-6">
-                <p className="text-base text-muted-foreground mb-2">Estimated Total</p>
-                <p className="text-3xl font-bold text-green-600">
-                  {displayQuoteTotal(quote.total_amount, settings, quote.status)}
+          <CardContent className="space-y-6">
+            {/* Estimated Total - Prominent Display */}
+            {quoteItems.length > 0 && (
+              <div className="text-center py-4">
+                <p className="text-base text-muted-foreground mb-2">
+                  {settings?.use_price_ranges ? 'Estimated Total' : 'Total Amount'}
+                </p>
+                <p className="text-4xl font-bold text-green-600">
+                  {settings ? displayQuoteTotal(quote.total_amount, settings, quote.status) : `$${quote.total_amount.toFixed(2)}`}
                 </p>
               </div>
-            ) : (
+            )}
+
+            {quoteItems.length === 0 && (
               <div className="text-center py-6 text-muted-foreground">
                 No items in this quote yet
               </div>
             )}
-            
-            {quote.project_address || editingAddress ? (
+
+            {/* Project Address Section */}
+            {quoteItems.length > 0 && (quote.project_address || editingAddress) && (
               <>
-                <Separator className="my-4" />
+                <Separator />
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="font-medium">Project Address</p>
+                    <p className="font-semibold">Project Address</p>
                     {!editingAddress && (
                       <Button variant="ghost" size="sm" onClick={() => setEditingAddress(true)}>
                         <Edit className="h-4 w-4" />
@@ -633,48 +555,148 @@ export default function QuoteEdit() {
                   )}
                 </div>
               </>
-            ) : (
+            )}
+
+            {/* Detailed Line Items */}
+            {quoteItems.length > 0 && !settings?.use_price_ranges && (
               <>
-                <Separator className="my-4" />
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-medium">Project Address</p>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingAddress(true)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                <Separator />
+                <div className="space-y-4">
+                  {quoteItems.map((item) => (
+                    <div key={item.id} className="border rounded-lg p-4 bg-muted/20">
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div 
+                            className="w-3 h-3 rounded-full mt-1 flex-shrink-0" 
+                            style={{ backgroundColor: item.product.color_hex }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base">{item.product.name}</h3>
+                            <p className="text-sm text-muted-foreground mt-0.5">
+                              {item.quantity.toLocaleString()} {item.product.unit_type}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg font-bold text-green-600">
+                            ${item.line_total.toFixed(2)}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeletingItemId(item.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Detailed Pricing Breakdown */}
+                      <div className="text-sm text-muted-foreground space-y-1 pl-6">
+                        <p>
+                          Base {item.product.name}: {item.quantity.toLocaleString()} {item.product.unit_type} × ${item.unit_price.toFixed(2)} = ${(item.quantity * item.unit_price).toFixed(2)}
+                        </p>
+                        
+                        {/* Variations */}
+                        {item.measurement_data?.variations && item.measurement_data.variations.length > 0 && (
+                          <>
+                            {item.measurement_data.variations.map((variation, idx) => {
+                              const variationCost = variation.adjustmentType === 'percentage'
+                                ? (item.quantity * item.unit_price * variation.priceAdjustment / 100)
+                                : variation.priceAdjustment;
+                              return (
+                                <p key={idx}>
+                                  + {variation.name}: {variation.adjustmentType === 'percentage' 
+                                    ? `${variation.priceAdjustment > 0 ? '+' : ''}${variation.priceAdjustment}%`
+                                    : `$${variation.priceAdjustment.toFixed(2)}`
+                                  } = ${variationCost.toFixed(2)}
+                                </p>
+                              );
+                            })}
+                          </>
+                        )}
+                        
+                        {/* Addons */}
+                        {item.measurement_data?.addons && item.measurement_data.addons.length > 0 && (
+                          <>
+                            {item.measurement_data.addons.map((addon, idx) => {
+                              const addonTotal = addon.calculationType === 'per_unit' 
+                                ? addon.priceValue * item.quantity * (addon.quantity || 1)
+                                : addon.priceValue * (addon.quantity || 1);
+                              return (
+                                <p key={idx}>
+                                  + {addon.name} 
+                                  {addon.calculationType === 'per_unit' 
+                                    ? ` ($${addon.priceValue.toFixed(2)}/${item.product.unit_type} × ${item.quantity})`
+                                    : ` (qty: ${addon.quantity || 1} × $${addon.priceValue.toFixed(2)})`
+                                  } = ${addonTotal.toFixed(2)}
+                                </p>
+                              );
+                            })}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <Separator />
+                
+                {/* Summary Totals */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-base">
+                    <span>Subtotal:</span>
+                    <span className="font-medium">
+                      ${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toFixed(2)}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">No address specified</p>
+                  
+                  {settings?.global_tax_rate > 0 && (
+                    <div className="flex justify-between items-center text-sm text-muted-foreground">
+                      <span>Tax ({settings.global_tax_rate}%):</span>
+                      <span>
+                        ${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_tax_rate) / 100).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <Separator className="my-3" />
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-xl font-bold">Total:</span>
+                    <span className="text-2xl font-bold text-green-600">
+                      ${quote.total_amount.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               </>
             )}
-
-            {(quote.notes || editingAddress) && !editingAddress && (
+            
+            {/* Notes Section */}
+            {((quote.notes && !editingAddress) || editingAddress) && (
               <>
-                <Separator className="my-4" />
+                <Separator />
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="font-medium">Notes</p>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingAddress(true)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    <p className="font-semibold">Notes</p>
+                    {!editingAddress && (
+                      <Button variant="ghost" size="sm" onClick={() => setEditingAddress(true)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground">{quote.notes}</p>
-                </div>
-              </>
-            )}
-
-            {editingAddress && (
-              <>
-                <Separator className="my-4" />
-                <div>
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={addressForm.notes}
-                    onChange={(e) => setAddressForm(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Project notes..."
-                    className="mt-2"
-                  />
+                  {editingAddress ? (
+                    <Textarea
+                      id="notes"
+                      value={addressForm.notes}
+                      onChange={(e) => setAddressForm(prev => ({ ...prev, notes: e.target.value }))}
+                      placeholder="Project notes..."
+                      className="mt-2"
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">{quote.notes}</p>
+                  )}
                 </div>
               </>
             )}
