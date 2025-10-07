@@ -185,7 +185,7 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     <div className="w-full px-4 py-4">
       {/* Category filters - Compact Pills */}
       {categories.length > 0 && (
-        <div className="mb-4 space-y-3">
+        <div className="sticky top-0 z-10 bg-background pb-4 mb-4 space-y-3 -mt-4 pt-4">
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
