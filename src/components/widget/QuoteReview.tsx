@@ -115,98 +115,24 @@ const QuoteReview = ({
   };
 
   const handleSubmitQuote = async () => {
+    if (!contractorId) {
+      toast({
+        title: "Error",
+        description: "Contractor information is missing",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
-    
+
     try {
-      // Check if customer already exists by email
-      let customerId: string;
-      const { data: existingCustomer, error: customerCheckError } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('email', customerInfo.email || '')
-        .eq('contractor_id', contractorId)
-        .maybeSingle();
-
-      if (customerCheckError) throw customerCheckError;
-
-      if (existingCustomer) {
-        // Update existing customer with latest information
-        customerId = existingCustomer.id;
-        const { error: updateError } = await supabase
-          .from('customers')
-          .update({
-            first_name: customerInfo.firstName || '',
-            last_name: customerInfo.lastName || '',
-            phone: customerInfo.phone || null,
-            address: customerInfo.address || null,
-            city: customerInfo.city || null,
-            state: customerInfo.state || null,
-            zip_code: customerInfo.zipCode || null,
-          })
-          .eq('id', existingCustomer.id);
-
-        if (updateError) throw updateError;
-      } else {
-        // Create new customer
-        const customerData = {
-          contractor_id: contractorId,
-          first_name: customerInfo.firstName || '',
-          last_name: customerInfo.lastName || '',
-          email: customerInfo.email || '',
-          phone: customerInfo.phone || null,
-          address: customerInfo.address || null,
-          city: customerInfo.city || null,
-          state: customerInfo.state || null,
-          zip_code: customerInfo.zipCode || null,
-          status: 'lead',
-          lead_source: 'widget'
-        };
-
-        const { data: customerResult, error: customerError } = await supabase
-          .from('customers')
-          .insert(customerData)
-          .select();
-
-        if (customerError) throw customerError;
-        if (!customerResult || customerResult.length === 0) throw new Error('Failed to create customer');
-        customerId = customerResult[0].id;
-      }
-
-      const { data: quoteNumberData } = await supabase.rpc('generate_quote_number');
-      
-      const quoteData = {
-        contractor_id: contractorId,
-        customer_id: customerId,
-        total_amount: total,
-        status: 'draft' as const,
-        notes: projectComments || null,
-        project_address: customerInfo.address || null,
-        project_city: customerInfo.city || null,
-        project_state: customerInfo.state || null,
-        project_zip_code: customerInfo.zipCode || null,
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        access_token: null,
-        quote_number: quoteNumberData || `Q-${Date.now()}`
-      };
-
-      const { data: quoteResult, error: quoteError } = await supabase
-        .from('quotes')
-        .insert([quoteData])
-        .select();
-
-      if (quoteError) throw quoteError;
-      if (!quoteResult || quoteResult.length === 0) throw new Error('Failed to create quote');
-      
-      const quote = quoteResult[0];
-
       const quoteItemsData = items.map(item => ({
-        quote_id: quote.id,
-        product_id: item.productId,
+        productId: item.productId,
         quantity: item.quantity,
-        unit_price: item.unitPrice,
-        line_total: item.lineTotal,
-        notes: item.notes || '',
-        measurement_data: JSON.stringify({
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
+        measurementData: {
           type: item.measurement.type,
           value: item.measurement.value,
           unit: item.measurement.unit,
@@ -226,27 +152,41 @@ const QuoteReview = ({
             calculationType: a.calculationType,
             quantity: a.quantity
           }))
-        }) as any
+        },
+        notes: item.notes || '',
       }));
 
-      const { error: itemsError } = await supabase
-        .from('quote_items')
-        .insert(quoteItemsData);
+      const { data, error } = await supabase.functions.invoke('submit-widget-quote', {
+        body: {
+          customerInfo: {
+            firstName: customerInfo.firstName,
+            lastName: customerInfo.lastName,
+            email: customerInfo.email,
+            phone: customerInfo.phone,
+            address: customerInfo.address,
+            city: customerInfo.city,
+            state: customerInfo.state,
+            zipCode: customerInfo.zipCode,
+          },
+          quoteItems: quoteItemsData,
+          contractorId,
+          projectComments,
+        },
+      });
 
-      if (itemsError) throw itemsError;
+      if (error) throw error;
 
       toast({
-        title: "Quote Submitted Successfully!",
-        description: `Quote #${quote.quote_number} has been created. You'll be contacted soon.`,
+        title: "Quote Submitted!",
+        description: `Your quote #${data.quoteNumber} has been submitted successfully. We'll be in touch soon!`,
       });
 
       onNext();
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting quote:', error);
       toast({
-        title: "Submission Failed",
-        description: "There was an error submitting your quote. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to submit quote. Please try again.",
         variant: "destructive",
       });
     } finally {
