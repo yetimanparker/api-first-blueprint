@@ -21,7 +21,7 @@ const Widget = () => {
   const navigate = useNavigate();
   
   const { settings, loading: settingsLoading, error: settingsError } = useGlobalSettings();
-  const { categories, loading: categoriesLoading } = useProductCategories();
+  const { categories, loading: categoriesLoading } = useProductCategories(contractorId);
 
   const [widgetState, setWidgetState] = useState<WidgetState>({
     contractorId: contractorId!,

@@ -129,38 +129,69 @@ export function useGlobalSettings() {
   return { settings, loading, error, refetch: loadSettings };
 }
 
-export function useProductCategories() {
+export function useProductCategories(contractorId?: string) {
   const [categories, setCategories] = useState<Array<{ id: string; name: string; color_hex: string }>>([]);
   const [subcategories, setSubcategories] = useState<Array<{ id: string; category_id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadCategories();
-  }, []);
+    if (contractorId) {
+      loadCategories();
+    }
+  }, [contractorId]);
 
   const loadCategories = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Load categories
+      if (!contractorId) {
+        console.error('No contractor ID provided to useProductCategories');
+        setCategories([]);
+        setSubcategories([]);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Loading categories for contractor:', contractorId);
+
+      // Load categories for this contractor
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('product_categories')
         .select('id, name, color_hex')
+        .eq('contractor_id', contractorId)
         .eq('is_active', true)
         .order('display_order');
 
-      if (categoriesError) throw categoriesError;
+      if (categoriesError) {
+        console.error('Categories error:', categoriesError);
+        throw categoriesError;
+      }
 
-      // Load subcategories
-      const { data: subcategoriesData, error: subcategoriesError } = await supabase
-        .from('product_subcategories')
-        .select('id, category_id, name')
-        .eq('is_active', true)
-        .order('display_order');
+      console.log('Loaded categories:', categoriesData);
 
-      if (subcategoriesError) throw subcategoriesError;
+      // Load subcategories - filtered by the category IDs we just loaded
+      const categoryIds = (categoriesData || []).map(c => c.id);
+      let subcategoriesData = [];
+      
+      if (categoryIds.length > 0) {
+        const { data, error: subcategoriesError } = await supabase
+          .from('product_subcategories')
+          .select('id, category_id, name')
+          .in('category_id', categoryIds)
+          .eq('is_active', true)
+          .order('display_order');
+
+        if (subcategoriesError) {
+          console.error('Subcategories error:', subcategoriesError);
+          throw subcategoriesError;
+        }
+        
+        subcategoriesData = data || [];
+      }
+
+      console.log('Loaded subcategories:', subcategoriesData);
 
       setCategories(categoriesData || []);
       setSubcategories(subcategoriesData || []);
