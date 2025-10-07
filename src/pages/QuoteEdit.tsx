@@ -9,12 +9,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X } from "lucide-react";
+import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { QuoteItemForm } from "@/components/QuoteItemForm";
 import { useGlobalSettings } from "@/hooks/useGlobalSettings";
 import { displayQuoteTotal, displayLineItemPrice } from "@/lib/priceUtils";
+import MeasurementMap from "@/components/quote/MeasurementMap";
+import MeasurementDetails from "@/components/quote/MeasurementDetails";
+import type { MeasurementData } from "@/types/widget";
 
 interface Quote {
   id: string;
@@ -40,6 +43,10 @@ interface Customer {
   last_name: string;
   email: string;
   phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
 }
 
 interface QuoteItem {
@@ -49,9 +56,11 @@ interface QuoteItem {
   unit_price: number;
   line_total: number;
   notes?: string;
+  measurement_data?: MeasurementData;
   product: {
     name: string;
     unit_type: string;
+    color_hex: string;
   };
 }
 
@@ -123,13 +132,20 @@ export default function QuoteEdit() {
         .from('quote_items')
         .select(`
           *,
-          product:products(name, unit_type)
+          product:products(name, unit_type, color_hex)
         `)
         .eq('quote_id', quoteId)
         .order('created_at');
 
       if (itemsError) throw itemsError;
-      setQuoteItems(itemsData || []);
+      
+      // Parse measurement_data from Json to MeasurementData type
+      const parsedItems = (itemsData || []).map(item => ({
+        ...item,
+        measurement_data: item.measurement_data ? item.measurement_data as unknown as MeasurementData : undefined
+      }));
+      
+      setQuoteItems(parsedItems);
 
     } catch (error) {
       console.error('Error fetching quote data:', error);
@@ -385,6 +401,50 @@ export default function QuoteEdit() {
           </div>
         </div>
 
+        {/* Customer Contact Card */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Customer Contact</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium">Email</p>
+                  <a href={`mailto:${customer.email}`} className="text-sm text-primary hover:underline">
+                    {customer.email}
+                  </a>
+                </div>
+              </div>
+              {customer.phone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">Phone</p>
+                    <a href={`tel:${customer.phone}`} className="text-sm text-primary hover:underline">
+                      {customer.phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+              {(customer.address || customer.city || customer.state) && (
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">Customer Address</p>
+                    <p className="text-sm text-muted-foreground">
+                      {[customer.address, customer.city, customer.state, customer.zip_code]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Quote Details Card */}
         <Card className="mb-6">
           <CardHeader>
@@ -539,6 +599,43 @@ export default function QuoteEdit() {
           </CardContent>
         </Card>
 
+        {/* Measurement Overview Map */}
+        {quoteItems.some(item => item.measurement_data?.coordinates?.length) && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Project Site Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MeasurementMap
+                measurements={quoteItems
+                  .filter(item => item.measurement_data?.coordinates?.length)
+                  .map(item => ({
+                    type: item.measurement_data!.type,
+                    coordinates: item.measurement_data!.coordinates,
+                    productName: item.product.name,
+                    productColor: item.product.color_hex,
+                    value: item.measurement_data!.value,
+                    unit: item.measurement_data!.unit,
+                  }))}
+                className="h-[500px]"
+              />
+              <div className="mt-4 flex flex-wrap gap-3">
+                {quoteItems
+                  .filter(item => item.measurement_data?.coordinates?.length)
+                  .map((item, index) => (
+                    <div key={item.id} className="flex items-center gap-2">
+                      <div 
+                        className="w-4 h-4 rounded" 
+                        style={{ backgroundColor: item.product.color_hex }}
+                      />
+                      <span className="text-sm">{item.product.name}</span>
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quote Items */}
         <Card className="mb-6">
           <CardHeader>
@@ -550,14 +647,14 @@ export default function QuoteEdit() {
                 No items in this quote yet
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {quoteItems.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-medium">{item.product.name}</h3>
+                  <div key={item.id} className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-lg">{item.product.name}</h3>
                       <div className="flex items-center gap-2">
                         {!settings?.use_price_ranges && (
-                          <p className="font-bold text-primary">
+                          <p className="font-bold text-primary text-lg">
                             {settings ? displayLineItemPrice(item.line_total, settings) : `$${item.line_total.toLocaleString()}`}
                           </p>
                         )}
@@ -577,26 +674,51 @@ export default function QuoteEdit() {
                         </Button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-                      <div>
-                        Quantity: {item.quantity} {item.product.unit_type}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Basic Info */}
+                      <div className="space-y-2">
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Quantity: </span>
+                          <span className="font-medium">{item.quantity} {item.product.unit_type}</span>
+                        </div>
+                        {!settings?.use_price_ranges && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Unit Price: </span>
+                            <span className="font-medium">
+                              {settings ? displayLineItemPrice(item.unit_price, settings) : `$${item.unit_price.toLocaleString()}`}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      {!settings?.use_price_ranges && (
-                        <div>
-                          Unit Price: {settings ? displayLineItemPrice(item.unit_price, settings) : `$${item.unit_price.toLocaleString()}`}
-                        </div>
-                      )}
-                      {settings?.use_price_ranges && (
-                        <div>
-                          Price included in total
-                        </div>
-                      )}
-                      {item.notes && (
-                        <div>
-                          Notes: {item.notes}
-                        </div>
+
+                      {/* Measurement Details */}
+                      {item.measurement_data && (
+                        <MeasurementDetails
+                          measurement={item.measurement_data}
+                          productName={item.product.name}
+                          notes={item.notes}
+                        />
                       )}
                     </div>
+
+                    {/* Individual Item Map */}
+                    {item.measurement_data?.coordinates?.length && (
+                      <div className="mt-4">
+                        <p className="text-sm font-medium mb-2">Measurement Location</p>
+                        <MeasurementMap
+                          measurements={[{
+                            type: item.measurement_data.type,
+                            coordinates: item.measurement_data.coordinates,
+                            productName: item.product.name,
+                            productColor: item.product.color_hex,
+                            value: item.measurement_data.value,
+                            unit: item.measurement_data.unit,
+                          }]}
+                          className="h-[300px]"
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
