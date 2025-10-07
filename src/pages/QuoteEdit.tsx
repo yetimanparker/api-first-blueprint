@@ -446,10 +446,12 @@ export default function QuoteEdit() {
         </Card>
 
         {/* Quote Summary Card */}
-        <Card className="mb-6">
+        <Card className="mb-6 bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Quote Summary ({quoteItems.length} {quoteItems.length === 1 ? 'Item' : 'Items'})</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2 text-green-700 dark:text-green-400">
+                Quote Summary ({quoteItems.length} {quoteItems.length === 1 ? 'Item' : 'Items'})
+              </CardTitle>
               <div className="flex items-center gap-3">
                 <Badge variant={getStatusBadgeVariant(quote.status)}>
                   {quote.status}
@@ -460,19 +462,7 @@ export default function QuoteEdit() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Estimated Total - Prominent Display */}
-            {quoteItems.length > 0 && (
-              <div className="text-center py-4">
-                <p className="text-base text-muted-foreground mb-2">
-                  {settings?.use_price_ranges ? 'Estimated Total' : 'Total Amount'}
-                </p>
-                <p className="text-4xl font-bold text-green-600">
-                  {settings ? displayQuoteTotal(quote.total_amount, settings, quote.status) : `$${quote.total_amount.toFixed(2)}`}
-                </p>
-              </div>
-            )}
-
+          <CardContent className="space-y-4">
             {quoteItems.length === 0 && (
               <div className="text-center py-6 text-muted-foreground">
                 No items in this quote yet
@@ -482,7 +472,6 @@ export default function QuoteEdit() {
             {/* Project Address Section */}
             {quoteItems.length > 0 && (quote.project_address || editingAddress) && (
               <>
-                <Separator />
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold">Project Address</p>
@@ -547,146 +536,134 @@ export default function QuoteEdit() {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-primary">
                       {[quote.project_address, quote.project_city, quote.project_state, quote.project_zip_code]
                         .filter(Boolean)
                         .join(', ')}
                     </p>
                   )}
                 </div>
+                <Separator className="bg-green-300 dark:bg-green-700" />
               </>
             )}
 
-            {/* Detailed Line Items - Product Breakdown */}
+            {/* Detailed Quote Items */}
             {quoteItems.length > 0 && (
-              <>
-                <Separator />
-                <div className="space-y-4">
-                  {quoteItems.map((item) => {
-                    const basePrice = item.quantity * item.unit_price;
-                    
-                    return (
-                      <div key={item.id} className="border rounded-lg p-4 bg-background">
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div 
-                              className="w-3 h-3 rounded-full mt-1.5 flex-shrink-0" 
-                              style={{ backgroundColor: item.product.color_hex }}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-lg">{item.product.name}</h3>
-                              <p className="text-sm text-muted-foreground mt-0.5">
-                                {item.quantity.toLocaleString()} {item.product.unit_type.replace('_', ' ')}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xl font-bold text-green-600">
-                              {settings ? `${settings.currency_symbol}${item.line_total.toFixed(settings.decimal_precision)}` : `$${item.line_total.toFixed(2)}`}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeletingItemId(item.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+              <div className="space-y-4 mb-6">
+                {quoteItems.map((item) => {
+                  const basePrice = item.quantity * item.unit_price;
+                  
+                  return (
+                    <div key={item.id} className="bg-background rounded-lg p-4 border border-green-200 dark:border-green-800">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div 
+                            className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
+                            style={{ backgroundColor: item.product.color_hex }}
+                          />
+                          <div>
+                            <p className="font-semibold text-lg">{item.product.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {item.quantity.toLocaleString()} {item.product.unit_type.replace('_', ' ')}
+                            </p>
                           </div>
                         </div>
-                        
-                        {/* Itemized Breakdown */}
-                        {!settings?.use_price_ranges && (
-                          <div className="ml-6 space-y-2 text-sm">
-                            {/* Base Product */}
-                            <div className="text-muted-foreground">
-                              Base {item.product.name}: {item.quantity.toLocaleString()} {item.product.unit_type.replace('_', ' ')} × {settings ? `${settings.currency_symbol}${item.unit_price.toFixed(settings.decimal_precision)}` : `$${item.unit_price.toFixed(2)}`} = {settings ? `${settings.currency_symbol}${basePrice.toFixed(settings.decimal_precision)}` : `$${basePrice.toFixed(2)}`}
+                        <div className="flex items-center gap-3">
+                          <p className="font-bold text-xl text-green-600">
+                            {settings ? `${settings.currency_symbol}${item.line_total.toFixed(settings.decimal_precision)}` : `$${item.line_total.toFixed(2)}`}
+                          </p>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeletingItemId(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Itemized Breakdown */}
+                      <div className="ml-6 space-y-2 text-sm">
+                        {/* Base Product */}
+                        <div className="text-muted-foreground">
+                          Base {item.product.name}: {item.quantity.toLocaleString()} {item.product.unit_type.replace('_', ' ')} × {settings ? `${settings.currency_symbol}${item.unit_price.toFixed(settings.decimal_precision)}` : `$${item.unit_price.toFixed(2)}`} = {settings ? `${settings.currency_symbol}${basePrice.toFixed(settings.decimal_precision)}` : `$${basePrice.toFixed(2)}`}
+                        </div>
+
+                        {/* Variations */}
+                        {item.measurement_data?.variations && item.measurement_data.variations.length > 0 && item.measurement_data.variations.map((variation, idx) => {
+                          const variationPrice = variation.adjustmentType === 'percentage'
+                            ? basePrice * (variation.priceAdjustment / 100)
+                            : variation.priceAdjustment * item.quantity;
+                          
+                          return (
+                            <div key={idx} className="text-muted-foreground">
+                              {variation.name}: {variation.adjustmentType === 'percentage' 
+                                ? `${variation.priceAdjustment}%` 
+                                : `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ${settings ? `${settings.currency_symbol}${variation.priceAdjustment.toFixed(settings.decimal_precision)}` : `$${variation.priceAdjustment.toFixed(2)}`}`
+                              } = {settings ? `${settings.currency_symbol}${variationPrice.toFixed(settings.decimal_precision)}` : `$${variationPrice.toFixed(2)}`}
                             </div>
+                          );
+                        })}
 
-                            {/* Variations */}
-                            {item.measurement_data?.variations && item.measurement_data.variations.length > 0 && item.measurement_data.variations.map((variation, idx) => {
-                              const variationPrice = variation.adjustmentType === 'percentage'
-                                ? basePrice * (variation.priceAdjustment / 100)
-                                : variation.priceAdjustment * item.quantity;
-                              
-                              return (
-                                <div key={idx} className="text-muted-foreground">
-                                  {variation.name}: {variation.adjustmentType === 'percentage' 
-                                    ? `${variation.priceAdjustment}%` 
-                                    : `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ${settings ? `${settings.currency_symbol}${variation.priceAdjustment.toFixed(settings.decimal_precision)}` : `$${variation.priceAdjustment.toFixed(2)}`}`
-                                  } = {settings ? `${settings.currency_symbol}${variationPrice.toFixed(settings.decimal_precision)}` : `$${variationPrice.toFixed(2)}`}
-                                </div>
-                              );
-                            })}
+                        {/* Add-ons */}
+                        {item.measurement_data?.addons && item.measurement_data.addons.length > 0 && item.measurement_data.addons.filter(addon => addon.quantity > 0).map((addon, idx) => {
+                          const addonPrice = addon.calculationType === 'per_unit'
+                            ? addon.priceValue * item.quantity
+                            : addon.priceValue;
+                          
+                          return (
+                            <div key={idx} className="text-muted-foreground">
+                              {addon.name}: {addon.calculationType === 'per_unit' 
+                                ? `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ` 
+                                : ''}{settings ? `${settings.currency_symbol}${addon.priceValue.toFixed(settings.decimal_precision)}` : `$${addon.priceValue.toFixed(2)}`} = {settings ? `${settings.currency_symbol}${addonPrice.toFixed(settings.decimal_precision)}` : `$${addonPrice.toFixed(2)}`}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-                            {/* Add-ons */}
-                            {item.measurement_data?.addons && item.measurement_data.addons.length > 0 && item.measurement_data.addons.filter(addon => addon.quantity > 0).map((addon, idx) => {
-                              const addonPrice = addon.calculationType === 'per_unit'
-                                ? addon.priceValue * item.quantity
-                                : addon.priceValue;
-                              
-                              return (
-                                <div key={idx} className="text-muted-foreground">
-                                  {addon.name}: {addon.calculationType === 'per_unit' 
-                                    ? `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ` 
-                                    : ''}{settings ? `${settings.currency_symbol}${addon.priceValue.toFixed(settings.decimal_precision)}` : `$${addon.priceValue.toFixed(2)}`} = {settings ? `${settings.currency_symbol}${addonPrice.toFixed(settings.decimal_precision)}` : `$${addonPrice.toFixed(2)}`}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                <Separator />
-                
-                {/* Summary Totals */}
-                {!settings?.use_price_ranges && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center text-base">
-                      <span>Subtotal:</span>
-                      <span className="font-semibold">
-                        {settings ? `${settings.currency_symbol}${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toFixed(settings.decimal_precision)}` : `$${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toFixed(2)}`}
-                      </span>
-                    </div>
-                    
-                    {settings?.global_markup_percentage > 0 && (
-                      <div className="flex justify-between items-center text-sm text-muted-foreground">
-                        <span>Markup ({settings.global_markup_percentage}%):</span>
-                        <span>
-                          {settings ? `${settings.currency_symbol}${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_markup_percentage) / 100).toFixed(settings.decimal_precision)}` : `$${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_markup_percentage) / 100).toFixed(2)}`}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {settings?.global_tax_rate > 0 && (
-                      <div className="flex justify-between items-center text-sm text-muted-foreground">
-                        <span>Tax ({settings.global_tax_rate}%):</span>
-                        <span>
-                          {settings ? `${settings.currency_symbol}${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * (1 + (settings.global_markup_percentage || 0) / 100) * settings.global_tax_rate) / 100).toFixed(settings.decimal_precision)}` : `$${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_tax_rate) / 100).toFixed(2)}`}
-                        </span>
-                      </div>
-                    )}
-                    
-                    <Separator className="my-3" />
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-2xl font-bold">Total:</span>
-                      <span className="text-2xl font-bold text-green-600">
-                        {settings ? `${settings.currency_symbol}${quote.total_amount.toFixed(settings.decimal_precision)}` : `$${quote.total_amount.toFixed(2)}`}
-                      </span>
-                    </div>
+            {quoteItems.length > 0 && (
+              <>
+                <Separator className="my-4 bg-green-300 dark:bg-green-700" />
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-base">
+                    <span>Subtotal:</span>
+                    <span className="font-semibold">
+                      {settings ? `${settings.currency_symbol}${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toFixed(settings.decimal_precision)}` : `$${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toFixed(2)}`}
+                    </span>
                   </div>
-                )}
+                  
+                  {settings?.global_tax_rate > 0 && (
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Tax ({settings.global_tax_rate}%):</span>
+                      <span>
+                        {settings ? `${settings.currency_symbol}${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_tax_rate) / 100).toFixed(settings.decimal_precision)}` : `$${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_tax_rate) / 100).toFixed(2)}`}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <Separator className="my-2 bg-green-300 dark:bg-green-700" />
+                  
+                  <div className="flex justify-between text-2xl font-bold pt-2">
+                    <span>Total:</span>
+                    <span className="text-green-600">
+                      {settings ? `${settings.currency_symbol}${quote.total_amount.toFixed(settings.decimal_precision)}` : `$${quote.total_amount.toFixed(2)}`}
+                    </span>
+                  </div>
+                </div>
               </>
             )}
-            
+
             {/* Notes Section */}
-            {((quote.notes && !editingAddress) || editingAddress) && (
+            {((quote.notes && !editingAddress) || editingAddress) && quoteItems.length > 0 && (
               <>
-                <Separator />
+                <Separator className="bg-green-300 dark:bg-green-700" />
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold">Notes</p>
