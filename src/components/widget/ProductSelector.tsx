@@ -182,10 +182,11 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     : allProductsCount;
 
   return (
-    <div className="w-full px-4 py-4">
+    <div className="w-full">
       {/* Category filters - Compact Pills */}
       {categories.length > 0 && (
-        <div className="sticky top-0 z-10 bg-background pb-4 mb-4 space-y-3 -mt-4 pt-4">
+        <div className="sticky top-[72px] z-40 bg-background pb-4 mb-4 space-y-3 pt-4 px-4 -mx-4 shadow-sm border-b"
+          >
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
@@ -258,7 +259,7 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
       )}
 
       {/* Products grid - Scrollable */}
-      <div className="max-h-[calc(100vh-16rem)] overflow-y-auto pr-2 -mr-2">
+      <div className="px-4">
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
