@@ -445,102 +445,117 @@ export default function QuoteEdit() {
           </CardContent>
         </Card>
 
-        {/* Quote Details Card */}
+        {/* Quote Summary Card */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Quote Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div>
-                <p className="font-medium">Status</p>
-                <Badge variant={getStatusBadgeVariant(quote.status)} className="mt-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CardTitle>Quote Summary ({quoteItems.length} {quoteItems.length === 1 ? 'Item' : 'Items'})</CardTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={getStatusBadgeVariant(quote.status)}>
                   {quote.status}
                 </Badge>
+                <span className="text-sm text-muted-foreground">
+                  Created {new Date(quote.created_at).toLocaleDateString()}
+                </span>
+                {quote.expires_at && (
+                  <span className="text-sm text-muted-foreground">
+                    • Expires {new Date(quote.expires_at).toLocaleDateString()}
+                  </span>
+                )}
               </div>
-              <div>
-                <p className="font-medium">Created</p>
-                <p className="text-sm text-muted-foreground">{new Date(quote.created_at).toLocaleDateString()}</p>
-              </div>
-              {quote.expires_at && (
-                <div>
-                  <p className="font-medium">Expires</p>
-                  <p className="text-sm text-muted-foreground">{new Date(quote.expires_at).toLocaleDateString()}</p>
-                </div>
-              )}
             </div>
-
-            {/* Itemized Breakdown */}
-            {quoteItems.length > 0 && !settings?.use_price_ranges && (
-              <>
-                <Separator className="my-6" />
-                <div>
-                  <h3 className="font-semibold text-lg mb-4">Price Breakdown</h3>
-                  <div className="space-y-3">
-                    {quoteItems.map((item) => (
-                      <div key={item.id} className="flex justify-between items-center text-sm">
-                        <div className="flex-1">
-                          <span className="font-medium">{item.product.name}</span>
-                          <span className="text-muted-foreground ml-2">
-                            ({item.quantity} {item.product.unit_type} × ${item.unit_price.toFixed(2)})
-                          </span>
+          </CardHeader>
+          <CardContent>
+            {quoteItems.length > 0 && !settings?.use_price_ranges ? (
+              <div className="space-y-4">
+                {/* Line Items */}
+                {quoteItems.map((item) => (
+                  <div key={item.id} className="border rounded-lg p-4 bg-muted/20">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div 
+                          className="w-3 h-3 rounded-full mt-1 flex-shrink-0" 
+                          style={{ backgroundColor: item.product.color_hex }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-base">{item.product.name}</h3>
+                          <p className="text-sm text-muted-foreground mt-0.5">
+                            {item.quantity.toLocaleString()} {item.product.unit_type}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Base {item.product.name}: {item.quantity.toLocaleString()} {item.product.unit_type} × ${item.unit_price.toFixed(2)} = ${item.line_total.toFixed(2)}
+                          </p>
                         </div>
-                        <span className="font-medium">${item.line_total.toFixed(2)}</span>
                       </div>
-                    ))}
-                    
-                    <Separator className="my-3" />
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">Subtotal</span>
-                        <span className="font-medium">
-                          ${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toFixed(2)}
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg font-bold text-green-600">
+                          ${item.line_total.toFixed(2)}
                         </span>
-                      </div>
-                      
-                      {settings?.global_markup_percentage > 0 && (
-                        <div className="flex justify-between items-center text-sm text-muted-foreground">
-                          <span>Markup ({settings.global_markup_percentage}%)</span>
-                          <span>
-                            ${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_markup_percentage) / 100).toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {settings?.global_tax_rate > 0 && (
-                        <div className="flex justify-between items-center text-sm text-muted-foreground">
-                          <span>Tax ({settings.global_tax_rate}%)</span>
-                          <span>
-                            ${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * (1 + (settings.global_markup_percentage || 0) / 100) * settings.global_tax_rate) / 100).toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-                      
-                      <Separator className="my-2" />
-                      
-                      <div className="flex justify-between items-center text-lg font-bold">
-                        <span>Total</span>
-                        <span className="text-primary">
-                          {settings ? displayQuoteTotal(quote.total_amount, settings, quote.status) : `$${quote.total_amount.toFixed(2)}`}
-                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeletingItemId(item.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </div>
+                ))}
+                
+                <Separator className="my-4" />
+                
+                {/* Summary */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-base">
+                    <span>Subtotal:</span>
+                    <span className="font-medium">
+                      ${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toFixed(2)}
+                    </span>
+                  </div>
+                  
+                  {settings?.global_markup_percentage > 0 && (
+                    <div className="flex justify-between items-center text-sm text-muted-foreground">
+                      <span>Markup ({settings.global_markup_percentage}%):</span>
+                      <span>
+                        ${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_markup_percentage) / 100).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {settings?.global_tax_rate > 0 && (
+                    <div className="flex justify-between items-center text-sm text-muted-foreground">
+                      <span>Tax ({settings.global_tax_rate}%):</span>
+                      <span>
+                        ${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * (1 + (settings.global_markup_percentage || 0) / 100) * settings.global_tax_rate) / 100).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <Separator className="my-3" />
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-xl font-bold">Total:</span>
+                    <span className="text-2xl font-bold text-green-600">
+                      {settings ? displayQuoteTotal(quote.total_amount, settings, quote.status) : `$${quote.total_amount.toFixed(2)}`}
+                    </span>
+                  </div>
                 </div>
-              </>
-            )}
-
-            {settings?.use_price_ranges && (
-              <>
-                <Separator className="my-6" />
-                <div className="text-center">
-                  <p className="font-medium text-lg">Estimated Total</p>
-                  <p className="text-2xl font-bold text-primary mt-2">
-                    {displayQuoteTotal(quote.total_amount, settings, quote.status)}
-                  </p>
-                </div>
-              </>
+              </div>
+            ) : settings?.use_price_ranges ? (
+              <div className="text-center py-6">
+                <p className="text-base text-muted-foreground mb-2">Estimated Total</p>
+                <p className="text-3xl font-bold text-green-600">
+                  {displayQuoteTotal(quote.total_amount, settings, quote.status)}
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                No items in this quote yet
+              </div>
             )}
             
             {quote.project_address || editingAddress ? (
