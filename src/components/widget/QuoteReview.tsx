@@ -14,6 +14,7 @@ import { QuoteItem, CustomerInfo, WorkflowStep } from '@/types/widget';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useGooglePlaces } from '@/hooks/useGooglePlaces';
 import { 
   applyGlobalMarkup, 
   applyGlobalTax, 
@@ -54,8 +55,10 @@ const QuoteReview = ({
   const [showContactDialog, setShowContactDialog] = useState(false);
   const [dialogCustomerInfo, setDialogCustomerInfo] = useState<Partial<CustomerInfo>>({});
   const [dialogErrors, setDialogErrors] = useState<Record<string, string>>({});
+  const [showPredictions, setShowPredictions] = useState(false);
   const { toast } = useToast();
   const quoteSummaryRef = useRef<HTMLDivElement>(null);
+  const { getAutocomplete, getPlaceDetails, predictions, loading } = useGooglePlaces();
 
   // Sync local items state with parent quoteItems prop
   useEffect(() => {
@@ -123,6 +126,35 @@ const QuoteReview = ({
     onUpdateComments(comments);
   };
 
+  const handleDialogAddressChange = async (value: string) => {
+    setDialogCustomerInfo(prev => ({ ...prev, address: value }));
+    setDialogErrors(prev => ({ ...prev, address: '' }));
+    
+    if (value.length > 2) {
+      getAutocomplete(value);
+      setShowPredictions(true);
+    }
+  };
+
+  const handleDialogAddressSelect = async (placeId: string, description: string) => {
+    setShowPredictions(false);
+    
+    const placeDetails = await getPlaceDetails(placeId);
+    if (placeDetails) {
+      setDialogCustomerInfo(prev => ({
+        ...prev,
+        address: description,
+        city: placeDetails.city,
+        state: placeDetails.state,
+        zipCode: placeDetails.zipCode,
+        lat: placeDetails.lat,
+        lng: placeDetails.lng
+      }));
+    } else {
+      setDialogCustomerInfo(prev => ({ ...prev, address: description }));
+    }
+  };
+
   const validateDialogForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -140,6 +172,9 @@ const QuoteReview = ({
     }
     if (settings.require_phone !== false && !dialogCustomerInfo.phone?.trim()) {
       newErrors.phone = 'Phone number is required';
+    }
+    if (settings.require_address !== false && !dialogCustomerInfo.address?.trim()) {
+      newErrors.address = 'Address is required';
     }
 
     setDialogErrors(newErrors);
@@ -389,6 +424,40 @@ const QuoteReview = ({
               />
               {dialogErrors.phone && (
                 <p className="text-sm text-destructive mt-1">{dialogErrors.phone}</p>
+              )}
+            </div>
+            <div className="relative">
+              <Label htmlFor="dialog-address">
+                Project Address {settings.require_address && <span className="text-destructive">*</span>}
+              </Label>
+              <Input
+                id="dialog-address"
+                value={dialogCustomerInfo.address || ''}
+                onChange={(e) => handleDialogAddressChange(e.target.value)}
+                onFocus={() => setShowPredictions(true)}
+                onBlur={() => setTimeout(() => setShowPredictions(false), 200)}
+                className={dialogErrors.address ? 'border-destructive' : ''}
+                placeholder="Enter the project address"
+              />
+              
+              {/* Address predictions dropdown */}
+              {showPredictions && predictions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-auto">
+                  {predictions.map((prediction) => (
+                    <button
+                      key={prediction.place_id}
+                      type="button"
+                      className="w-full px-3 py-2 text-left hover:bg-accent text-sm"
+                      onClick={() => handleDialogAddressSelect(prediction.place_id, prediction.description)}
+                    >
+                      {prediction.description}
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {dialogErrors.address && (
+                <p className="text-sm text-destructive mt-1">{dialogErrors.address}</p>
               )}
             </div>
           </div>
