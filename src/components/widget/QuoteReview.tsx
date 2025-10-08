@@ -124,6 +124,16 @@ const QuoteReview = ({
       return;
     }
 
+    // Validate required customer information
+    if (!customerInfo.firstName || !customerInfo.lastName || !customerInfo.email) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide your contact information before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
