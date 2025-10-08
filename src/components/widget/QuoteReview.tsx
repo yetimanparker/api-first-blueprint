@@ -442,12 +442,14 @@ const QuoteReview = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <p className="font-bold text-xl text-green-600">
-                        {formatExactPrice(item.lineTotal, {
-                          currency_symbol: settings.currency_symbol,
-                          decimal_precision: settings.decimal_precision
-                        })}
-                      </p>
+                      {settings.pricing_visibility === 'before_submit' && (
+                        <p className="font-bold text-xl text-green-600">
+                          {formatExactPrice(item.lineTotal, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })}
+                        </p>
+                      )}
                       <Button 
                         variant="ghost" 
                         size="icon" 
