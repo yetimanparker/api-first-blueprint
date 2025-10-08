@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { QuoteItem, CustomerInfo } from '@/types/widget';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
-import { formatExactPrice } from '@/lib/priceUtils';
+import { formatExactPrice, calculatePriceRange, formatPriceRange } from '@/lib/priceUtils';
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader } from '@googlemaps/js-api-loader';
@@ -251,19 +251,33 @@ const QuoteSuccess = ({
                         </p>
                       </div>
                       <p className="font-bold text-lg">
-                        {formatExactPrice(item.lineTotal, {
-                          currency_symbol: settings.currency_symbol,
-                          decimal_precision: settings.decimal_precision
-                        })}
+                        {settings.use_price_ranges ? (
+                          formatPriceRange(
+                            calculatePriceRange(item.lineTotal, settings.price_range_percentage),
+                            settings
+                          )
+                        ) : (
+                          formatExactPrice(item.lineTotal, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })
+                        )}
                       </p>
                     </div>
 
                     {/* Itemized breakdown */}
                     <div className="space-y-1 text-sm text-muted-foreground">
-                      <div>Base: {formatExactPrice(basePrice, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })}</div>
+                      <div>Base: {settings.use_price_ranges ? (
+                        formatPriceRange(
+                          calculatePriceRange(basePrice, settings.price_range_percentage),
+                          settings
+                        )
+                      ) : (
+                        formatExactPrice(basePrice, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })
+                      )}</div>
                       
                       {item.variations?.map(v => (
                         <div key={v.id}>
@@ -295,10 +309,17 @@ const QuoteSuccess = ({
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
                   <span className="font-semibold">
-                    {formatExactPrice(subtotal, {
-                      currency_symbol: settings.currency_symbol,
-                      decimal_precision: settings.decimal_precision
-                    })}
+                    {settings.use_price_ranges ? (
+                      formatPriceRange(
+                        calculatePriceRange(subtotal, settings.price_range_percentage),
+                        settings
+                      )
+                    ) : (
+                      formatExactPrice(subtotal, {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      })
+                    )}
                   </span>
                 </div>
                 
@@ -306,10 +327,17 @@ const QuoteSuccess = ({
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Tax ({settings.global_tax_rate}%):</span>
                     <span>
-                      {formatExactPrice(taxAmount, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })}
+                      {settings.use_price_ranges ? (
+                        formatPriceRange(
+                          calculatePriceRange(taxAmount, settings.price_range_percentage),
+                          settings
+                        )
+                      ) : (
+                        formatExactPrice(taxAmount, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })
+                      )}
                     </span>
                   </div>
                 )}
@@ -319,10 +347,17 @@ const QuoteSuccess = ({
                 <div className="flex justify-between text-2xl font-bold">
                   <span>Total:</span>
                   <span className="text-green-600">
-                    {formatExactPrice(total, {
-                      currency_symbol: settings.currency_symbol,
-                      decimal_precision: settings.decimal_precision
-                    })}
+                    {settings.use_price_ranges ? (
+                      formatPriceRange(
+                        calculatePriceRange(total, settings.price_range_percentage),
+                        settings
+                      )
+                    ) : (
+                      formatExactPrice(total, {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      })
+                    )}
                   </span>
                 </div>
               </div>

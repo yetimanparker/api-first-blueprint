@@ -134,8 +134,8 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     : [];
 
   const shouldShowPricing = (product: Product) => {
-    // Check global setting first - if pricing visibility is 'after_submit', never show pricing
-    if (settings.pricing_visibility === 'after_submit') {
+    // Check global setting first - if pricing visibility is 'after_submit' or using price ranges, never show pricing
+    if (settings.pricing_visibility === 'after_submit' || settings.use_price_ranges) {
       return false;
     }
     // Otherwise, respect the individual product's setting

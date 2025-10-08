@@ -442,7 +442,7 @@ const QuoteReview = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      {settings.pricing_visibility === 'before_submit' && (
+                      {settings.pricing_visibility === 'before_submit' && !settings.use_price_ranges && (
                         <p className="font-bold text-xl text-green-600">
                           {formatExactPrice(item.lineTotal, {
                             currency_symbol: settings.currency_symbol,
@@ -462,7 +462,7 @@ const QuoteReview = ({
                   </div>
                   
                     {/* Itemized Breakdown */}
-                  {settings.pricing_visibility === 'before_submit' && (
+                  {settings.pricing_visibility === 'before_submit' && !settings.use_price_ranges && (
                     <div className="ml-6 space-y-2 text-sm">
                       {/* Base Product */}
                       <div className="text-muted-foreground">

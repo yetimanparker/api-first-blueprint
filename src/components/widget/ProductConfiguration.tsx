@@ -363,7 +363,7 @@ const ProductConfiguration = ({
             </div>
 
             {/* Itemized Pricing Breakdown */}
-            {settings.pricing_visibility === 'before_submit' && (
+            {settings.pricing_visibility === 'before_submit' && !settings.use_price_ranges && (
               <div className="space-y-2 pl-6">
                 {/* Base Price */}
                 <div className="flex justify-between items-center text-sm">
