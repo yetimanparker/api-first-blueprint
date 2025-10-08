@@ -32,6 +32,7 @@ interface QuoteReviewProps {
   onUpdateCustomerInfo: (info: Partial<CustomerInfo>) => void;
   onAddAnother?: () => void;
   onRemoveItem?: (itemId: string) => void;
+  onQuoteSubmitted?: (quoteNumber: string) => void;
 }
 
 const QuoteReview = ({ 
@@ -44,7 +45,8 @@ const QuoteReview = ({
   onUpdateComments,
   onUpdateCustomerInfo,
   onAddAnother,
-  onRemoveItem
+  onRemoveItem,
+  onQuoteSubmitted
 }: QuoteReviewProps) => {
   const [projectComments, setProjectComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -230,10 +232,14 @@ const QuoteReview = ({
 
       toast({
         title: "Quote Submitted!",
-        description: `Your quote #${data.quoteNumber} has been submitted successfully. We'll be in touch soon!`,
+        description: `Your quote #${data.quoteNumber} has been submitted successfully.`,
       });
 
-      onNext();
+      if (onQuoteSubmitted) {
+        onQuoteSubmitted(data.quoteNumber);
+      } else {
+        onNext();
+      }
     } catch (error: any) {
       console.error('Error submitting quote:', error);
       toast({
@@ -453,65 +459,67 @@ const QuoteReview = ({
                     </div>
                   </div>
                   
-                  {/* Itemized Breakdown */}
-                  <div className="ml-6 space-y-2 text-sm">
-                    {/* Base Product */}
-                    <div className="text-muted-foreground">
-                      Base {item.productName}: {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')} × {formatExactPrice(item.unitPrice, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })} = {formatExactPrice(basePrice, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })}
-                    </div>
+                    {/* Itemized Breakdown */}
+                  {settings.pricing_visibility === 'before_submit' && (
+                    <div className="ml-6 space-y-2 text-sm">
+                      {/* Base Product */}
+                      <div className="text-muted-foreground">
+                        Base {item.productName}: {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')} × {formatExactPrice(item.unitPrice, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })} = {formatExactPrice(basePrice, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}
+                      </div>
 
-                    {/* Variations */}
-                    {item.variations && item.variations.length > 0 && item.variations.map((variation) => {
-                      const variationPrice = variation.adjustmentType === 'percentage'
-                        ? basePrice * (variation.priceAdjustment / 100)
-                        : variation.priceAdjustment * item.measurement.value;
-                      
-                      return (
-                        <div key={variation.id} className="text-muted-foreground">
-                          {variation.name}: {variation.adjustmentType === 'percentage' ? `${variation.priceAdjustment}%` : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')} × ${formatExactPrice(variation.priceAdjustment, {
-                            currency_symbol: settings.currency_symbol,
-                            decimal_precision: settings.decimal_precision
-                          })}`} = {formatExactPrice(variationPrice, {
-                            currency_symbol: settings.currency_symbol,
-                            decimal_precision: settings.decimal_precision
-                          })}
-                        </div>
-                      );
-                    })}
-
-                    {/* Add-ons with Toggles */}
-                    {item.addons && item.addons.length > 0 && item.addons.map((addon) => {
-                      const addonPrice = addon.calculationType === 'per_unit'
-                        ? addon.priceValue * item.measurement.value
-                        : addon.priceValue;
-                      const isEnabled = addon.quantity > 0;
-                      
-                      return (
-                        <div key={addon.id} className="flex items-center gap-2">
-                          <Switch
-                            checked={isEnabled}
-                            onCheckedChange={() => toggleAddon(item.id, addon.id)}
-                            className="scale-75"
-                          />
-                          <span className={isEnabled ? 'text-foreground' : 'text-muted-foreground line-through'}>
-                            {addon.name}: {addon.calculationType === 'per_unit' ? `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')} × ` : ''}{formatExactPrice(addon.priceValue, {
+                      {/* Variations */}
+                      {item.variations && item.variations.length > 0 && item.variations.map((variation) => {
+                        const variationPrice = variation.adjustmentType === 'percentage'
+                          ? basePrice * (variation.priceAdjustment / 100)
+                          : variation.priceAdjustment * item.measurement.value;
+                        
+                        return (
+                          <div key={variation.id} className="text-muted-foreground">
+                            {variation.name}: {variation.adjustmentType === 'percentage' ? `${variation.priceAdjustment}%` : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')} × ${formatExactPrice(variation.priceAdjustment, {
                               currency_symbol: settings.currency_symbol,
                               decimal_precision: settings.decimal_precision
-                            })} = {formatExactPrice(addonPrice, {
+                            })}`} = {formatExactPrice(variationPrice, {
                               currency_symbol: settings.currency_symbol,
                               decimal_precision: settings.decimal_precision
                             })}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Add-ons with Toggles */}
+                      {item.addons && item.addons.length > 0 && item.addons.map((addon) => {
+                        const addonPrice = addon.calculationType === 'per_unit'
+                          ? addon.priceValue * item.measurement.value
+                          : addon.priceValue;
+                        const isEnabled = addon.quantity > 0;
+                        
+                        return (
+                          <div key={addon.id} className="flex items-center gap-2">
+                            <Switch
+                              checked={isEnabled}
+                              onCheckedChange={() => toggleAddon(item.id, addon.id)}
+                              className="scale-75"
+                            />
+                            <span className={isEnabled ? 'text-foreground' : 'text-muted-foreground line-through'}>
+                              {addon.name}: {addon.calculationType === 'per_unit' ? `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')} × ` : ''}{formatExactPrice(addon.priceValue, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })} = {formatExactPrice(addonPrice, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -519,41 +527,51 @@ const QuoteReview = ({
 
           <Separator className="my-4 bg-green-300 dark:bg-green-700" />
 
-          <div className="space-y-2">
-            <div className="flex justify-between text-base">
-              <span>Subtotal:</span>
-              <span className="font-semibold">
-                {formatExactPrice(subtotal, {
-                  currency_symbol: settings.currency_symbol,
-                  decimal_precision: settings.decimal_precision
-                })}
-              </span>
-            </div>
-            
-            {taxAmount > 0 && (
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Tax ({settings.global_tax_rate}%):</span>
-                <span>
-                  {formatExactPrice(taxAmount, {
+          {settings.pricing_visibility === 'before_submit' && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-base">
+                <span>Subtotal:</span>
+                <span className="font-semibold">
+                  {formatExactPrice(subtotal, {
                     currency_symbol: settings.currency_symbol,
                     decimal_precision: settings.decimal_precision
                   })}
                 </span>
               </div>
-            )}
-            
-            <Separator className="my-2 bg-green-300 dark:bg-green-700" />
-            
-            <div className="flex justify-between text-2xl font-bold pt-2">
-              <span>Total:</span>
-              <span className="text-green-600">
-                {formatExactPrice(total, {
-                  currency_symbol: settings.currency_symbol,
-                  decimal_precision: settings.decimal_precision
-                })}
-              </span>
+              
+              {taxAmount > 0 && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Tax ({settings.global_tax_rate}%):</span>
+                  <span>
+                    {formatExactPrice(taxAmount, {
+                      currency_symbol: settings.currency_symbol,
+                      decimal_precision: settings.decimal_precision
+                    })}
+                  </span>
+                </div>
+              )}
+              
+              <Separator className="my-2 bg-green-300 dark:bg-green-700" />
+              
+              <div className="flex justify-between text-2xl font-bold pt-2">
+                <span>Total:</span>
+                <span className="text-green-600">
+                  {formatExactPrice(total, {
+                    currency_symbol: settings.currency_symbol,
+                    decimal_precision: settings.decimal_precision
+                  })}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
+          
+          {settings.pricing_visibility === 'after_submit' && (
+            <div className="text-center py-4">
+              <p className="text-muted-foreground">
+                Complete pricing details will be shown after you submit your quote request
+              </p>
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-3 mt-6">
             {onAddAnother && (

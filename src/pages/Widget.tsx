@@ -13,6 +13,7 @@ import ProductSelector from '@/components/widget/ProductSelector';
 import MeasurementTools from '@/components/widget/MeasurementTools';
 import ProductConfiguration from '@/components/widget/ProductConfiguration';
 import QuoteReview from '@/components/widget/QuoteReview';
+import QuoteSuccess from '@/components/widget/QuoteSuccess';
 import { WidgetState, WorkflowStep, CustomerInfo, QuoteItem, MeasurementData } from '@/types/widget';
 
 const Widget = () => {
@@ -33,6 +34,8 @@ const Widget = () => {
   const [contractorInfo, setContractorInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [submittedQuoteNumber, setSubmittedQuoteNumber] = useState<string | null>(null);
+  const [submittedProjectComments, setSubmittedProjectComments] = useState<string>('');
 
   // Use debounced service area validation
   const { isServiceAreaValid, isValidating, manualValidate } = useDebouncedServiceArea({
@@ -264,6 +267,14 @@ const Widget = () => {
     }));
   };
 
+  const handleQuoteSubmitted = (quoteNumber: string) => {
+    setSubmittedQuoteNumber(quoteNumber);
+    setWidgetState(prev => ({
+      ...prev,
+      currentStep: 'confirmation'
+    }));
+  };
+
   if (settingsLoading || categoriesLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -415,7 +426,7 @@ const Widget = () => {
         )}
 
         {/* Quote Review Section */}
-        {isStepVisible('quote-review') && (
+        {isStepVisible('quote-review') && widgetState.currentStep !== 'confirmation' && (
           <div id="step-quote-review" className="px-4 py-6">
             <QuoteReview
               quoteItems={widgetState.quoteItems}
@@ -424,12 +435,13 @@ const Widget = () => {
               settings={settings}
               currentStep={widgetState.currentStep}
               onNext={nextStep}
-              onUpdateComments={(comments) => 
+              onUpdateComments={(comments) => {
+                setSubmittedProjectComments(comments);
                 setWidgetState(prev => ({ 
                   ...prev, 
                   quoteSummary: { ...prev.quoteSummary!, projectComments: comments }
-                }))
-              }
+                }));
+              }}
               onUpdateCustomerInfo={updateCustomerInfo}
               onAddAnother={goToProductSelection}
               onRemoveItem={(itemId) => {
@@ -447,6 +459,21 @@ const Widget = () => {
                   goToProductSelection();
                 }
               }}
+              onQuoteSubmitted={handleQuoteSubmitted}
+            />
+          </div>
+        )}
+
+        {/* Quote Success Section */}
+        {widgetState.currentStep === 'confirmation' && submittedQuoteNumber && (
+          <div id="step-confirmation" className="px-4 py-6">
+            <QuoteSuccess
+              quoteNumber={submittedQuoteNumber}
+              quoteItems={widgetState.quoteItems}
+              customerInfo={widgetState.customerInfo}
+              contractorId={contractorId!}
+              settings={settings}
+              projectComments={submittedProjectComments}
             />
           </div>
         )}
