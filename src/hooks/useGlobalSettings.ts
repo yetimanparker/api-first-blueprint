@@ -14,7 +14,7 @@ export interface GlobalSettings extends PriceRangeSettings {
   require_address: boolean;
   service_area_enabled: boolean;
   widget_theme_color: string;
-  contact_capture_timing: 'before_quote' | 'after_quote';
+  contact_capture_timing: 'before_quote' | 'after_quote' | 'on_submit';
   pricing_visibility: 'before_submit' | 'after_submit';
 }
 

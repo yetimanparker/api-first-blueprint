@@ -163,9 +163,9 @@ const QuoteReview = ({
       return;
     }
 
-    // If contact info is missing and timing is after_quote, show dialog
+    // If contact info is missing and timing requires capture on submit, show dialog
     if ((!customerInfo.firstName || !customerInfo.lastName || !customerInfo.email) && 
-        settings.contact_capture_timing === 'after_quote') {
+        (settings.contact_capture_timing === 'on_submit' || settings.contact_capture_timing === 'after_quote')) {
       setDialogCustomerInfo(customerInfo);
       setShowContactDialog(true);
       return;
