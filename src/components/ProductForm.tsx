@@ -16,6 +16,7 @@ import { useGlobalSettings, useProductCategories } from "@/hooks/useGlobalSettin
 import { displayPrice, calculateFinalPrice, PricingTier, validateTiers } from "@/lib/priceUtils";
 import { Plus, Trash2, GripVertical, Upload, Image } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useContractorId } from "@/hooks/useContractorId";
 
 const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
@@ -95,7 +96,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const { toast } = useToast();
   const { settings: globalSettings } = useGlobalSettings();
-  const { categories, getSubcategoriesForCategory } = useProductCategories();
+  const { contractorId } = useContractorId();
+  const { categories, getSubcategoriesForCategory } = useProductCategories(contractorId);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
