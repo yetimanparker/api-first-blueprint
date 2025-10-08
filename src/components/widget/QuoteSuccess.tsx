@@ -253,7 +253,7 @@ const QuoteSuccess = ({
                       <p className="font-bold text-lg">
                         {settings.use_price_ranges ? (
                           formatPriceRange(
-                            calculatePriceRange(item.lineTotal, settings.price_range_percentage),
+                            calculatePriceRange(item.lineTotal, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
                             settings
                           )
                         ) : (
@@ -269,7 +269,7 @@ const QuoteSuccess = ({
                     <div className="space-y-1 text-sm text-muted-foreground">
                       <div>Base: {settings.use_price_ranges ? (
                         formatPriceRange(
-                          calculatePriceRange(basePrice, settings.price_range_percentage),
+                          calculatePriceRange(basePrice, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
                           settings
                         )
                       ) : (
@@ -311,7 +311,7 @@ const QuoteSuccess = ({
                   <span className="font-semibold">
                     {settings.use_price_ranges ? (
                       formatPriceRange(
-                        calculatePriceRange(subtotal, settings.price_range_percentage),
+                        calculatePriceRange(subtotal, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
                         settings
                       )
                     ) : (
@@ -329,7 +329,7 @@ const QuoteSuccess = ({
                     <span>
                       {settings.use_price_ranges ? (
                         formatPriceRange(
-                          calculatePriceRange(taxAmount, settings.price_range_percentage),
+                          calculatePriceRange(taxAmount, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
                           settings
                         )
                       ) : (
@@ -349,7 +349,7 @@ const QuoteSuccess = ({
                   <span className="text-green-600">
                     {settings.use_price_ranges ? (
                       formatPriceRange(
-                        calculatePriceRange(total, settings.price_range_percentage),
+                        calculatePriceRange(total, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
                         settings
                       )
                     ) : (

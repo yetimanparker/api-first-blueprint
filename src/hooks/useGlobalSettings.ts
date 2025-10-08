@@ -42,7 +42,8 @@ export function useGlobalSettings() {
         // Use default settings if no contractor profile
         setSettings({
           use_price_ranges: false,
-          price_range_percentage: 15,
+          price_range_lower_percentage: 10,
+          price_range_upper_percentage: 20,
           price_range_display_format: 'percentage',
           currency_symbol: '$',
           decimal_precision: 2,
@@ -77,7 +78,8 @@ export function useGlobalSettings() {
       if (contractorSettings) {
         setSettings({
           use_price_ranges: contractorSettings.use_price_ranges || false,
-          price_range_percentage: contractorSettings.price_range_percentage || 15,
+          price_range_lower_percentage: contractorSettings.price_range_lower_percentage ?? 10,
+          price_range_upper_percentage: contractorSettings.price_range_upper_percentage ?? 20,
           price_range_display_format: (contractorSettings.price_range_display_format as any) || 'percentage',
           currency_symbol: contractorSettings.currency_symbol || '$',
           decimal_precision: contractorSettings.decimal_precision ?? 2,
@@ -99,7 +101,8 @@ export function useGlobalSettings() {
         // Use default settings if no settings found
         setSettings({
           use_price_ranges: false,
-          price_range_percentage: 15,
+          price_range_lower_percentage: 10,
+          price_range_upper_percentage: 20,
           price_range_display_format: 'percentage',
           currency_symbol: '$',
           decimal_precision: 2,

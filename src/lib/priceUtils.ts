@@ -1,6 +1,7 @@
 export interface PriceRangeSettings {
   use_price_ranges: boolean;
-  price_range_percentage: number;
+  price_range_lower_percentage: number;
+  price_range_upper_percentage: number;
   price_range_display_format: 'percentage' | 'dollar_amounts';
   currency_symbol: string;
   decimal_precision: number;
@@ -24,10 +25,11 @@ export interface PriceRange {
 
 export function calculatePriceRange(
   basePrice: number, 
-  percentage: number
+  lowerPercentage: number,
+  upperPercentage: number
 ): PriceRange {
-  const lower = Math.round(basePrice * (1 - percentage / 100));
-  const upper = Math.round(basePrice * (1 + percentage / 100));
+  const lower = Math.round(basePrice * (1 - lowerPercentage / 100));
+  const upper = Math.round(basePrice * (1 + upperPercentage / 100));
   
   return {
     lower,
@@ -40,7 +42,7 @@ export function formatPriceRange(
   range: PriceRange,
   settings: PriceRangeSettings
 ): string {
-  const { currency_symbol, decimal_precision, price_range_display_format, price_range_percentage } = settings;
+  const { currency_symbol, decimal_precision, price_range_display_format, price_range_lower_percentage, price_range_upper_percentage } = settings;
   
   const formatPrice = (amount: number) => {
     return `${currency_symbol}${amount.toLocaleString(undefined, {
@@ -53,7 +55,7 @@ export function formatPriceRange(
   const upperFormatted = formatPrice(range.upper);
 
   if (price_range_display_format === 'percentage') {
-    return `${lowerFormatted} - ${upperFormatted} (±${price_range_percentage}%)`;
+    return `${lowerFormatted} - ${upperFormatted} (-${price_range_lower_percentage}% / +${price_range_upper_percentage}%)`;
   } else {
     return `${lowerFormatted} - ${upperFormatted}`;
   }
@@ -74,7 +76,7 @@ export function displayPrice(
   settings: PriceRangeSettings
 ): string {
   if (settings.use_price_ranges) {
-    const range = calculatePriceRange(basePrice, settings.price_range_percentage);
+    const range = calculatePriceRange(basePrice, settings.price_range_lower_percentage, settings.price_range_upper_percentage);
     return formatPriceRange(range, settings);
   } else {
     return formatExactPrice(basePrice, settings);
@@ -90,7 +92,7 @@ export function displayQuoteTotal(
   const isSubmittedQuote = ['pending', 'accepted', 'declined', 'expired'].includes(quoteStatus);
   
   if (settings.use_price_ranges && isSubmittedQuote) {
-    const range = calculatePriceRange(basePrice, settings.price_range_percentage);
+    const range = calculatePriceRange(basePrice, settings.price_range_lower_percentage, settings.price_range_upper_percentage);
     return formatPriceRange(range, settings);
   } else {
     return formatExactPrice(basePrice, settings);

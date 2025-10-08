@@ -37,7 +37,8 @@ const settingsSchema = z.object({
   contact_capture_timing: z.enum(["before_quote", "on_submit", "optional"]),
   widget_theme_color: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color"),
   use_price_ranges: z.boolean(),
-  price_range_percentage: z.number().min(1).max(50),
+  price_range_lower_percentage: z.number().min(0).max(50),
+  price_range_upper_percentage: z.number().min(0).max(100),
   price_range_display_format: z.enum(['percentage', 'dollar_amounts']),
   currency_symbol: z.string().min(1),
   decimal_precision: z.number().min(0).max(4),
@@ -105,7 +106,8 @@ const Settings = () => {
       contact_capture_timing: "before_quote",
       widget_theme_color: "#3B82F6",
       use_price_ranges: false,
-      price_range_percentage: 15,
+      price_range_lower_percentage: 10,
+      price_range_upper_percentage: 20,
       price_range_display_format: 'percentage',
       currency_symbol: "$",
       decimal_precision: 2,
@@ -179,7 +181,8 @@ const Settings = () => {
             contact_capture_timing: (settings.contact_capture_timing as "before_quote" | "on_submit" | "optional") || "before_quote",
             widget_theme_color: settings.widget_theme_color || "#3B82F6",
             use_price_ranges: settings.use_price_ranges || false,
-            price_range_percentage: settings.price_range_percentage || 15,
+            price_range_lower_percentage: settings.price_range_lower_percentage ?? 10,
+            price_range_upper_percentage: settings.price_range_upper_percentage ?? 20,
             price_range_display_format: (settings.price_range_display_format as 'percentage' | 'dollar_amounts') || 'percentage',
             currency_symbol: settings.currency_symbol || "$",
             decimal_precision: settings.decimal_precision || 2,
@@ -285,7 +288,8 @@ const Settings = () => {
         contact_capture_timing: data.contact_capture_timing,
         widget_theme_color: data.widget_theme_color,
         use_price_ranges: data.use_price_ranges,
-        price_range_percentage: data.price_range_percentage,
+        price_range_lower_percentage: data.price_range_lower_percentage,
+        price_range_upper_percentage: data.price_range_upper_percentage,
         price_range_display_format: data.price_range_display_format,
         currency_symbol: data.currency_symbol,
         decimal_precision: data.decimal_precision,
@@ -791,21 +795,21 @@ const Settings = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <FormField
                             control={settingsForm.control}
-                            name="price_range_percentage"
+                            name="price_range_lower_percentage"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Price Range Percentage</FormLabel>
+                                <FormLabel>Lower Range (%)</FormLabel>
                                 <FormControl>
                                   <Input 
                                     type="number" 
-                                    min="1" 
+                                    min="0" 
                                     max="50" 
                                     {...field} 
                                     onChange={(e) => field.onChange(parseFloat(e.target.value))}
                                   />
                                 </FormControl>
                                 <FormDescription>
-                                  Percentage variance for price ranges (1-50%)
+                                  Percentage discount from base price (0-50%)
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
@@ -813,29 +817,51 @@ const Settings = () => {
                           />
                           <FormField
                             control={settingsForm.control}
-                            name="price_range_display_format"
+                            name="price_range_upper_percentage"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Display Format</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select format" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="percentage">Show Percentage</SelectItem>
-                                    <SelectItem value="dollar_amounts">Dollar Amounts Only</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                <FormLabel>Upper Range (%)</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    min="0" 
+                                    max="100" 
+                                    {...field} 
+                                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                  />
+                                </FormControl>
                                 <FormDescription>
-                                  How to display price ranges
+                                  Percentage increase from base price (0-100%)
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
                         </div>
+                        <FormField
+                          control={settingsForm.control}
+                          name="price_range_display_format"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Display Format</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select format" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="percentage">Show Percentage</SelectItem>
+                                  <SelectItem value="dollar_amounts">Dollar Amounts Only</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                How to display price ranges
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
                     </div>
 

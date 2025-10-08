@@ -28,7 +28,9 @@ export type Database = {
           global_tax_rate: number
           id: string
           price_range_display_format: string
+          price_range_lower_percentage: number
           price_range_percentage: number
+          price_range_upper_percentage: number
           pricing_visibility: string
           require_address: boolean
           require_email: boolean
@@ -57,7 +59,9 @@ export type Database = {
           global_tax_rate?: number
           id?: string
           price_range_display_format?: string
+          price_range_lower_percentage?: number
           price_range_percentage?: number
+          price_range_upper_percentage?: number
           pricing_visibility?: string
           require_address?: boolean
           require_email?: boolean
@@ -86,7 +90,9 @@ export type Database = {
           global_tax_rate?: number
           id?: string
           price_range_display_format?: string
+          price_range_lower_percentage?: number
           price_range_percentage?: number
+          price_range_upper_percentage?: number
           pricing_visibility?: string
           require_address?: boolean
           require_email?: boolean
