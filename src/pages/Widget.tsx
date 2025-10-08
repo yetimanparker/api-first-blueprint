@@ -430,6 +430,7 @@ const Widget = () => {
                   quoteSummary: { ...prev.quoteSummary!, projectComments: comments }
                 }))
               }
+              onUpdateCustomerInfo={updateCustomerInfo}
               onAddAnother={goToProductSelection}
               onRemoveItem={(itemId) => {
                 console.log('🗑️ Deleting item:', itemId);

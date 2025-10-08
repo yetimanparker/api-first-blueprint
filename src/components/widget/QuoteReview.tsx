@@ -7,7 +7,9 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Loader2, FileText, DollarSign, Plus, MessageSquare, Calculator, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Loader2, FileText, DollarSign, Plus, MessageSquare, Calculator, Trash2, User } from 'lucide-react';
 import { QuoteItem, CustomerInfo, WorkflowStep } from '@/types/widget';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,6 +29,7 @@ interface QuoteReviewProps {
   currentStep: WorkflowStep;
   onNext: () => void;
   onUpdateComments: (comments: string) => void;
+  onUpdateCustomerInfo: (info: Partial<CustomerInfo>) => void;
   onAddAnother?: () => void;
   onRemoveItem?: (itemId: string) => void;
 }
@@ -39,12 +42,16 @@ const QuoteReview = ({
   currentStep,
   onNext,
   onUpdateComments,
+  onUpdateCustomerInfo,
   onAddAnother,
   onRemoveItem
 }: QuoteReviewProps) => {
   const [projectComments, setProjectComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [items, setItems] = useState<QuoteItem[]>(quoteItems);
+  const [showContactDialog, setShowContactDialog] = useState(false);
+  const [dialogCustomerInfo, setDialogCustomerInfo] = useState<Partial<CustomerInfo>>({});
+  const [dialogErrors, setDialogErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const quoteSummaryRef = useRef<HTMLDivElement>(null);
 
@@ -114,6 +121,38 @@ const QuoteReview = ({
     onUpdateComments(comments);
   };
 
+  const validateDialogForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!dialogCustomerInfo.firstName?.trim()) {
+      newErrors.firstName = 'First name is required';
+    }
+    if (!dialogCustomerInfo.lastName?.trim()) {
+      newErrors.lastName = 'Last name is required';
+    }
+    if (settings.require_email !== false && !dialogCustomerInfo.email?.trim()) {
+      newErrors.email = 'Email is required';
+    }
+    if (dialogCustomerInfo.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dialogCustomerInfo.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    if (settings.require_phone !== false && !dialogCustomerInfo.phone?.trim()) {
+      newErrors.phone = 'Phone number is required';
+    }
+
+    setDialogErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleContactDialogSubmit = () => {
+    if (validateDialogForm()) {
+      onUpdateCustomerInfo(dialogCustomerInfo);
+      setShowContactDialog(false);
+      // Now submit the quote with the updated info
+      submitQuote(dialogCustomerInfo);
+    }
+  };
+
   const handleSubmitQuote = async () => {
     if (!contractorId) {
       toast({
@@ -124,16 +163,19 @@ const QuoteReview = ({
       return;
     }
 
-    // Validate required customer information
-    if (!customerInfo.firstName || !customerInfo.lastName || !customerInfo.email) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide your contact information before submitting.",
-        variant: "destructive",
-      });
+    // If contact info is missing and timing is after_quote, show dialog
+    if ((!customerInfo.firstName || !customerInfo.lastName || !customerInfo.email) && 
+        settings.contact_capture_timing === 'after_quote') {
+      setDialogCustomerInfo(customerInfo);
+      setShowContactDialog(true);
       return;
     }
 
+    // Otherwise proceed with submission
+    submitQuote(customerInfo);
+  };
+
+  const submitQuote = async (contactInfo: Partial<CustomerInfo>) => {
     setIsSubmitting(true);
 
     try {
@@ -169,14 +211,14 @@ const QuoteReview = ({
       const { data, error } = await supabase.functions.invoke('submit-widget-quote', {
         body: {
           customerInfo: {
-            firstName: customerInfo.firstName,
-            lastName: customerInfo.lastName,
-            email: customerInfo.email,
-            phone: customerInfo.phone,
-            address: customerInfo.address,
-            city: customerInfo.city,
-            state: customerInfo.state,
-            zipCode: customerInfo.zipCode,
+            firstName: contactInfo.firstName,
+            lastName: contactInfo.lastName,
+            email: contactInfo.email,
+            phone: contactInfo.phone,
+            address: contactInfo.address,
+            city: contactInfo.city,
+            state: contactInfo.state,
+            zipCode: contactInfo.zipCode,
           },
           quoteItems: quoteItemsData,
           contractorId,
@@ -253,7 +295,117 @@ const QuoteReview = ({
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <>
+      {/* Contact Information Dialog */}
+      <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-primary" />
+              Contact Information Required
+            </DialogTitle>
+            <DialogDescription>
+              Please provide your contact details to complete your quote request.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="dialog-firstName">
+                  First Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="dialog-firstName"
+                  value={dialogCustomerInfo.firstName || ''}
+                  onChange={(e) => {
+                    setDialogCustomerInfo(prev => ({ ...prev, firstName: e.target.value }));
+                    setDialogErrors(prev => ({ ...prev, firstName: '' }));
+                  }}
+                  className={dialogErrors.firstName ? 'border-destructive' : ''}
+                  placeholder="Enter first name"
+                />
+                {dialogErrors.firstName && (
+                  <p className="text-sm text-destructive mt-1">{dialogErrors.firstName}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="dialog-lastName">
+                  Last Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="dialog-lastName"
+                  value={dialogCustomerInfo.lastName || ''}
+                  onChange={(e) => {
+                    setDialogCustomerInfo(prev => ({ ...prev, lastName: e.target.value }));
+                    setDialogErrors(prev => ({ ...prev, lastName: '' }));
+                  }}
+                  className={dialogErrors.lastName ? 'border-destructive' : ''}
+                  placeholder="Enter last name"
+                />
+                {dialogErrors.lastName && (
+                  <p className="text-sm text-destructive mt-1">{dialogErrors.lastName}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="dialog-email">
+                Email {settings.require_email && <span className="text-destructive">*</span>}
+              </Label>
+              <Input
+                id="dialog-email"
+                type="email"
+                value={dialogCustomerInfo.email || ''}
+                onChange={(e) => {
+                  setDialogCustomerInfo(prev => ({ ...prev, email: e.target.value }));
+                  setDialogErrors(prev => ({ ...prev, email: '' }));
+                }}
+                className={dialogErrors.email ? 'border-destructive' : ''}
+                placeholder="Enter email address"
+              />
+              {dialogErrors.email && (
+                <p className="text-sm text-destructive mt-1">{dialogErrors.email}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="dialog-phone">
+                Phone Number {settings.require_phone && <span className="text-destructive">*</span>}
+              </Label>
+              <Input
+                id="dialog-phone"
+                type="tel"
+                value={dialogCustomerInfo.phone || ''}
+                onChange={(e) => {
+                  setDialogCustomerInfo(prev => ({ ...prev, phone: e.target.value }));
+                  setDialogErrors(prev => ({ ...prev, phone: '' }));
+                }}
+                className={dialogErrors.phone ? 'border-destructive' : ''}
+                placeholder="Enter phone number"
+              />
+              {dialogErrors.phone && (
+                <p className="text-sm text-destructive mt-1">{dialogErrors.phone}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowContactDialog(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleContactDialogSubmit}
+              className="flex-1"
+              variant="success"
+            >
+              Continue & Submit
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
       {/* Quote Summary Card with Items */}
       <Card ref={quoteSummaryRef} className="bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
         <CardHeader>
@@ -438,7 +590,8 @@ const QuoteReview = ({
 
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 };
 
