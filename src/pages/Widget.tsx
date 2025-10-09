@@ -380,8 +380,8 @@ const Widget = () => {
           </div>
         )}
 
-        {/* Measurement Section - Only show when on measurement or configuration step */}
-        {(widgetState.currentStep === 'measurement' || widgetState.currentStep === 'product-configuration') && widgetState.currentProductId && (
+        {/* Measurement Section - Visible throughout measurement workflow */}
+        {['measurement', 'product-configuration'].includes(widgetState.currentStep) && widgetState.currentProductId && (
           <div id="step-measurement" className="w-full">
             <MeasurementTools
               productId={widgetState.currentProductId}
@@ -408,7 +408,7 @@ const Widget = () => {
           </div>
         )}
         
-        {/* Product Configuration Section - Only show on configuration step */}
+        {/* Product Configuration Section - Overlays on map when configuring */}
         {widgetState.currentStep === 'product-configuration' && widgetState.currentMeasurement && (
           <div id="step-product-configuration" className="px-4 py-6 bg-background">
             <ProductConfiguration
