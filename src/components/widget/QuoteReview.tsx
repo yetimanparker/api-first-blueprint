@@ -655,7 +655,7 @@ const QuoteReview = ({
                 onClick={onAddAnother}
                 variant="outline"
                 size="lg"
-                className="border-2 border-dashed border-primary hover:bg-accent"
+                className="flex-1 border-2 border-dashed border-primary hover:bg-accent"
               >
                 <Plus className="h-5 w-5 mr-2" />
                 Add Another Product
@@ -664,8 +664,7 @@ const QuoteReview = ({
             <Button 
               onClick={handleSubmitQuote} 
               disabled={isSubmitting}
-              variant="success"
-              className="flex-1"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
               size="lg"
             >
               {isSubmitting ? (
