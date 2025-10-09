@@ -366,38 +366,47 @@ export default function QuoteEdit() {
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/crm')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to CRM
+        <div className="mb-6 space-y-3">
+          {/* Top row: Back to CRM and Change Order buttons */}
+          <div className="flex items-center justify-between gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/crm')}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Back to CRM</span>
+              <span className="sm:hidden">Back</span>
             </Button>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold">{quote.quote_number}</h1>
-                <Badge variant={getStatusBadgeVariant(quote.status)}>
-                  {quote.status}
-                </Badge>
-                {quote.parent_quote_id && (
-                  <Badge variant="outline">Change Order v{quote.version_number}</Badge>
-                )}
-              </div>
-              <p className="text-muted-foreground">
-                {customer.first_name} {customer.last_name} • Created {new Date(quote.created_at).toLocaleDateString()}
-              </p>
+            <div className="flex items-center gap-2">
+              {quote.access_token && (
+                <Button variant="outline" size="sm" onClick={copyQuoteLink} className="hidden sm:flex">
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Link
+                </Button>
+              )}
+              <Button size="sm" onClick={createChangeOrder} disabled={saving}>
+                <History className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">
+                  {saving ? 'Creating...' : 'Change Order'}
+                </span>
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {quote.access_token && (
-              <Button variant="outline" onClick={copyQuoteLink}>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Link
-              </Button>
-            )}
-            <Button onClick={createChangeOrder} disabled={saving}>
-              <History className="h-4 w-4 mr-2" />
-              {saving ? 'Creating...' : 'Create Change Order'}
-            </Button>
+          
+          {/* Bottom row: Customer and Quote info */}
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">
+              {customer.first_name} {customer.last_name}
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold">{quote.quote_number}</h1>
+              <Badge variant={getStatusBadgeVariant(quote.status)}>
+                {quote.status}
+              </Badge>
+              {quote.parent_quote_id && (
+                <Badge variant="outline">v{quote.version_number}</Badge>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Created {new Date(quote.created_at).toLocaleDateString()}
+            </p>
           </div>
         </div>
 
