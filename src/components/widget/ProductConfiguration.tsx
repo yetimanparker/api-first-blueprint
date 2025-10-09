@@ -304,17 +304,17 @@ const ProductConfiguration = ({
               <h3 className="text-base font-semibold">Available Add-ons</h3>
               <div className="space-y-3">
                 {addons.map((addon) => (
-                  <div key={addon.id} className="flex items-center justify-between gap-4 p-3 border rounded-lg bg-card">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{addon.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
+                  <div key={addon.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 p-3 border rounded-lg bg-card">
+                    <div className="flex-1">
+                      <p className="font-medium">{addon.name}</p>
+                      <p className="text-xs text-muted-foreground">
                         {formatExactPrice(addon.price_value, {
                           currency_symbol: settings.currency_symbol,
                           decimal_precision: settings.decimal_precision
                         })} per {addon.calculation_type === 'per_unit' ? 'unit' : 'each'}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 justify-end sm:justify-start flex-shrink-0">
                       <Button
                         size="icon"
                         variant="outline"
