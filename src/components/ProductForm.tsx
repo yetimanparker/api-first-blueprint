@@ -512,27 +512,37 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           <FormField
             control={form.control}
             name="subcategory"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Subcategory (Optional)</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select subcategory" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {getSubcategoriesForCategory(form.watch("category") || "")
-                      .map((subcategory) => (
+            render={({ field }) => {
+              const selectedCategory = form.watch("category");
+              const availableSubcategories = selectedCategory 
+                ? getSubcategoriesForCategory(selectedCategory)
+                : [];
+              
+              return (
+                <FormItem>
+                  <FormLabel>Subcategory (Optional)</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value && availableSubcategories.some(s => s.name === field.value) ? field.value : ""}
+                    disabled={!selectedCategory}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={selectedCategory ? "Select subcategory" : "Select category first"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {availableSubcategories.map((subcategory) => (
                         <SelectItem key={subcategory.id} value={subcategory.name}>
                           {subcategory.name}
                         </SelectItem>
                       ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
         </div>
 

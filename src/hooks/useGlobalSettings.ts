@@ -221,8 +221,11 @@ export function useProductCategories(contractorId?: string) {
     }
   };
 
-  const getSubcategoriesForCategory = (categoryId: string) => {
-    return subcategories.filter(sub => sub.category_id === categoryId);
+  const getSubcategoriesForCategory = (categoryNameOrId: string) => {
+    // Find category by name first, fallback to ID
+    const category = categories.find(c => c.name === categoryNameOrId || c.id === categoryNameOrId);
+    if (!category) return [];
+    return subcategories.filter(sub => sub.category_id === category.id);
   };
 
   return { 
