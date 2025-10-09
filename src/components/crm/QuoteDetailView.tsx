@@ -196,6 +196,15 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
 
   // Show price ranges when enabled, regardless of quote status (so contractor knows customer's view)
   const shouldShowPriceRanges = settings.use_price_ranges;
+  
+  console.log('QuoteDetailView Debug:', {
+    use_price_ranges: settings.use_price_ranges,
+    shouldShowPriceRanges,
+    price_range_lower_percentage: settings.price_range_lower_percentage,
+    price_range_upper_percentage: settings.price_range_upper_percentage,
+    subtotal,
+    total
+  });
 
   if (loading) {
     return <div className="text-center py-8">Loading quote details...</div>;
