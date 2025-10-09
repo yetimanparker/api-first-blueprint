@@ -467,12 +467,12 @@ const ProductConfiguration = ({
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
-              <Button variant="destructive" size="lg" className="flex-1" onClick={onRemove}>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
+              <Button variant="destructive" size="lg" className="flex-1 w-full" onClick={onRemove}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Remove
               </Button>
-              <Button onClick={handleAddToQuote} variant="success" size="lg" className="flex-1">
+              <Button onClick={handleAddToQuote} variant="success" size="lg" className="flex-1 w-full">
                 <Plus className="h-4 w-4 mr-2" />
                 Add to Quote
               </Button>
