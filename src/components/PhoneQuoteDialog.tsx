@@ -42,6 +42,7 @@ type PhoneQuoteFormData = z.infer<typeof phoneQuoteSchema>;
 
 interface PhoneQuoteDialogProps {
   onQuoteCreated?: (quoteId: string) => void;
+  customerId?: string;
   prefilledCustomer?: {
     first_name: string;
     last_name: string;
@@ -54,7 +55,7 @@ interface PhoneQuoteDialogProps {
   };
 }
 
-export function PhoneQuoteDialog({ onQuoteCreated, prefilledCustomer }: PhoneQuoteDialogProps) {
+export function PhoneQuoteDialog({ onQuoteCreated, customerId, prefilledCustomer }: PhoneQuoteDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -93,54 +94,59 @@ export function PhoneQuoteDialog({ onQuoteCreated, prefilledCustomer }: PhoneQuo
         throw new Error("Please set up your contractor profile first by going to Settings");
       }
 
-      // Create or find customer
-      let customerId: string;
-      const { data: existingCustomer, error: customerCheckError } = await supabase
-        .from("customers")
-        .select("id")
-        .eq("email", data.email)
-        .eq("contractor_id", contractorData.id)
-        .maybeSingle();
-
-      if (customerCheckError) throw customerCheckError;
-
-      if (existingCustomer) {
-        customerId = existingCustomer.id;
-        // Update existing customer with new info
-        const { error: updateError } = await supabase
-          .from("customers")
-          .update({
-            first_name: data.first_name,
-            last_name: data.last_name,
-            phone: data.phone || null,
-            address: data.address || null,
-            city: data.city || null,
-            state: data.state || null,
-            zip_code: data.zip_code || null,
-          })
-          .eq("id", existingCustomer.id);
-
-        if (updateError) throw updateError;
+      // Create or find customer (skip if customerId is already provided)
+      let finalCustomerId: string;
+      
+      if (customerId) {
+        finalCustomerId = customerId;
       } else {
-        // Create new customer
-        const { data: newCustomer, error: customerError } = await supabase
+        const { data: existingCustomer, error: customerCheckError } = await supabase
           .from("customers")
-          .insert({
-            contractor_id: contractorData.id,
-            first_name: data.first_name,
-            last_name: data.last_name,
-            email: data.email,
-            phone: data.phone || null,
-            address: data.address || null,
-            city: data.city || null,
-            state: data.state || null,
-            zip_code: data.zip_code || null,
-          })
-          .select()
-          .single();
+          .select("id")
+          .eq("email", data.email)
+          .eq("contractor_id", contractorData.id)
+          .maybeSingle();
 
-        if (customerError) throw customerError;
-        customerId = newCustomer.id;
+        if (customerCheckError) throw customerCheckError;
+
+        if (existingCustomer) {
+          finalCustomerId = existingCustomer.id;
+          // Update existing customer with new info
+          const { error: updateError } = await supabase
+            .from("customers")
+            .update({
+              first_name: data.first_name,
+              last_name: data.last_name,
+              phone: data.phone || null,
+              address: data.address || null,
+              city: data.city || null,
+              state: data.state || null,
+              zip_code: data.zip_code || null,
+            })
+            .eq("id", existingCustomer.id);
+
+          if (updateError) throw updateError;
+        } else {
+          // Create new customer
+          const { data: newCustomer, error: customerError } = await supabase
+            .from("customers")
+            .insert({
+              contractor_id: contractorData.id,
+              first_name: data.first_name,
+              last_name: data.last_name,
+              email: data.email,
+              phone: data.phone || null,
+              address: data.address || null,
+              city: data.city || null,
+              state: data.state || null,
+              zip_code: data.zip_code || null,
+            })
+            .select()
+            .single();
+
+          if (customerError) throw customerError;
+          finalCustomerId = newCustomer.id;
+        }
       }
 
       // Generate sequential quote number
@@ -152,7 +158,7 @@ export function PhoneQuoteDialog({ onQuoteCreated, prefilledCustomer }: PhoneQuo
         .from("quotes")
         .insert({
           contractor_id: contractorData.id,
-          customer_id: customerId,
+          customer_id: finalCustomerId,
           quote_number: quoteNumber,
           status: "draft",
           project_address: data.project_address || null,

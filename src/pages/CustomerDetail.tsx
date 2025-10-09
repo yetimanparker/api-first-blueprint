@@ -235,6 +235,7 @@ export default function CustomerDetail() {
                 <CardTitle className="flex items-center justify-between">
                   Quotes
                   <PhoneQuoteDialog 
+                    customerId={customer.id}
                     onQuoteCreated={(quoteId) => {
                       fetchCustomerData();
                       navigate(`/quote/edit/${quoteId}`);
