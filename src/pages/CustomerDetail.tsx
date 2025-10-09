@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { ArrowLeft, Plus, Phone, Mail, MapPin, Edit, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Phone, Mail, MapPin, Edit, Eye, MoreVertical } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import CustomerNotesSection from "@/components/crm/CustomerNotesSection";
@@ -246,18 +247,18 @@ export default function CustomerDetail() {
                 ) : (
                   <div className="space-y-4">
                     {quotes.map((quote) => (
-                      <div key={quote.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <h3 className="font-semibold text-lg">{quote.quote_number}</h3>
+                      <div key={quote.id} className="border rounded-lg p-3 md:p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 flex-1">
+                            <h3 className="font-semibold text-base md:text-lg truncate">{quote.quote_number}</h3>
                             <Select
                               value={quote.status}
                               onValueChange={(value) => handleStatusChange(quote.id, value)}
                             >
-                              <SelectTrigger className={`w-32 h-7 text-xs font-medium border ${getStatusColor(quote.status)}`}>
+                              <SelectTrigger className={`w-28 sm:w-32 h-7 text-xs font-medium border ${getStatusColor(quote.status)}`}>
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="z-50 bg-background">
                                 <SelectItem value="draft">Draft</SelectItem>
                                 <SelectItem value="pending">Pending</SelectItem>
                                 <SelectItem value="accepted">Accepted</SelectItem>
@@ -266,7 +267,30 @@ export default function CustomerDetail() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="flex items-center gap-2">
+                          
+                          {/* Mobile: Dropdown Menu */}
+                          <div className="md:hidden shrink-0">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="z-50 bg-background">
+                                <DropdownMenuItem onClick={() => setQuickViewQuoteId(quote.id)}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Quick View
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => navigate(`/quote/edit/${quote.id}`)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit Quote
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                          
+                          {/* Desktop: Full Buttons */}
+                          <div className="hidden md:flex items-center gap-2 shrink-0">
                             <Button
                               size="sm"
                               variant="outline"
