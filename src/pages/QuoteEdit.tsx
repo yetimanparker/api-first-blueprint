@@ -381,14 +381,6 @@ export default function QuoteEdit() {
                   Copy Link
                 </Button>
               )}
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => navigate(`/quote/builder/${quote.id}`)}
-              >
-                <Ruler className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Measure</span>
-              </Button>
               <Button size="sm" onClick={createChangeOrder} disabled={saving}>
                 <History className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">
@@ -920,6 +912,16 @@ export default function QuoteEdit() {
         </Card>
 
         {/* Add New Items Section */}
+        <div className="mb-4">
+          <Button 
+            variant="outline"
+            onClick={() => navigate(`/quote/builder/${quote.id}`)}
+          >
+            <Ruler className="h-4 w-4 mr-2" />
+            Use Measurement Tool
+          </Button>
+        </div>
+        
         <QuoteItemForm 
           quoteId={quote.id}
           onItemAdded={fetchQuoteData}
