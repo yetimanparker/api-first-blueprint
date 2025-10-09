@@ -50,8 +50,6 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
   const [subcategories, setSubcategories] = useState<ProductSubcategory[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [showAllCategories, setShowAllCategories] = useState(false);
-  const [showAllSubcategories, setShowAllSubcategories] = useState(false);
 
   useEffect(() => {
     if (contractorId) {
@@ -206,132 +204,82 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     ? products.filter(p => p.category === selectedCategory).length 
     : allProductsCount;
 
-  // Calculate visible categories for mobile (single row)
-  const maxVisibleCategoriesOnMobile = 3; // "All" + 2 categories
-  const displayCategories = showAllCategories ? categories : categories.slice(0, maxVisibleCategoriesOnMobile - 1);
-  const hasMoreCategories = categories.length > maxVisibleCategoriesOnMobile - 1;
-
-  // Calculate visible subcategories for mobile
-  const maxVisibleSubcategoriesOnMobile = 3;
-  const displaySubcategories = showAllSubcategories ? availableSubcategories : availableSubcategories.slice(0, maxVisibleSubcategoriesOnMobile - 1);
-  const hasMoreSubcategories = availableSubcategories.length > maxVisibleSubcategoriesOnMobile - 1;
-
   return (
     <div className="w-full">
-      {/* Category filters - Non-sticky, Mobile-first */}
+      {/* Category filters - Horizontal scroll, full width */}
       {categories.length > 0 && (
-        <div className="bg-background pb-4 mb-4 space-y-3 pt-4 px-4 -mx-4 border-b">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedCategory('')}
-              className={`rounded-full h-9 px-4 text-sm font-medium transition-all ${
-                selectedCategory === '' 
-                  ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
-                  : 'bg-background text-foreground border-input hover:bg-accent/10 hover:text-accent-foreground'
-              }`}
-            >
-              <span>All</span>
-              <span className="ml-1">({allProductsCount})</span>
-            </Button>
-            {displayCategories.map((category) => (
+        <div className="bg-background pb-4 mb-4 space-y-3 pt-4 border-b">
+          {/* Categories - horizontal scroll */}
+          <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+            <div className="flex gap-2 min-w-max pb-1">
               <Button
-                key={category.id}
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setSelectedCategory(category.name);
-                  setShowAllCategories(false);
-                  setShowAllSubcategories(false);
-                }}
-                className={`rounded-full h-9 px-4 text-sm font-medium transition-all ${
-                  selectedCategory === category.name 
+                onClick={() => setSelectedCategory('')}
+                className={`rounded-full h-9 px-4 text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                  selectedCategory === '' 
                     ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
                     : 'bg-background text-foreground border-input hover:bg-accent/10 hover:text-accent-foreground'
                 }`}
               >
-                <span className="truncate max-w-[120px]">{category.name}</span>
-                <span className="ml-1">({categoryProductCounts[category.name] || 0})</span>
+                <span>All</span>
+                <span className="ml-1">({allProductsCount})</span>
               </Button>
-            ))}
-            {hasMoreCategories && !showAllCategories && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAllCategories(true)}
-                className="rounded-full h-9 px-4 text-sm font-medium border-dashed hover:bg-accent/10"
-              >
-                Show More
-              </Button>
-            )}
-            {showAllCategories && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAllCategories(false)}
-                className="rounded-full h-9 px-4 text-sm font-medium border-dashed hover:bg-accent/10"
-              >
-                Show Less
-              </Button>
-            )}
-          </div>
-
-          {/* Subcategory filters - Only shown when category is selected */}
-          {selectedCategory && availableSubcategories.length > 0 && (
-            <div className="flex flex-wrap gap-2 pl-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedSubcategory('')}
-                className={`rounded-full h-9 px-4 text-sm font-medium transition-all ${
-                  selectedSubcategory === '' 
-                    ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
-                    : 'bg-background text-foreground border-input hover:bg-primary/10 hover:text-primary-foreground'
-                }`}
-              >
-                <span>All Types</span>
-                <span className="ml-1">({categoryFilteredCount})</span>
-              </Button>
-              {displaySubcategories.map((subcategory) => (
+              {categories.map((category) => (
                 <Button
-                  key={subcategory.id}
+                  key={category.id}
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setSelectedSubcategory(subcategory.name);
-                    setShowAllSubcategories(false);
+                    setSelectedCategory(category.name);
                   }}
-                  className={`rounded-full h-9 px-4 text-sm font-medium transition-all ${
-                    selectedSubcategory === subcategory.name 
+                  className={`rounded-full h-9 px-4 text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                    selectedCategory === category.name 
+                      ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
+                      : 'bg-background text-foreground border-input hover:bg-accent/10 hover:text-accent-foreground'
+                  }`}
+                >
+                  <span>{category.name}</span>
+                  <span className="ml-1">({categoryProductCounts[category.name] || 0})</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Subcategory filters - horizontal scroll when category selected */}
+          {selectedCategory && availableSubcategories.length > 0 && (
+            <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 pl-6">
+              <div className="flex gap-2 min-w-max pb-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedSubcategory('')}
+                  className={`rounded-full h-9 px-4 text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                    selectedSubcategory === '' 
                       ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
                       : 'bg-background text-foreground border-input hover:bg-primary/10 hover:text-primary-foreground'
                   }`}
                 >
-                  <span className="truncate max-w-[120px]">{subcategory.name}</span>
-                  <span className="ml-1">({subcategoryProductCounts[subcategory.name] || 0})</span>
+                  <span>All Types</span>
+                  <span className="ml-1">({categoryFilteredCount})</span>
                 </Button>
-              ))}
-              {hasMoreSubcategories && !showAllSubcategories && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAllSubcategories(true)}
-                  className="rounded-full h-9 px-4 text-sm font-medium border-dashed hover:bg-primary/10"
-                >
-                  Show More
-                </Button>
-              )}
-              {showAllSubcategories && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAllSubcategories(false)}
-                  className="rounded-full h-9 px-4 text-sm font-medium border-dashed hover:bg-primary/10"
-                >
-                  Show Less
-                </Button>
-              )}
+                {availableSubcategories.map((subcategory) => (
+                  <Button
+                    key={subcategory.id}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedSubcategory(subcategory.name)}
+                    className={`rounded-full h-9 px-4 text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
+                      selectedSubcategory === subcategory.name 
+                        ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
+                        : 'bg-background text-foreground border-input hover:bg-primary/10 hover:text-primary-foreground'
+                    }`}
+                  >
+                    <span>{subcategory.name}</span>
+                    <span className="ml-1">({subcategoryProductCounts[subcategory.name] || 0})</span>
+                  </Button>
+                ))}
+              </div>
             </div>
           )}
         </div>
