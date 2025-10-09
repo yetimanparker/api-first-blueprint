@@ -3,9 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Plus, Phone, Mail, MapPin, Calendar, Edit, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ArrowLeft, Plus, Phone, Mail, MapPin, Edit, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import CustomerNotesSection from "@/components/crm/CustomerNotesSection";
@@ -47,7 +47,7 @@ export default function CustomerDetail() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedQuoteId, setExpandedQuoteId] = useState<string | null>(null);
+  const [quickViewQuoteId, setQuickViewQuoteId] = useState<string | null>(null);
   const { settings } = useGlobalSettings();
 
   useEffect(() => {
@@ -92,13 +92,40 @@ export default function CustomerDetail() {
     }
   };
 
-  const getStatusBadgeVariant = (status: string) => {
+  const handleStatusChange = async (quoteId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('quotes')
+        .update({ status: newStatus })
+        .eq('id', quoteId);
+
+      if (error) throw error;
+
+      // Refresh quotes
+      await fetchCustomerData();
+
+      toast({
+        title: "Status Updated",
+        description: `Quote status changed to ${newStatus}`,
+      });
+    } catch (error) {
+      console.error('Error updating quote status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update quote status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'accepted': return 'default';
-      case 'pending': return 'secondary';
-      case 'declined': return 'destructive';
-      case 'expired': return 'outline';
-      default: return 'secondary';
+      case 'accepted': return 'text-green-600 bg-green-50 border-green-200';
+      case 'pending': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'declined': return 'text-red-600 bg-red-50 border-red-200';
+      case 'expired': return 'text-gray-600 bg-gray-50 border-gray-200';
+      case 'draft': return 'text-blue-600 bg-blue-50 border-blue-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
     }
   };
 
@@ -106,6 +133,8 @@ export default function CustomerDetail() {
     const parts = [customer.address, customer.city, customer.state, customer.zip_code].filter(Boolean);
     return parts.length > 0 ? parts.join(', ') : 'No address on file';
   };
+
+  const quickViewQuote = quotes.find(q => q.id === quickViewQuoteId);
 
   if (loading) {
     return (
@@ -217,72 +246,58 @@ export default function CustomerDetail() {
                 ) : (
                   <div className="space-y-4">
                     {quotes.map((quote) => (
-                      <div key={quote.id} className="border rounded-lg">
-                        <div className="p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                              <h3 className="font-medium">{quote.quote_number}</h3>
-                              <Badge variant={getStatusBadgeVariant(quote.status)}>
-                                {quote.status}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setExpandedQuoteId(expandedQuoteId === quote.id ? null : quote.id)}
-                              >
-                                {expandedQuoteId === quote.id ? (
-                                  <>
-                                    <ChevronUp className="h-4 w-4 mr-2" />
-                                    Hide Details
-                                  </>
-                                ) : (
-                                  <>
-                                    <ChevronDown className="h-4 w-4 mr-2" />
-                                    Show Details
-                                  </>
-                                )}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => navigate(`/quote/${quote.id}`)}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => navigate(`/quote/edit/${quote.id}`)}
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </Button>
-                            </div>
+                      <div key={quote.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <h3 className="font-semibold text-lg">{quote.quote_number}</h3>
+                            <Select
+                              value={quote.status}
+                              onValueChange={(value) => handleStatusChange(quote.id, value)}
+                            >
+                              <SelectTrigger className={`w-32 h-7 text-xs font-medium border ${getStatusColor(quote.status)}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="draft">Draft</SelectItem>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="accepted">Accepted</SelectItem>
+                                <SelectItem value="declined">Declined</SelectItem>
+                                <SelectItem value="expired">Expired</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">Amount: </span>
-                              <span className="font-medium">${quote.total_amount.toLocaleString()}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Created: </span>
-                              <span>{new Date(quote.created_at).toLocaleDateString()}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Project: </span>
-                              <span>{quote.project_address || 'Not specified'}</span>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setQuickViewQuoteId(quote.id)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Quick View
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => navigate(`/quote/edit/${quote.id}`)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Quote
+                            </Button>
                           </div>
                         </div>
-
-                        {/* Expanded Quote Details */}
-                        {expandedQuoteId === quote.id && settings && (
-                          <div className="border-t bg-muted/30 p-4">
-                            <QuoteDetailView quote={quote} settings={settings} />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Amount: </span>
+                            <span className="font-semibold">${quote.total_amount.toLocaleString()}</span>
                           </div>
-                        )}
+                          <div>
+                            <span className="text-muted-foreground">Created: </span>
+                            <span>{new Date(quote.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Project: </span>
+                            <span className="truncate">{quote.project_address ? `${quote.project_address}, ${quote.project_city}, ${quote.project_state}` : 'Not specified'}</span>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -299,6 +314,23 @@ export default function CustomerDetail() {
             <CustomerTasksSection customerId={customer.id} />
           </TabsContent>
         </Tabs>
+
+        {/* Quick View Sheet */}
+        <Sheet open={!!quickViewQuoteId} onOpenChange={(open) => !open && setQuickViewQuoteId(null)}>
+          <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Quote Details: {quickViewQuote?.quote_number}</SheetTitle>
+              <SheetDescription>
+                View complete quote information, measurements, and pricing breakdown
+              </SheetDescription>
+            </SheetHeader>
+            <div className="mt-6">
+              {quickViewQuote && settings && (
+                <QuoteDetailView quote={quickViewQuote} settings={settings} />
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );
