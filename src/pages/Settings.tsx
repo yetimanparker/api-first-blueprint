@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin, Navigation } from "lucide-react";
+import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin, Navigation, Code, ExternalLink, Copy, Check } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -76,6 +76,8 @@ const Settings = () => {
   const [contractorId, setContractorId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [geocodingAddress, setGeocodingAddress] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedEmbed, setCopiedEmbed] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -1301,6 +1303,123 @@ const Settings = () => {
               </Form>
             </CardContent>
           </Card>
+
+          {/* Widget Integration Card */}
+          {contractorId && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Code className="h-5 w-5" />
+                  Widget Integration
+                </CardTitle>
+                <CardDescription>
+                  Embed your quote widget on your website or share the direct link with customers
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Widget URL */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Widget URL</label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const url = `${window.location.origin}/widget/${contractorId}`;
+                        navigator.clipboard.writeText(url);
+                        setCopiedUrl(true);
+                        setTimeout(() => setCopiedUrl(false), 2000);
+                        toast({
+                          title: "Copied!",
+                          description: "Widget URL copied to clipboard",
+                        });
+                      }}
+                    >
+                      {copiedUrl ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy URL
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="p-3 sm:p-4 bg-muted rounded-lg font-mono text-xs sm:text-sm break-all">
+                    {window.location.origin}/widget/{contractorId}
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Share this URL with customers or use it if you don't have a website
+                  </p>
+                </div>
+
+                {/* Embed Code */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Embed Code</label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const embedCode = `<iframe src="${window.location.origin}/widget/${contractorId}" width="100%" height="800" style="border: none; border-radius: 8px;"></iframe>`;
+                        navigator.clipboard.writeText(embedCode);
+                        setCopiedEmbed(true);
+                        setTimeout(() => setCopiedEmbed(false), 2000);
+                        toast({
+                          title: "Copied!",
+                          description: "Embed code copied to clipboard",
+                        });
+                      }}
+                    >
+                      {copiedEmbed ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy Code
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="p-3 sm:p-4 bg-muted rounded-lg font-mono text-xs overflow-x-auto">
+                    <code className="whitespace-pre-wrap break-all">
+                      {`<iframe\n  src="${window.location.origin}/widget/${contractorId}"\n  width="100%"\n  height="800"\n  style="border: none; border-radius: 8px;">\n</iframe>`}
+                    </code>
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Provide this code to your web developer to embed the widget on your website
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={() => window.open(`/widget/${contractorId}`, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Preview Widget
+                  </Button>
+                </div>
+
+                <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
+                  <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Note:</strong> The widget automatically updates when you change products, settings, or pricing. No need to update the embed code!
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
     </div>
