@@ -304,36 +304,36 @@ const ProductConfiguration = ({
               <h3 className="text-base font-semibold">Available Add-ons</h3>
               <div className="space-y-3">
                 {addons.map((addon) => (
-                  <div key={addon.id} className="flex items-center justify-between p-4 border rounded-lg bg-card">
-                    <div className="flex-1">
-                      <p className="font-medium">{addon.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                  <div key={addon.id} className="flex items-center justify-between gap-4 p-3 border rounded-lg bg-card">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{addon.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
                         {formatExactPrice(addon.price_value, {
                           currency_symbol: settings.currency_symbol,
                           decimal_precision: settings.decimal_precision
                         })} per {addon.calculation_type === 'per_unit' ? 'unit' : 'each'}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <Button
                         size="icon"
                         variant="outline"
                         onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) - 1)}
                         disabled={(selectedAddons[addon.id] || 0) <= 0}
-                        className="h-9 w-9"
+                        className="h-8 w-8"
                       >
-                        <Minus className="h-4 w-4" />
+                        <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="w-8 text-center font-semibold">
+                      <span className="w-6 text-center text-sm font-semibold">
                         {selectedAddons[addon.id] || 0}
                       </span>
                       <Button
                         size="icon"
                         variant="outline"
                         onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) + 1)}
-                        className="h-9 w-9"
+                        className="h-8 w-8"
                       >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
