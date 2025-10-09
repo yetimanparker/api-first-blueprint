@@ -53,12 +53,17 @@ const QuoteReview = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [items, setItems] = useState<QuoteItem[]>(quoteItems);
   const [showContactDialog, setShowContactDialog] = useState(false);
-  const [dialogCustomerInfo, setDialogCustomerInfo] = useState<Partial<CustomerInfo>>({});
+  const [dialogCustomerInfo, setDialogCustomerInfo] = useState<Partial<CustomerInfo>>(customerInfo);
   const [dialogErrors, setDialogErrors] = useState<Record<string, string>>({});
   const [showPredictions, setShowPredictions] = useState(false);
   const { toast } = useToast();
   const quoteSummaryRef = useRef<HTMLDivElement>(null);
   const { getAutocomplete, getPlaceDetails, predictions, loading } = useGooglePlaces();
+
+  // Update dialog customer info when customerInfo prop changes
+  useEffect(() => {
+    setDialogCustomerInfo(customerInfo);
+  }, [customerInfo]);
 
   // Sync local items state with parent quoteItems prop
   useEffect(() => {

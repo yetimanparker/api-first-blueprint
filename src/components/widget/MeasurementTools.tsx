@@ -30,6 +30,7 @@ interface MeasurementToolsProps {
     customName?: string;
     measurement: MeasurementData;
   }>;
+  onAddressSelect?: (address: ParsedAddress) => void;
 }
 
 interface Product {
@@ -46,7 +47,8 @@ const MeasurementTools = ({
   selectedProduct,
   onChangeProduct,
   isConfigurationMode = false,
-  existingQuoteItems = []
+  existingQuoteItems = [],
+  onAddressSelect
 }: MeasurementToolsProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -696,6 +698,9 @@ const MeasurementTools = ({
               onAddressSelect={(address: ParsedAddress) => {
                 const fullAddress = `${address.streetAddress}, ${address.city}, ${address.state} ${address.zipCode}`;
                 setSearchAddress(fullAddress);
+                
+                // Notify parent component about address selection
+                onAddressSelect?.(address);
                 
                 if (mapRef.current && window.google) {
                   const geocoder = new google.maps.Geocoder();

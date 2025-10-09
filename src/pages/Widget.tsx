@@ -394,6 +394,16 @@ const Widget = () => {
               onChangeProduct={goToProductSelection}
               isConfigurationMode={widgetState.currentStep === 'product-configuration'}
               existingQuoteItems={widgetState.quoteItems}
+              onAddressSelect={(address) => {
+                updateCustomerInfo({
+                  address: `${address.streetAddress}, ${address.city}, ${address.state} ${address.zipCode}`,
+                  city: address.city,
+                  state: address.state,
+                  zipCode: address.zipCode,
+                  lat: address.lat,
+                  lng: address.lng
+                });
+              }}
             />
           </div>
         )}
