@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Plus, Phone, Mail, MapPin, Calendar, Edit, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Phone, Mail, MapPin, Calendar, Edit, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import CustomerNotesSection from "@/components/crm/CustomerNotesSection";
 import CustomerTasksSection from "@/components/crm/CustomerTasksSection";
+import QuoteDetailView from "@/components/crm/QuoteDetailView";
+import { useGlobalSettings } from "@/hooks/useGlobalSettings";
 
 interface Customer {
   id: string;
@@ -41,6 +43,8 @@ export default function CustomerDetail() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedQuoteId, setExpandedQuoteId] = useState<string | null>(null);
+  const { settings } = useGlobalSettings();
 
   useEffect(() => {
     if (customerId) {
@@ -209,46 +213,72 @@ export default function CustomerDetail() {
                 ) : (
                   <div className="space-y-4">
                     {quotes.map((quote) => (
-                      <div key={quote.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <h3 className="font-medium">{quote.quote_number}</h3>
-                            <Badge variant={getStatusBadgeVariant(quote.status)}>
-                              {quote.status}
-                            </Badge>
+                      <div key={quote.id} className="border rounded-lg">
+                        <div className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-medium">{quote.quote_number}</h3>
+                              <Badge variant={getStatusBadgeVariant(quote.status)}>
+                                {quote.status}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setExpandedQuoteId(expandedQuoteId === quote.id ? null : quote.id)}
+                              >
+                                {expandedQuoteId === quote.id ? (
+                                  <>
+                                    <ChevronUp className="h-4 w-4 mr-2" />
+                                    Hide Details
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown className="h-4 w-4 mr-2" />
+                                    Show Details
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate(`/quote/${quote.id}`)}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                View
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => navigate(`/quote/edit/${quote.id}`)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/quote/${quote.id}`)}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              View
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => navigate(`/quote/edit/${quote.id}`)}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </Button>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Amount: </span>
+                              <span className="font-medium">${quote.total_amount.toLocaleString()}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Created: </span>
+                              <span>{new Date(quote.created_at).toLocaleDateString()}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Project: </span>
+                              <span>{quote.project_address || 'Not specified'}</span>
+                            </div>
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Amount: </span>
-                            <span className="font-medium">${quote.total_amount.toLocaleString()}</span>
+
+                        {/* Expanded Quote Details */}
+                        {expandedQuoteId === quote.id && settings && (
+                          <div className="border-t bg-muted/30 p-4">
+                            <QuoteDetailView quote={quote} settings={settings} />
                           </div>
-                          <div>
-                            <span className="text-muted-foreground">Created: </span>
-                            <span>{new Date(quote.created_at).toLocaleDateString()}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Project: </span>
-                            <span>{quote.project_address || 'Not specified'}</span>
-                          </div>
-                        </div>
+                        )}
                       </div>
                     ))}
                   </div>
