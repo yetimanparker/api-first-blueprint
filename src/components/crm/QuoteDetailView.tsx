@@ -4,7 +4,7 @@ import { MapPin, Calculator } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader } from '@googlemaps/js-api-loader';
-import { formatExactPrice, calculatePriceRange, formatPriceRange } from '@/lib/priceUtils';
+import { formatExactPrice, calculatePriceRange, formatPriceRange, displayQuoteTotal, displayLineItemPrice } from '@/lib/priceUtils';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
 
 interface QuoteItem {
@@ -26,6 +26,7 @@ interface Quote {
   id: string;
   quote_number: string;
   total_amount: number;
+  status: string;
   project_address?: string;
   project_city?: string;
   project_state?: string;
@@ -193,6 +194,10 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
     : 0;
   const total = subtotal + taxAmount;
 
+  // Determine if price ranges should be shown based on quote status
+  const isSubmittedQuote = ['pending', 'accepted', 'declined', 'expired'].includes(quote.status);
+  const shouldShowPriceRanges = settings.use_price_ranges && isSubmittedQuote;
+
   if (loading) {
     return <div className="text-center py-8">Loading quote details...</div>;
   }
@@ -245,33 +250,13 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                     )}
                   </div>
                   <p className="font-bold text-lg">
-                    {settings.use_price_ranges ? (
-                      formatPriceRange(
-                        calculatePriceRange(item.line_total, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
-                        settings
-                      )
-                    ) : (
-                      formatExactPrice(item.line_total, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })
-                    )}
+                    {displayLineItemPrice(item.line_total, settings)}
                   </p>
                 </div>
 
                 {/* Itemized breakdown */}
                 <div className="space-y-1 text-sm text-muted-foreground">
-                  <div>Base: {settings.use_price_ranges ? (
-                    formatPriceRange(
-                      calculatePriceRange(basePrice, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
-                      settings
-                    )
-                  ) : (
-                    formatExactPrice(basePrice, {
-                      currency_symbol: settings.currency_symbol,
-                      decimal_precision: settings.decimal_precision
-                    })
-                  )}</div>
+                  <div>Base: {displayLineItemPrice(basePrice, settings)}</div>
                   
                   {variations.map((v: any) => (
                     <div key={v.id}>
@@ -307,7 +292,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             <div className="flex justify-between">
               <span>Subtotal:</span>
               <span className="font-semibold">
-                {settings.use_price_ranges ? (
+                {shouldShowPriceRanges ? (
                   formatPriceRange(
                     calculatePriceRange(subtotal, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
                     settings
@@ -325,7 +310,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Tax ({settings.global_tax_rate}%):</span>
                 <span>
-                  {settings.use_price_ranges ? (
+                  {shouldShowPriceRanges ? (
                     formatPriceRange(
                       calculatePriceRange(taxAmount, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
                       settings
@@ -345,17 +330,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             <div className="flex justify-between text-2xl font-bold">
               <span>Total:</span>
               <span className="text-primary">
-                {settings.use_price_ranges ? (
-                  formatPriceRange(
-                    calculatePriceRange(total, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
-                    settings
-                  )
-                ) : (
-                  formatExactPrice(total, {
-                    currency_symbol: settings.currency_symbol,
-                    decimal_precision: settings.decimal_precision
-                  })
-                )}
+                {displayQuoteTotal(total, settings, quote.status)}
               </span>
             </div>
           </div>
