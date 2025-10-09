@@ -122,8 +122,11 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
   };
 
   const filteredProducts = products.filter(p => {
-    if (selectedCategory && p.category !== selectedCategory) return false;
-    if (selectedSubcategory && p.subcategory !== selectedSubcategory) return false;
+    const categoryName = getCategoryName(p.category);
+    const subcategoryName = getSubcategoryName(p.subcategory);
+    
+    if (selectedCategory && categoryName !== selectedCategory) return false;
+    if (selectedSubcategory && subcategoryName !== selectedSubcategory) return false;
     return true;
   });
 
@@ -140,6 +143,32 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     }
     // Otherwise, respect the individual product's setting
     return product.show_pricing_before_submit;
+  };
+
+  // Helper function to get category name (handles both UUID and name)
+  const getCategoryName = (categoryValue?: string): string | undefined => {
+    if (!categoryValue) return undefined;
+    
+    // Check if it's a UUID (36 chars with dashes)
+    if (categoryValue.length === 36 && categoryValue.includes('-')) {
+      const category = categories.find(c => c.id === categoryValue);
+      return category?.name;
+    }
+    
+    return categoryValue;
+  };
+
+  // Helper function to get subcategory name (handles both UUID and name)
+  const getSubcategoryName = (subcategoryValue?: string): string | undefined => {
+    if (!subcategoryValue) return undefined;
+    
+    // Check if it's a UUID (36 chars with dashes)
+    if (subcategoryValue.length === 36 && subcategoryValue.includes('-')) {
+      const subcategory = subcategories.find(sc => sc.id === subcategoryValue);
+      return subcategory?.name;
+    }
+    
+    return subcategoryValue;
   };
 
   if (loading) {
@@ -170,20 +199,20 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
 
   // Get product counts per category and subcategory
   const categoryProductCounts = categories.reduce((acc, category) => {
-    acc[category.name] = products.filter(p => p.category === category.name).length;
+    acc[category.name] = products.filter(p => getCategoryName(p.category) === category.name).length;
     return acc;
   }, {} as Record<string, number>);
   
   const subcategoryProductCounts = availableSubcategories.reduce((acc, subcategory) => {
     acc[subcategory.name] = products.filter(p => 
-      p.category === selectedCategory && p.subcategory === subcategory.name
+      getCategoryName(p.category) === selectedCategory && getSubcategoryName(p.subcategory) === subcategory.name
     ).length;
     return acc;
   }, {} as Record<string, number>);
   
   const allProductsCount = products.length;
   const categoryFilteredCount = selectedCategory 
-    ? products.filter(p => p.category === selectedCategory).length 
+    ? products.filter(p => getCategoryName(p.category) === selectedCategory).length 
     : allProductsCount;
 
   return (
@@ -341,14 +370,14 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
 
                 {/* Badges at bottom */}
                 <div className="flex flex-wrap gap-1.5">
-                  {product.category && (
+                  {getCategoryName(product.category) && (
                     <Badge variant="outline" className="text-xs bg-muted/50">
-                      {product.category}
+                      {getCategoryName(product.category)}
                     </Badge>
                   )}
-                  {product.subcategory && (
+                  {getSubcategoryName(product.subcategory) && (
                     <Badge variant="outline" className="text-xs bg-muted/50">
-                      {product.subcategory}
+                      {getSubcategoryName(product.subcategory)}
                     </Badge>
                   )}
                 </div>
