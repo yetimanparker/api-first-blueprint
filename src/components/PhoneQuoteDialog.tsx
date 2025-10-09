@@ -189,12 +189,12 @@ export function PhoneQuoteDialog({ onQuoteCreated }: PhoneQuoteDialogProps) {
       <DialogTrigger asChild>
         <Button>
           <Phone className="h-4 w-4 mr-2" />
-          Create Phone Quote
+          New Quote
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Phone Quote</DialogTitle>
+          <DialogTitle>New Quote</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
