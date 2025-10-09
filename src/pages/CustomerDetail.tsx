@@ -34,6 +34,10 @@ interface Quote {
   created_at: string;
   expires_at?: string;
   project_address?: string;
+  project_city?: string;
+  project_state?: string;
+  project_zip_code?: string;
+  notes?: string;
 }
 
 export default function CustomerDetail() {
