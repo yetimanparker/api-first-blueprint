@@ -127,7 +127,7 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Products</CardTitle>
@@ -141,12 +141,12 @@ const Dashboard = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Quotes</CardTitle>
+              <CardTitle className="text-sm font-medium">Quotes Not Viewed</CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">+0% from last month</p>
+              <p className="text-xs text-muted-foreground">Pending review</p>
             </CardContent>
           </Card>
 
@@ -174,16 +174,38 @@ const Dashboard = () => {
         </div>
 
         {/* Main Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          {/* 1. Customer CRM */}
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader>
               <div className="flex items-center">
-                <div className="p-2 bg-primary/10 rounded-lg mr-3">
+                <div className="p-2 bg-accent/10 rounded-lg mr-3 shrink-0">
+                  <Users className="h-6 w-6 text-accent" />
+                </div>
+                <div className="min-w-0">
+                  <CardTitle className="text-base md:text-lg">Customer CRM</CardTitle>
+                  <CardDescription className="text-sm">Track customers and their quotes</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" className="w-full" onClick={() => navigate("/crm")}>
+                <Users className="h-4 w-4 mr-2" />
+                View Customers
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* 2. Manage Products */}
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardHeader>
+              <div className="flex items-center">
+                <div className="p-2 bg-primary/10 rounded-lg mr-3 shrink-0">
                   <Package className="h-6 w-6 text-primary" />
                 </div>
-                <div>
-                  <CardTitle>Manage Products</CardTitle>
-                  <CardDescription>Add and edit your service offerings</CardDescription>
+                <div className="min-w-0">
+                  <CardTitle className="text-base md:text-lg">Manage Products</CardTitle>
+                  <CardDescription className="text-sm">Add and edit your service offerings</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -195,34 +217,37 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
+          {/* 3. Widget Settings */}
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader>
               <div className="flex items-center">
-                <div className="p-2 bg-accent/10 rounded-lg mr-3">
-                  <Users className="h-6 w-6 text-accent" />
+                <div className="p-2 bg-success/10 rounded-lg mr-3 shrink-0">
+                  <Settings className="h-6 w-6 text-success" />
                 </div>
-                <div>
-                  <CardTitle>Customer CRM</CardTitle>
-                  <CardDescription>Track customers and their quotes</CardDescription>
+                <div className="min-w-0">
+                  <CardTitle className="text-base md:text-lg">Widget Settings</CardTitle>
+                  <CardDescription className="text-sm">Customize your quote widget branding</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full" onClick={() => navigate("/crm")}>
-                View Customers
+              <Button variant="outline" className="w-full" onClick={() => navigate("/settings")}>
+                <Settings className="h-4 w-4 mr-2" />
+                Customize Widget
               </Button>
             </CardContent>
           </Card>
 
+          {/* 4. Preview Widget */}
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader>
               <div className="flex items-center">
-                <div className="p-2 bg-blue-500/10 rounded-lg mr-3">
+                <div className="p-2 bg-blue-500/10 rounded-lg mr-3 shrink-0">
                   <Eye className="h-6 w-6 text-blue-500" />
                 </div>
-                <div>
-                  <CardTitle>Preview Widget</CardTitle>
-                  <CardDescription>Test your customer-facing quote widget</CardDescription>
+                <div className="min-w-0">
+                  <CardTitle className="text-base md:text-lg">Preview Widget</CardTitle>
+                  <CardDescription className="text-sm">Test your customer-facing quote widget</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -235,25 +260,6 @@ const Dashboard = () => {
               >
                 <Eye className="h-4 w-4 mr-2" />
                 Preview Widget
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader>
-              <div className="flex items-center">
-                <div className="p-2 bg-success/10 rounded-lg mr-3">
-                  <Settings className="h-6 w-6 text-success" />
-                </div>
-                <div>
-                  <CardTitle>Widget Settings</CardTitle>
-                  <CardDescription>Customize your quote widget branding</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" className="w-full" onClick={() => navigate("/settings")}>
-                Customize Widget
               </Button>
             </CardContent>
           </Card>
