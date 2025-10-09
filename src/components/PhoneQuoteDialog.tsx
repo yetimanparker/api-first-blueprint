@@ -42,9 +42,19 @@ type PhoneQuoteFormData = z.infer<typeof phoneQuoteSchema>;
 
 interface PhoneQuoteDialogProps {
   onQuoteCreated?: (quoteId: string) => void;
+  prefilledCustomer?: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zip_code?: string;
+  };
 }
 
-export function PhoneQuoteDialog({ onQuoteCreated }: PhoneQuoteDialogProps) {
+export function PhoneQuoteDialog({ onQuoteCreated, prefilledCustomer }: PhoneQuoteDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -52,14 +62,14 @@ export function PhoneQuoteDialog({ onQuoteCreated }: PhoneQuoteDialogProps) {
   const form = useForm<PhoneQuoteFormData>({
     resolver: zodResolver(phoneQuoteSchema),
     defaultValues: {
-      first_name: "",
-      last_name: "",
-      email: "",
-      phone: "",
-      address: "",
-      city: "",
-      state: "",
-      zip_code: "",
+      first_name: prefilledCustomer?.first_name || "",
+      last_name: prefilledCustomer?.last_name || "",
+      email: prefilledCustomer?.email || "",
+      phone: prefilledCustomer?.phone || "",
+      address: prefilledCustomer?.address || "",
+      city: prefilledCustomer?.city || "",
+      state: prefilledCustomer?.state || "",
+      zip_code: prefilledCustomer?.zip_code || "",
       project_address: "",
       project_city: "",
       project_state: "",

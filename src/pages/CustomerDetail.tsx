@@ -13,6 +13,7 @@ import CustomerNotesSection from "@/components/crm/CustomerNotesSection";
 import CustomerTasksSection from "@/components/crm/CustomerTasksSection";
 import QuoteDetailView from "@/components/crm/QuoteDetailView";
 import { useGlobalSettings } from "@/hooks/useGlobalSettings";
+import { PhoneQuoteDialog } from "@/components/PhoneQuoteDialog";
 
 interface Customer {
   id: string;
@@ -233,10 +234,22 @@ export default function CustomerDetail() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   Quotes
-                  <Button onClick={() => navigate('/crm')}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Quote
-                  </Button>
+                  <PhoneQuoteDialog 
+                    onQuoteCreated={(quoteId) => {
+                      fetchCustomerData();
+                      navigate(`/quote/edit/${quoteId}`);
+                    }}
+                    prefilledCustomer={{
+                      first_name: customer.first_name,
+                      last_name: customer.last_name,
+                      email: customer.email,
+                      phone: customer.phone,
+                      address: customer.address,
+                      city: customer.city,
+                      state: customer.state,
+                      zip_code: customer.zip_code,
+                    }}
+                  />
                 </CardTitle>
               </CardHeader>
               <CardContent>
