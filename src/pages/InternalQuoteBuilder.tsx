@@ -289,7 +289,7 @@ export default function InternalQuoteBuilder() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Progress Indicator */}
-        <Card className="mb-6">
+        <Card className="mb-6 hidden md:block">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div className={`flex items-center gap-2 ${currentStep === 'product-selection' ? 'text-primary' : 'text-muted-foreground'}`}>
