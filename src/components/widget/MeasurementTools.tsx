@@ -221,16 +221,21 @@ const MeasurementTools = ({
       setMapLoading(true);
       setMapError(null);
       
-      console.log('Creating Loader with API key');
-      const loader = new Loader({
-        apiKey: apiKey,
-        version: 'weekly',
-        libraries: ['drawing', 'geometry'],
-      });
+      // Check if Google Maps API is already loaded
+      if (typeof google === 'undefined' || !google.maps) {
+        console.log('Creating Loader with API key');
+        const loader = new Loader({
+          apiKey: apiKey,
+          version: 'weekly',
+          libraries: ['drawing', 'geometry'],
+        });
 
-      console.log('Loading Google Maps API...');
-      await loader.load();
-      console.log('Google Maps API loaded successfully');
+        console.log('Loading Google Maps API...');
+        await loader.load();
+        console.log('Google Maps API loaded successfully');
+      } else {
+        console.log('Google Maps API already loaded, reusing existing instance');
+      }
 
       let center = { lat: 39.8283, lng: -98.5795 };
       let zoom = 4;
