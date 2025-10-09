@@ -498,7 +498,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                   </FormControl>
                   <SelectContent>
                     {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
+                      <SelectItem key={category.id} value={category.name}>
                         {category.name}
                       </SelectItem>
                     ))}
@@ -524,7 +524,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                   <SelectContent>
                     {getSubcategoriesForCategory(form.watch("category") || "")
                       .map((subcategory) => (
-                        <SelectItem key={subcategory.id} value={subcategory.id}>
+                        <SelectItem key={subcategory.id} value={subcategory.name}>
                           {subcategory.name}
                         </SelectItem>
                       ))}
