@@ -259,8 +259,8 @@ const CRM = () => {
                 Back to Dashboard
               </Button>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">Customer CRM</h1>
-                <p className="text-sm text-muted-foreground">Manage customers and quotes</p>
+                <h1 className="text-xl font-semibold text-foreground">CRM</h1>
+                <p className="text-sm text-muted-foreground hidden md:block">Manage customers and quotes</p>
               </div>
             </div>
             <PhoneQuoteDialog onQuoteCreated={handleQuoteCreated} />

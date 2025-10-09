@@ -188,8 +188,8 @@ export function PhoneQuoteDialog({ onQuoteCreated }: PhoneQuoteDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Phone className="h-4 w-4 mr-2" />
-          New Quote
+          <Plus className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">New Quote</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
