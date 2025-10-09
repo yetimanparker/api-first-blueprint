@@ -317,9 +317,9 @@ export default function CustomerDetail() {
                             <span className="text-muted-foreground">Created: </span>
                             <span>{new Date(quote.created_at).toLocaleDateString()}</span>
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <span className="text-muted-foreground">Project: </span>
-                            <span className="truncate">{quote.project_address ? `${quote.project_address}, ${quote.project_city}, ${quote.project_state}` : 'Not specified'}</span>
+                            <span className="block truncate">{quote.project_address ? `${quote.project_address}, ${quote.project_state}, USA` : 'Not specified'}</span>
                           </div>
                         </div>
                       </div>
