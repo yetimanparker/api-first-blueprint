@@ -208,7 +208,7 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     <div className="w-full">
       {/* Category filters - Compact Pills */}
       {categories.length > 0 && (
-        <div className="sticky top-[80px] z-[60] bg-background/95 backdrop-blur-sm pb-4 mb-4 space-y-3 pt-4 px-4 -mx-4 shadow-md border-b"
+        <div className="bg-background pb-4 mb-4 space-y-3 pt-4 px-4 -mx-4 border-b"
           >
           <div className="flex flex-wrap gap-2">
             <Button
