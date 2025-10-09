@@ -205,11 +205,10 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     : allProductsCount;
 
   return (
-    <div className="w-full">
+    <div className="w-full px-4 lg:px-6 xl:px-8">
       {/* Category filters - Compact Pills */}
       {categories.length > 0 && (
-        <div className="bg-background pb-4 mb-4 space-y-3 pt-4 px-4 -mx-4 border-b"
-          >
+        <div className="bg-background pb-4 mb-4 space-y-3 pt-4 border-b">
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
@@ -281,8 +280,8 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
         </div>
       )}
 
-      {/* Products grid - Scrollable */}
-      <div className="px-4">
+      {/* Products grid - Full width with dynamic columns */}
+      <div>
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -304,7 +303,7 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4 pb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4 pb-4">
           {filteredProducts.map((product) => (
             <Card 
               key={product.id}

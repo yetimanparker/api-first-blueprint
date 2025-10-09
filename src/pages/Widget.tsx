@@ -370,7 +370,7 @@ const Widget = () => {
 
         {/* Product Selection Section */}
         {isStepVisible('product-selection') && (
-          <div id="step-product-selection" className="px-4 py-6">
+          <div id="step-product-selection" className="w-full py-6">
             <ProductSelector
               categories={categories}
               onProductSelect={setCurrentProduct}
