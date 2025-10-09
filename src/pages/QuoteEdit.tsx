@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin, Ruler } from "lucide-react";
+import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin, Ruler, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { QuoteItemForm } from "@/components/QuoteItemForm";
@@ -77,6 +77,7 @@ export default function QuoteEdit() {
   const [editingItem, setEditingItem] = useState<QuoteItem | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [editingAddress, setEditingAddress] = useState(false);
+  const [showAddItemForm, setShowAddItemForm] = useState(false);
   const [addressForm, setAddressForm] = useState({
     project_address: "",
     project_city: "", 
@@ -453,6 +454,42 @@ export default function QuoteEdit() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Action Buttons */}
+        <div className="mb-6 flex gap-3">
+          <Button 
+            variant="outline"
+            onClick={() => navigate(`/quote/builder/${quote.id}`)}
+          >
+            <Ruler className="h-4 w-4 mr-2" />
+            Use Measurement Tool
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => setShowAddItemForm(!showAddItemForm)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {showAddItemForm ? 'Hide' : 'Add Item to Quote'}
+          </Button>
+        </div>
+
+        {/* Add Item Form - Collapsible */}
+        {showAddItemForm && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Add New Items</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <QuoteItemForm 
+                quoteId={quote.id}
+                onItemAdded={() => {
+                  fetchQuoteData();
+                  setShowAddItemForm(false);
+                }}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quote Summary Card */}
         <Card className="mb-6 bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
@@ -910,22 +947,6 @@ export default function QuoteEdit() {
             )}
           </CardContent>
         </Card>
-
-        {/* Add New Items Section */}
-        <div className="mb-4">
-          <Button 
-            variant="outline"
-            onClick={() => navigate(`/quote/builder/${quote.id}`)}
-          >
-            <Ruler className="h-4 w-4 mr-2" />
-            Use Measurement Tool
-          </Button>
-        </div>
-        
-        <QuoteItemForm 
-          quoteId={quote.id}
-          onItemAdded={fetchQuoteData}
-        />
 
         {/* Edit Item Dialog */}
         <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
