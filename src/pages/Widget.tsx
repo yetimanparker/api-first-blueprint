@@ -380,8 +380,8 @@ const Widget = () => {
           </div>
         )}
 
-        {/* Measurement Section - Full width, always visible once reached */}
-        {isStepVisible('measurement') && widgetState.currentProductId && (
+        {/* Measurement Section - Only show when on measurement or configuration step */}
+        {(widgetState.currentStep === 'measurement' || widgetState.currentStep === 'product-configuration') && widgetState.currentProductId && (
           <div id="step-measurement" className="w-full">
             <MeasurementTools
               productId={widgetState.currentProductId}
@@ -408,8 +408,8 @@ const Widget = () => {
           </div>
         )}
         
-        {/* Product Configuration Section - Appears below map */}
-        {isStepVisible('product-configuration') && widgetState.currentMeasurement && (
+        {/* Product Configuration Section - Only show on configuration step */}
+        {widgetState.currentStep === 'product-configuration' && widgetState.currentMeasurement && (
           <div id="step-product-configuration" className="px-4 py-6 bg-background">
             <ProductConfiguration
               productId={widgetState.currentProductId!}
