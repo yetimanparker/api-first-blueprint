@@ -848,16 +848,16 @@ const MeasurementTools = ({
 
       {/* Bottom Control Bar and Measurement Display */}
       {!mapLoading && !mapError && (
-        <div className="bg-background border-t px-6 py-3 measurement-controls">
+        <div className="bg-background border-t px-3 sm:px-6 py-3 measurement-controls">
           <div className="max-w-7xl mx-auto">
             {/* Show Next Button when measurement is complete */}
             {currentMeasurement && (
-              <div className="flex justify-center gap-3 mb-4">
+              <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3 mb-4">
                 <Button
                   variant="outline"
                   size="lg"
                   onClick={handleUndo}
-                  className="px-6 shadow-lg gap-2"
+                  className="w-full sm:w-auto px-4 sm:px-6 shadow-lg gap-2"
                 >
                   <Undo2 className="h-4 w-4" />
                   Remeasure
@@ -866,7 +866,7 @@ const MeasurementTools = ({
                   variant="success"
                   size="lg"
                   onClick={onNext}
-                  className="px-8 shadow-lg gap-3"
+                  className="w-full sm:w-auto px-4 sm:px-8 shadow-lg gap-2 sm:gap-3"
                 >
                   <span>NEXT (configure)</span>
                   <span className="text-success-foreground/90 font-semibold">
@@ -877,11 +877,11 @@ const MeasurementTools = ({
             )}
             
             {/* Control Bar */}
-            <div className="flex justify-center mb-4">
-              <div className="bg-background rounded-lg shadow-lg border px-2 py-2 flex items-center gap-1">
+            <div className="flex justify-center mb-4 overflow-x-auto">
+              <div className="bg-background rounded-lg shadow-lg border px-1 sm:px-2 py-2 flex items-center gap-0.5 sm:gap-1 min-w-max">
                 <Button
                   variant="ghost"
-                  size="lg"
+                  size="sm"
                   onClick={() => {
                     console.log('Line button clicked');
                     setMeasurementType('linear');
@@ -889,19 +889,19 @@ const MeasurementTools = ({
                     setTimeout(() => startDrawing(), 100);
                   }}
                   disabled={product?.unit_type && !product.unit_type.toLowerCase().includes('linear')}
-                  className={`gap-2 ${
+                  className={`gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm ${
                     measurementType === 'linear' && !showManualEntry
                       ? 'text-foreground font-semibold bg-primary/10' 
                       : 'text-muted-foreground'
                   }`}
                 >
-                  <Ruler className="h-4 w-4" />
-                  Line
+                  <Ruler className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Line</span>
                 </Button>
                 
                 <Button
                   variant="ghost"
-                  size="lg"
+                  size="sm"
                   onClick={() => {
                     console.log('Area button clicked');
                     setMeasurementType('area');
@@ -909,42 +909,42 @@ const MeasurementTools = ({
                     setTimeout(() => startDrawing(), 100);
                   }}
                   disabled={product?.unit_type && !(product.unit_type.toLowerCase().includes('sq_') || product.unit_type.toLowerCase().includes('square') || product.unit_type.toLowerCase().includes('area'))}
-                  className={`gap-2 ${
+                  className={`gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm ${
                     measurementType === 'area' && !showManualEntry
                       ? 'text-foreground font-semibold bg-primary/10' 
                       : 'text-muted-foreground'
                   }`}
                 >
-                  <Square className="h-4 w-4" />
-                  Area
+                  <Square className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Area</span>
                 </Button>
 
-                <Separator orientation="vertical" className="h-8 mx-1" />
+                <Separator orientation="vertical" className="h-6 sm:h-8 mx-0.5 sm:mx-1" />
 
                 <Button
                   variant="ghost"
-                  size="lg"
+                  size="sm"
                   onClick={handleUndo}
                   disabled={!mapMeasurement && !isDrawing}
-                  className="gap-2"
+                  className="gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm"
                 >
-                  <Undo2 className="h-4 w-4" />
-                  Undo
+                  <Undo2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Undo</span>
                 </Button>
 
-                <Separator orientation="vertical" className="h-8 mx-1" />
+                <Separator orientation="vertical" className="h-6 sm:h-8 mx-0.5 sm:mx-1" />
 
                 <Button
                   variant="ghost"
-                  size="lg"
+                  size="sm"
                   onClick={() => {
                     setShowManualEntry(true);
                     clearMapDrawing();
                   }}
-                  className="gap-2 text-orange-600 hover:text-orange-700"
+                  className="gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm text-orange-600 hover:text-orange-700"
                 >
-                  <PencilRuler className="h-4 w-4" />
-                  Enter Manually
+                  <PencilRuler className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Enter Manually</span>
                 </Button>
               </div>
             </div>

@@ -325,9 +325,9 @@ export default function InternalQuoteBuilder() {
             <CardContent>
               <div className="space-y-2">
                 {quoteItems.map((item, index) => (
-                  <div key={item.id} className="flex justify-between items-center text-sm">
-                    <span>{index + 1}. {item.productName}</span>
-                    <span className="text-muted-foreground">
+                  <div key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2 text-sm">
+                    <span className="font-medium">{index + 1}. {item.productName}</span>
+                    <span className="text-muted-foreground text-xs sm:text-sm">
                       {item.measurement.value} {item.measurement.unit} × ${item.unitPrice.toFixed(2)} = ${item.lineTotal.toFixed(2)}
                     </span>
                   </div>
