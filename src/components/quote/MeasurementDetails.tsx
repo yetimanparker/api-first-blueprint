@@ -43,6 +43,23 @@ export default function MeasurementDetails({
     }).format(price);
   };
 
+  // Safety check for measurement data
+  if (!measurement || measurement.value === undefined || measurement.value === null) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Package className="h-5 w-5" />
+            {customName || productName}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">Measurement data unavailable</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -59,7 +76,7 @@ export default function MeasurementDetails({
             <p className="font-medium">Measurement</p>
             <p className="text-sm text-muted-foreground">
               {measurement.type === 'area' ? 'Area: ' : 'Linear: '}
-              <span className="font-semibold">{measurement.value.toLocaleString()} {measurement.unit}</span>
+              <span className="font-semibold">{measurement.value.toLocaleString()} {measurement.unit || 'units'}</span>
             </p>
             {measurement.manualEntry && (
               <Badge variant="outline" className="mt-1">Manual Entry</Badge>
