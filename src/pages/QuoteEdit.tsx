@@ -364,10 +364,10 @@ export default function QuoteEdit() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6 space-y-3">
+        <div className="mb-4 sm:mb-6 space-y-3">
           {/* Top row: Back to CRM and Change Order buttons */}
           <div className="flex items-center justify-between gap-2">
             <Button variant="ghost" size="sm" onClick={() => navigate('/crm')}>
@@ -397,7 +397,7 @@ export default function QuoteEdit() {
               {customer.first_name} {customer.last_name}
             </p>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold">{quote.quote_number}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold">{quote.quote_number}</h1>
               <Badge variant={getStatusBadgeVariant(quote.status)}>
                 {quote.status}
               </Badge>
@@ -456,10 +456,11 @@ export default function QuoteEdit() {
         </Card>
 
         {/* Action Buttons */}
-        <div className="mb-6 flex gap-3">
+        <div className="mb-6 flex flex-col sm:flex-row gap-3">
           <Button 
             variant="outline"
             onClick={() => navigate(`/quote/builder/${quote.id}`)}
+            className="w-full sm:w-auto"
           >
             <Ruler className="h-4 w-4 mr-2" />
             Use Measurement Tool
@@ -467,6 +468,7 @@ export default function QuoteEdit() {
           <Button 
             variant="outline"
             onClick={() => setShowAddItemForm(!showAddItemForm)}
+            className="w-full sm:w-auto"
           >
             <Plus className="h-4 w-4 mr-2" />
             {showAddItemForm ? 'Hide' : 'Add Item to Quote'}
@@ -600,22 +602,22 @@ export default function QuoteEdit() {
                   const basePrice = item.quantity * item.unit_price;
                   
                   return (
-                    <div key={item.id} className="bg-background rounded-lg p-4 border border-green-200 dark:border-green-800">
-                      <div className="flex items-start justify-between mb-3">
+                    <div key={item.id} className="bg-background rounded-lg p-3 sm:p-4 border border-green-200 dark:border-green-800">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-3">
                         <div className="flex items-start gap-3 flex-1">
                           <div 
                             className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
                             style={{ backgroundColor: item.product.color_hex }}
                           />
                           <div>
-                            <p className="font-semibold text-lg">{item.product.name}</p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="font-semibold text-base sm:text-lg">{item.product.name}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                               {item.quantity.toLocaleString()} {item.product.unit_type.replace('_', ' ')}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <p className="font-bold text-xl text-green-600">
+                        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
+                          <p className="font-bold text-lg sm:text-xl text-green-600">
                             {settings ? `${settings.currency_symbol}${item.line_total.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${item.line_total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                           </p>
                           <Button 
@@ -630,9 +632,9 @@ export default function QuoteEdit() {
                       </div>
                       
                       {/* Itemized Breakdown */}
-                      <div className="ml-6 space-y-2 text-sm">
+                      <div className="ml-0 sm:ml-6 space-y-2 text-xs sm:text-sm">
                         {/* Base Product */}
-                        <div className="text-muted-foreground">
+                        <div className="text-muted-foreground break-words">
                           Base {item.product.name}: {item.quantity.toLocaleString()} {item.product.unit_type.replace('_', ' ')} × {settings ? `${settings.currency_symbol}${item.unit_price.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} = {settings ? `${settings.currency_symbol}${basePrice.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${basePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         </div>
 
@@ -643,7 +645,7 @@ export default function QuoteEdit() {
                             : variation.priceAdjustment * item.quantity;
                           
                           return (
-                            <div key={idx} className="text-muted-foreground">
+                            <div key={idx} className="text-muted-foreground break-words">
                               {variation.name}: {variation.adjustmentType === 'percentage' 
                                 ? `${variation.priceAdjustment}%` 
                                 : `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ${settings ? `${settings.currency_symbol}${variation.priceAdjustment.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${variation.priceAdjustment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}`
@@ -659,7 +661,7 @@ export default function QuoteEdit() {
                             : addon.priceValue;
                           
                           return (
-                            <div key={idx} className="text-muted-foreground">
+                            <div key={idx} className="text-muted-foreground break-words">
                               {addon.name}: {addon.calculationType === 'per_unit' 
                                 ? `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ` 
                                 : ''}{settings ? `${settings.currency_symbol}${addon.priceValue.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${addon.priceValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} = {settings ? `${settings.currency_symbol}${addonPrice.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${addonPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -678,7 +680,7 @@ export default function QuoteEdit() {
                 <Separator className="my-4 bg-green-300 dark:bg-green-700" />
 
                 <div className="space-y-2">
-                  <div className="flex justify-between text-base">
+                  <div className="flex justify-between text-sm sm:text-base">
                     <span>Subtotal:</span>
                     <span className="font-semibold">
                       {settings ? `${settings.currency_symbol}${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -686,7 +688,7 @@ export default function QuoteEdit() {
                   </div>
                   
                   {settings?.global_tax_rate > 0 && (
-                    <div className="flex justify-between text-sm text-muted-foreground">
+                    <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
                       <span>Tax ({settings.global_tax_rate}%):</span>
                       <span>
                         {settings ? `${settings.currency_symbol}${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_tax_rate) / 100).toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_tax_rate) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -696,7 +698,7 @@ export default function QuoteEdit() {
                   
                   <Separator className="my-2 bg-green-300 dark:bg-green-700" />
                   
-                  <div className="flex justify-between text-2xl font-bold pt-2">
+                  <div className="flex justify-between text-xl sm:text-2xl font-bold pt-2">
                     <span>Total:</span>
                     <span className="text-green-600">
                       {settings ? `${settings.currency_symbol}${quote.total_amount.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${quote.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
@@ -796,42 +798,44 @@ export default function QuoteEdit() {
             ) : (
               <div className="space-y-6">
                 {quoteItems.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-lg">{item.product.name}</h3>
-                      <div className="flex items-center gap-2">
+                  <div key={item.id} className="border rounded-lg p-3 sm:p-4 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <h3 className="font-medium text-base sm:text-lg">{item.product.name}</h3>
+                      <div className="flex items-center justify-between sm:justify-end gap-2">
                         {!settings?.use_price_ranges && (
-                          <p className="font-bold text-primary text-lg">
+                          <p className="font-bold text-primary text-base sm:text-lg">
                             {settings ? displayLineItemPrice(item.line_total, settings) : `$${item.line_total.toLocaleString()}`}
                           </p>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingItem(item)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeletingItemId(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingItem(item)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeletingItemId(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
 
                     {/* Detailed Pricing Breakdown */}
                     {!settings?.use_price_ranges && (
-                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                      <div className="bg-muted/50 rounded-lg p-3 sm:p-4 space-y-2">
                         <h4 className="font-medium text-sm mb-3">Price Breakdown</h4>
-                        <div className="space-y-1.5 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">
+                        <div className="space-y-1.5 text-xs sm:text-sm">
+                          <div className="flex justify-between gap-2">
+                            <span className="text-muted-foreground break-words">
                               Base: {item.quantity.toLocaleString()} {item.product.unit_type} × ${item.unit_price.toFixed(2)}
                             </span>
-                            <span className="font-medium">
+                            <span className="font-medium whitespace-nowrap">
                               ${(item.quantity * item.unit_price).toFixed(2)}
                             </span>
                           </div>
@@ -844,9 +848,9 @@ export default function QuoteEdit() {
                                   ? (item.quantity * item.unit_price * variation.priceAdjustment / 100)
                                   : variation.priceAdjustment;
                                 return (
-                                  <div key={idx} className="flex justify-between text-muted-foreground">
-                                    <span className="pl-4">+ {variation.name}</span>
-                                    <span>
+                                  <div key={idx} className="flex justify-between gap-2 text-muted-foreground">
+                                    <span className="pl-4 break-words">+ {variation.name}</span>
+                                    <span className="whitespace-nowrap">
                                       {variation.adjustmentType === 'percentage' 
                                         ? `${variation.priceAdjustment > 0 ? '+' : ''}${variation.priceAdjustment}% ($${variationCost.toFixed(2)})`
                                         : `$${variationCost.toFixed(2)}`
@@ -866,15 +870,15 @@ export default function QuoteEdit() {
                                   ? addon.priceValue * item.quantity * (addon.quantity || 1)
                                   : addon.priceValue * (addon.quantity || 1);
                                 return (
-                                  <div key={idx} className="flex justify-between text-muted-foreground">
-                                    <span className="pl-4">
+                                  <div key={idx} className="flex justify-between gap-2 text-muted-foreground">
+                                    <span className="pl-4 break-words">
                                       + {addon.name} 
                                       {addon.calculationType === 'per_unit' 
                                         ? ` ($${addon.priceValue.toFixed(2)}/${item.product.unit_type})`
                                         : ` (qty: ${addon.quantity || 1})`
                                       }
                                     </span>
-                                    <span>
+                                    <span className="whitespace-nowrap">
                                       ${addonTotal.toFixed(2)}
                                     </span>
                                   </div>
