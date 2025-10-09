@@ -475,6 +475,11 @@ const QuoteSuccess = ({
                   <span className="font-medium">Phone:</span> {customerInfo.phone}
                 </div>
               )}
+              {customerInfo.address && (
+                <div>
+                  <span className="font-medium">Address:</span> {customerInfo.address}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
