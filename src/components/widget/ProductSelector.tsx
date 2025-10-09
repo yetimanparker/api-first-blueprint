@@ -206,80 +206,76 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
 
   return (
     <div className="w-full">
-      {/* Category filters - Horizontal scroll, full width */}
+      {/* Category filters - Compact Pills */}
       {categories.length > 0 && (
-        <div className="bg-background pb-4 mb-4 space-y-3 pt-4 border-b">
-          {/* Categories - horizontal scroll */}
-          <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
-            <div className="flex gap-2 min-w-max pb-1">
+        <div className="sticky top-[80px] z-[60] bg-background/95 backdrop-blur-sm pb-4 mb-4 space-y-3 pt-4 px-4 -mx-4 shadow-md border-b"
+          >
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedCategory('')}
+              className={`rounded-full h-8 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all ${
+                selectedCategory === '' 
+                  ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
+                  : 'bg-background text-foreground border-input hover:bg-accent/10 hover:text-accent-foreground'
+              }`}
+            >
+              <span className="hidden sm:inline">All Categories</span>
+              <span className="sm:hidden">All</span>
+              <span className="ml-1">({allProductsCount})</span>
+            </Button>
+            {categories.map((category) => (
               <Button
+                key={category.id}
                 variant="outline"
                 size="sm"
-                onClick={() => setSelectedCategory('')}
-                className={`rounded-full h-9 px-4 text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-                  selectedCategory === '' 
+                onClick={() => setSelectedCategory(category.name)}
+                className={`rounded-full h-8 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all ${
+                  selectedCategory === category.name 
                     ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
                     : 'bg-background text-foreground border-input hover:bg-accent/10 hover:text-accent-foreground'
                 }`}
               >
-                <span>All</span>
-                <span className="ml-1">({allProductsCount})</span>
+                <span className="truncate max-w-[120px]">{category.name}</span>
+                <span className="ml-1">({categoryProductCounts[category.name] || 0})</span>
               </Button>
-              {categories.map((category) => (
-                <Button
-                  key={category.id}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedCategory(category.name);
-                  }}
-                  className={`rounded-full h-9 px-4 text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-                    selectedCategory === category.name 
-                      ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
-                      : 'bg-background text-foreground border-input hover:bg-accent/10 hover:text-accent-foreground'
-                  }`}
-                >
-                  <span>{category.name}</span>
-                  <span className="ml-1">({categoryProductCounts[category.name] || 0})</span>
-                </Button>
-              ))}
-            </div>
+            ))}
           </div>
 
-          {/* Subcategory filters - horizontal scroll when category selected */}
+          {/* Subcategory filters - Only shown when category is selected */}
           {selectedCategory && availableSubcategories.length > 0 && (
-            <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 pl-6">
-              <div className="flex gap-2 min-w-max pb-1">
+            <div className="flex flex-wrap gap-2 pl-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedSubcategory('')}
+                className={`rounded-full h-8 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all ${
+                  selectedSubcategory === '' 
+                    ? 'bg-success text-success-foreground border-success hover:bg-success/90' 
+                    : 'bg-background text-foreground border-input hover:bg-success/10 hover:text-success-foreground'
+                }`}
+              >
+                <span className="hidden sm:inline">All Types</span>
+                <span className="sm:hidden">All</span>
+                <span className="ml-1">({categoryFilteredCount})</span>
+              </Button>
+              {availableSubcategories.map((subcategory) => (
                 <Button
+                  key={subcategory.id}
                   variant="outline"
                   size="sm"
-                  onClick={() => setSelectedSubcategory('')}
-                  className={`rounded-full h-9 px-4 text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-                    selectedSubcategory === '' 
-                      ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
-                      : 'bg-background text-foreground border-input hover:bg-primary/10 hover:text-primary-foreground'
+                  onClick={() => setSelectedSubcategory(subcategory.name)}
+                  className={`rounded-full h-8 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all ${
+                    selectedSubcategory === subcategory.name 
+                      ? 'bg-success text-success-foreground border-success hover:bg-success/90' 
+                      : 'bg-background text-foreground border-input hover:bg-success/10 hover:text-success-foreground'
                   }`}
                 >
-                  <span>All Types</span>
-                  <span className="ml-1">({categoryFilteredCount})</span>
+                  <span className="truncate max-w-[120px]">{subcategory.name}</span>
+                  <span className="ml-1">({subcategoryProductCounts[subcategory.name] || 0})</span>
                 </Button>
-                {availableSubcategories.map((subcategory) => (
-                  <Button
-                    key={subcategory.id}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedSubcategory(subcategory.name)}
-                    className={`rounded-full h-9 px-4 text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-                      selectedSubcategory === subcategory.name 
-                        ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
-                        : 'bg-background text-foreground border-input hover:bg-primary/10 hover:text-primary-foreground'
-                    }`}
-                  >
-                    <span>{subcategory.name}</span>
-                    <span className="ml-1">({subcategoryProductCounts[subcategory.name] || 0})</span>
-                  </Button>
-                ))}
-              </div>
+              ))}
             </div>
           )}
         </div>
