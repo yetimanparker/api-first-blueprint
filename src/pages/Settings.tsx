@@ -1399,16 +1399,31 @@ const Settings = () => {
                   </p>
                 </div>
 
+                {/* Live Preview */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Live Preview</label>
+                  <div className="border rounded-lg overflow-hidden">
+                    <iframe
+                      key={`widget-preview-${Date.now()}`}
+                      src={`/widget/${contractorId}?preview=true`}
+                      width="100%"
+                      height="800"
+                      style={{ border: 'none' }}
+                      title="Widget Preview"
+                    />
+                  </div>
+                </div>
+
                 {/* Actions */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-4">
                   <Button
                     type="button"
                     variant="outline"
                     className="w-full sm:w-auto"
-                    onClick={() => window.open(`/widget/${contractorId}?t=${Date.now()}`, '_blank')}
+                    onClick={() => window.open(`/widget/${contractorId}`, '_blank')}
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    Preview Widget
+                    Open in New Tab
                   </Button>
                 </div>
 
