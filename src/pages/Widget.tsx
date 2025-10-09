@@ -380,9 +380,9 @@ const Widget = () => {
           </div>
         )}
 
-        {/* Measurement Section - Only visible during measurement and configuration */}
-        {['measurement', 'product-configuration'].includes(widgetState.currentStep) && widgetState.currentProductId && (
-          <div id="step-measurement" className="w-full">
+        {/* Measurement Section - Full width, always visible once reached */}
+        {isStepVisible('measurement') && widgetState.currentProductId && (
+          <div id="step-measurement" className="w-full mb-6">
             <MeasurementTools
               productId={widgetState.currentProductId}
               onMeasurementComplete={updateCurrentMeasurement}
@@ -437,7 +437,7 @@ const Widget = () => {
 
         {/* Quote Review Section - Only show when actually on review step */}
         {(widgetState.currentStep === 'quote-review' || widgetState.currentStep === 'project-comments') && (
-          <div id="step-quote-review" className="px-4 py-6">
+          <div id="step-quote-review" className="px-4 py-6 mt-6">
             <QuoteReview
               quoteItems={widgetState.quoteItems}
               customerInfo={widgetState.customerInfo}
