@@ -248,14 +248,56 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                       </p>
                     )}
                   </div>
-                  <p className="font-bold text-lg">
-                    {displayLineItemPrice(item.line_total, settings)}
-                  </p>
+                  <div className="text-right">
+                    {shouldShowPriceRanges ? (
+                      <div className="space-y-1">
+                        <p className="font-bold text-lg">
+                          {formatPriceRange(
+                            calculatePriceRange(item.line_total, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
+                            settings
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Exact: {formatExactPrice(item.line_total, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="font-bold text-lg">
+                        {formatExactPrice(item.line_total, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Itemized breakdown */}
                 <div className="space-y-1 text-sm text-muted-foreground">
-                  <div>Base: {displayLineItemPrice(basePrice, settings)}</div>
+                  <div>
+                    Base: {shouldShowPriceRanges ? (
+                      <>
+                        {formatPriceRange(
+                          calculatePriceRange(basePrice, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
+                          settings
+                        )}
+                        <span className="text-xs ml-2">
+                          (Exact: {formatExactPrice(basePrice, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })})
+                        </span>
+                      </>
+                    ) : (
+                      formatExactPrice(basePrice, {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      })
+                    )}
+                  </div>
                   
                   {variations.map((v: any) => (
                     <div key={v.id}>
