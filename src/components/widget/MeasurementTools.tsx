@@ -692,12 +692,12 @@ const MeasurementTools = ({
   return (
     <div className={`flex flex-col w-full ${isConfigurationMode ? 'h-full' : 'h-screen'}`}>
       {/* Header with Search and Title */}
-      <div ref={headerRef} className="bg-background border-b px-6 py-4 z-20 shadow-md">
-        <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
-          <h2 className="text-2xl font-semibold text-foreground whitespace-nowrap">
+      <div ref={headerRef} className="bg-background border-b px-4 sm:px-6 py-4 z-20 shadow-md">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 max-w-7xl mx-auto">
+          <h2 className="text-xl sm:text-2xl font-semibold text-foreground">
             Measure Your Project
           </h2>
-          <div className="flex items-center gap-2 flex-1 max-w-2xl">
+          <div className="flex items-center gap-2 w-full sm:flex-1 sm:max-w-2xl">
             <AddressAutocomplete
               value={searchAddress}
               onAddressSelect={(address: ParsedAddress) => {
