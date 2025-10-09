@@ -579,7 +579,7 @@ export default function QuoteEdit() {
                         </div>
                         <div className="flex items-center gap-3">
                           <p className="font-bold text-xl text-green-600">
-                            {settings ? `${settings.currency_symbol}${item.line_total.toFixed(settings.decimal_precision)}` : `$${item.line_total.toFixed(2)}`}
+                            {settings ? `${settings.currency_symbol}${item.line_total.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${item.line_total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                           </p>
                           <Button 
                             variant="ghost" 
@@ -596,7 +596,7 @@ export default function QuoteEdit() {
                       <div className="ml-6 space-y-2 text-sm">
                         {/* Base Product */}
                         <div className="text-muted-foreground">
-                          Base {item.product.name}: {item.quantity.toLocaleString()} {item.product.unit_type.replace('_', ' ')} × {settings ? `${settings.currency_symbol}${item.unit_price.toFixed(settings.decimal_precision)}` : `$${item.unit_price.toFixed(2)}`} = {settings ? `${settings.currency_symbol}${basePrice.toFixed(settings.decimal_precision)}` : `$${basePrice.toFixed(2)}`}
+                          Base {item.product.name}: {item.quantity.toLocaleString()} {item.product.unit_type.replace('_', ' ')} × {settings ? `${settings.currency_symbol}${item.unit_price.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} = {settings ? `${settings.currency_symbol}${basePrice.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${basePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         </div>
 
                         {/* Variations */}
@@ -609,8 +609,8 @@ export default function QuoteEdit() {
                             <div key={idx} className="text-muted-foreground">
                               {variation.name}: {variation.adjustmentType === 'percentage' 
                                 ? `${variation.priceAdjustment}%` 
-                                : `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ${settings ? `${settings.currency_symbol}${variation.priceAdjustment.toFixed(settings.decimal_precision)}` : `$${variation.priceAdjustment.toFixed(2)}`}`
-                              } = {settings ? `${settings.currency_symbol}${variationPrice.toFixed(settings.decimal_precision)}` : `$${variationPrice.toFixed(2)}`}
+                                : `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ${settings ? `${settings.currency_symbol}${variation.priceAdjustment.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${variation.priceAdjustment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}`
+                              } = {settings ? `${settings.currency_symbol}${variationPrice.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${variationPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                             </div>
                           );
                         })}
@@ -625,7 +625,7 @@ export default function QuoteEdit() {
                             <div key={idx} className="text-muted-foreground">
                               {addon.name}: {addon.calculationType === 'per_unit' 
                                 ? `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ` 
-                                : ''}{settings ? `${settings.currency_symbol}${addon.priceValue.toFixed(settings.decimal_precision)}` : `$${addon.priceValue.toFixed(2)}`} = {settings ? `${settings.currency_symbol}${addonPrice.toFixed(settings.decimal_precision)}` : `$${addonPrice.toFixed(2)}`}
+                                : ''}{settings ? `${settings.currency_symbol}${addon.priceValue.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${addon.priceValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} = {settings ? `${settings.currency_symbol}${addonPrice.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${addonPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                             </div>
                           );
                         })}
@@ -644,7 +644,7 @@ export default function QuoteEdit() {
                   <div className="flex justify-between text-base">
                     <span>Subtotal:</span>
                     <span className="font-semibold">
-                      {settings ? `${settings.currency_symbol}${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toFixed(settings.decimal_precision)}` : `$${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toFixed(2)}`}
+                      {settings ? `${settings.currency_symbol}${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${quoteItems.reduce((sum, item) => sum + item.line_total, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     </span>
                   </div>
                   
@@ -652,7 +652,7 @@ export default function QuoteEdit() {
                     <div className="flex justify-between text-sm text-muted-foreground">
                       <span>Tax ({settings.global_tax_rate}%):</span>
                       <span>
-                        {settings ? `${settings.currency_symbol}${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_tax_rate) / 100).toFixed(settings.decimal_precision)}` : `$${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_tax_rate) / 100).toFixed(2)}`}
+                        {settings ? `${settings.currency_symbol}${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_tax_rate) / 100).toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${((quoteItems.reduce((sum, item) => sum + item.line_total, 0) * settings.global_tax_rate) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       </span>
                     </div>
                   )}
@@ -662,7 +662,7 @@ export default function QuoteEdit() {
                   <div className="flex justify-between text-2xl font-bold pt-2">
                     <span>Total:</span>
                     <span className="text-green-600">
-                      {settings ? `${settings.currency_symbol}${quote.total_amount.toFixed(settings.decimal_precision)}` : `$${quote.total_amount.toFixed(2)}`}
+                      {settings ? `${settings.currency_symbol}${quote.total_amount.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${quote.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     </span>
                   </div>
                 </div>
