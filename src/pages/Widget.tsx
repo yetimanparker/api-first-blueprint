@@ -380,8 +380,8 @@ const Widget = () => {
           </div>
         )}
 
-        {/* Measurement Section - Full width, always visible once reached */}
-        {isStepVisible('measurement') && widgetState.currentProductId && (
+        {/* Measurement Section - Only visible during measurement and configuration */}
+        {['measurement', 'product-configuration'].includes(widgetState.currentStep) && widgetState.currentProductId && (
           <div id="step-measurement" className="w-full">
             <MeasurementTools
               productId={widgetState.currentProductId}
