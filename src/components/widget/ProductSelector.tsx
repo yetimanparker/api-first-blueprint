@@ -121,9 +121,27 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     }
   };
 
+  // Helper to get category name from ID or name
+  const getCategoryName = (categoryIdOrName?: string | null): string | null => {
+    if (!categoryIdOrName) return null;
+    // Check if it's already a name (not a UUID)
+    const category = categories.find(c => c.name === categoryIdOrName || c.id === categoryIdOrName);
+    return category ? category.name : null;
+  };
+
+  // Helper to get subcategory name from ID or name
+  const getSubcategoryName = (subcategoryIdOrName?: string | null): string | null => {
+    if (!subcategoryIdOrName) return null;
+    // Check if it's already a name (not a UUID)
+    const subcategory = subcategories.find(sc => sc.name === subcategoryIdOrName || sc.id === subcategoryIdOrName);
+    return subcategory ? subcategory.name : null;
+  };
+
   const filteredProducts = products.filter(p => {
-    if (selectedCategory && p.category !== selectedCategory) return false;
-    if (selectedSubcategory && p.subcategory !== selectedSubcategory) return false;
+    const categoryName = getCategoryName(p.category);
+    const subcategoryName = getSubcategoryName(p.subcategory);
+    if (selectedCategory && categoryName !== selectedCategory) return false;
+    if (selectedSubcategory && subcategoryName !== selectedSubcategory) return false;
     return true;
   });
 
@@ -170,13 +188,13 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
 
   // Get product counts per category and subcategory
   const categoryProductCounts = categories.reduce((acc, category) => {
-    acc[category.name] = products.filter(p => p.category === category.name).length;
+    acc[category.name] = products.filter(p => getCategoryName(p.category) === category.name).length;
     return acc;
   }, {} as Record<string, number>);
   
   const subcategoryProductCounts = availableSubcategories.reduce((acc, subcategory) => {
     acc[subcategory.name] = products.filter(p => 
-      p.category === selectedCategory && p.subcategory === subcategory.name
+      getCategoryName(p.category) === selectedCategory && getSubcategoryName(p.subcategory) === subcategory.name
     ).length;
     return acc;
   }, {} as Record<string, number>);
@@ -341,16 +359,24 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
 
                 {/* Badges at bottom */}
                 <div className="flex flex-wrap gap-1.5">
-                  {product.category && (
-                    <Badge variant="outline" className="text-xs bg-muted/50">
-                      {product.category}
-                    </Badge>
-                  )}
-                  {product.subcategory && (
-                    <Badge variant="outline" className="text-xs bg-muted/50">
-                      {product.subcategory}
-                    </Badge>
-                  )}
+                  {(() => {
+                    const categoryName = getCategoryName(product.category);
+                    const subcategoryName = getSubcategoryName(product.subcategory);
+                    return (
+                      <>
+                        {categoryName && (
+                          <Badge variant="outline" className="text-xs bg-muted/50">
+                            {categoryName}
+                          </Badge>
+                        )}
+                        {subcategoryName && (
+                          <Badge variant="outline" className="text-xs bg-muted/50">
+                            {subcategoryName}
+                          </Badge>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>
