@@ -1405,7 +1405,7 @@ const Settings = () => {
                     type="button"
                     variant="outline"
                     className="w-full sm:w-auto"
-                    onClick={() => window.open(`/widget/${contractorId}`, '_blank')}
+                    onClick={() => window.open(`/widget/${contractorId}?t=${Date.now()}`, '_blank')}
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Preview Widget
