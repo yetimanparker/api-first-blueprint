@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { ArrowLeft, Plus, Phone, Mail, MapPin, Edit, Eye, MoreVertical } from "lucide-react";
+import { ArrowLeft, Plus, Phone, Mail, MapPin, Edit, Eye, MoreVertical, Ruler } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -232,25 +232,27 @@ export default function CustomerDetail() {
           <TabsContent value="quotes" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Quotes
-                  <PhoneQuoteDialog 
-                    customerId={customer.id}
-                    onQuoteCreated={(quoteId) => {
-                      fetchCustomerData();
-                      navigate(`/quote/edit/${quoteId}`);
-                    }}
-                    prefilledCustomer={{
-                      first_name: customer.first_name,
-                      last_name: customer.last_name,
-                      email: customer.email,
-                      phone: customer.phone,
-                      address: customer.address,
-                      city: customer.city,
-                      state: customer.state,
-                      zip_code: customer.zip_code,
-                    }}
-                  />
+                <CardTitle className="flex items-center justify-between flex-wrap gap-2">
+                  <span>Quotes</span>
+                  <div className="flex gap-2">
+                    <PhoneQuoteDialog 
+                      customerId={customer.id}
+                      onQuoteCreated={(quoteId) => {
+                        fetchCustomerData();
+                        navigate(`/quote/edit/${quoteId}`);
+                      }}
+                      prefilledCustomer={{
+                        first_name: customer.first_name,
+                        last_name: customer.last_name,
+                        email: customer.email,
+                        phone: customer.phone,
+                        address: customer.address,
+                        city: customer.city,
+                        state: customer.state,
+                        zip_code: customer.zip_code,
+                      }}
+                    />
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>

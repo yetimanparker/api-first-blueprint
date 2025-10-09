@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin } from "lucide-react";
+import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin, Ruler } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { QuoteItemForm } from "@/components/QuoteItemForm";
@@ -381,6 +381,14 @@ export default function QuoteEdit() {
                   Copy Link
                 </Button>
               )}
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => navigate(`/quote/builder/${quote.id}`)}
+              >
+                <Ruler className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Measure</span>
+              </Button>
               <Button size="sm" onClick={createChangeOrder} disabled={saving}>
                 <History className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">
