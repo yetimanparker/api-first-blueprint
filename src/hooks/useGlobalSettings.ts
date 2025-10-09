@@ -18,27 +18,32 @@ export interface GlobalSettings extends PriceRangeSettings {
   pricing_visibility: 'before_submit' | 'after_submit';
 }
 
-export function useGlobalSettings() {
+export function useGlobalSettings(contractorId?: string) {
   const [settings, setSettings] = useState<GlobalSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
-  }, []);
+  }, [contractorId]);
 
   const loadSettings = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Get contractor ID first
-      const { data: contractor } = await supabase
-        .from('contractors')
-        .select('id')
-        .maybeSingle();
+      // Use provided contractor ID or get from authenticated user
+      let targetContractorId = contractorId;
+      
+      if (!targetContractorId) {
+        const { data: contractor } = await supabase
+          .from('contractors')
+          .select('id')
+          .maybeSingle();
+        targetContractorId = contractor?.id;
+      }
 
-      if (!contractor) {
+      if (!targetContractorId) {
         // Use default settings if no contractor profile
         setSettings({
           use_price_ranges: false,
@@ -68,7 +73,7 @@ export function useGlobalSettings() {
       const { data: contractorSettings, error: settingsError } = await supabase
         .from('contractor_settings')
         .select('*')
-        .eq('contractor_id', contractor.id)
+        .eq('contractor_id', targetContractorId)
         .maybeSingle();
 
       if (settingsError && settingsError.code !== 'PGRST116') {

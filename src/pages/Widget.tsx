@@ -21,7 +21,7 @@ const Widget = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const { settings, loading: settingsLoading, error: settingsError } = useGlobalSettings();
+  const { settings, loading: settingsLoading, error: settingsError } = useGlobalSettings(contractorId);
   const { categories, loading: categoriesLoading } = useProductCategories(contractorId);
 
   const [widgetState, setWidgetState] = useState<WidgetState>({
