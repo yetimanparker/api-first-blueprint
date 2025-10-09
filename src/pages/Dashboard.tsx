@@ -88,18 +88,18 @@ const Dashboard = () => {
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="inline-flex items-center justify-center w-10 h-10 bg-primary rounded-xl mr-3">
-                <Building2 className="h-6 w-6 text-primary-foreground" />
+          <div className="flex justify-between items-center h-16 gap-2">
+            <div className="flex items-center min-w-0">
+              <div className="inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl mr-2 sm:mr-3 flex-shrink-0">
+                <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
               </div>
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">MeasureQuote</h1>
-                <p className="text-sm text-muted-foreground">Contractor Portal</p>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-semibold text-foreground truncate">MeasureQuote</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Contractor Portal</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+              <span className="text-sm text-muted-foreground hidden sm:inline">
                 Welcome, {user?.user_metadata?.first_name || user?.email}
               </span>
               <Button
@@ -108,8 +108,8 @@ const Dashboard = () => {
                 onClick={handleSignOut}
                 className="flex items-center"
               >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Sign Out</span>
               </Button>
             </div>
           </div>
