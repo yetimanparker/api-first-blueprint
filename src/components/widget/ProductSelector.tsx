@@ -50,6 +50,8 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
   const [subcategories, setSubcategories] = useState<ProductSubcategory[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showAllSubcategories, setShowAllSubcategories] = useState(false);
 
   useEffect(() => {
     if (contractorId) {
@@ -204,34 +206,46 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     ? products.filter(p => p.category === selectedCategory).length 
     : allProductsCount;
 
+  // Calculate visible categories for mobile (single row)
+  const maxVisibleCategoriesOnMobile = 3; // "All" + 2 categories
+  const displayCategories = showAllCategories ? categories : categories.slice(0, maxVisibleCategoriesOnMobile - 1);
+  const hasMoreCategories = categories.length > maxVisibleCategoriesOnMobile - 1;
+
+  // Calculate visible subcategories for mobile
+  const maxVisibleSubcategoriesOnMobile = 3;
+  const displaySubcategories = showAllSubcategories ? availableSubcategories : availableSubcategories.slice(0, maxVisibleSubcategoriesOnMobile - 1);
+  const hasMoreSubcategories = availableSubcategories.length > maxVisibleSubcategoriesOnMobile - 1;
+
   return (
     <div className="w-full">
-      {/* Category filters - Compact Pills */}
+      {/* Category filters - Non-sticky, Mobile-first */}
       {categories.length > 0 && (
-        <div className="sticky top-[80px] z-[60] bg-background/95 backdrop-blur-sm pb-4 mb-4 space-y-3 pt-4 px-4 -mx-4 shadow-md border-b"
-          >
+        <div className="bg-background pb-4 mb-4 space-y-3 pt-4 px-4 -mx-4 border-b">
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setSelectedCategory('')}
-              className={`rounded-full h-8 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all ${
+              className={`rounded-full h-9 px-4 text-sm font-medium transition-all ${
                 selectedCategory === '' 
                   ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
                   : 'bg-background text-foreground border-input hover:bg-accent/10 hover:text-accent-foreground'
               }`}
             >
-              <span className="hidden sm:inline">All Categories</span>
-              <span className="sm:hidden">All</span>
+              <span>All</span>
               <span className="ml-1">({allProductsCount})</span>
             </Button>
-            {categories.map((category) => (
+            {displayCategories.map((category) => (
               <Button
                 key={category.id}
                 variant="outline"
                 size="sm"
-                onClick={() => setSelectedCategory(category.name)}
-                className={`rounded-full h-8 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all ${
+                onClick={() => {
+                  setSelectedCategory(category.name);
+                  setShowAllCategories(false);
+                  setShowAllSubcategories(false);
+                }}
+                className={`rounded-full h-9 px-4 text-sm font-medium transition-all ${
                   selectedCategory === category.name 
                     ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
                     : 'bg-background text-foreground border-input hover:bg-accent/10 hover:text-accent-foreground'
@@ -241,6 +255,26 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
                 <span className="ml-1">({categoryProductCounts[category.name] || 0})</span>
               </Button>
             ))}
+            {hasMoreCategories && !showAllCategories && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAllCategories(true)}
+                className="rounded-full h-9 px-4 text-sm font-medium border-dashed hover:bg-accent/10"
+              >
+                Show More
+              </Button>
+            )}
+            {showAllCategories && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAllCategories(false)}
+                className="rounded-full h-9 px-4 text-sm font-medium border-dashed hover:bg-accent/10"
+              >
+                Show Less
+              </Button>
+            )}
           </div>
 
           {/* Subcategory filters - Only shown when category is selected */}
@@ -250,32 +284,54 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedSubcategory('')}
-                className={`rounded-full h-8 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all ${
+                className={`rounded-full h-9 px-4 text-sm font-medium transition-all ${
                   selectedSubcategory === '' 
-                    ? 'bg-success text-success-foreground border-success hover:bg-success/90' 
-                    : 'bg-background text-foreground border-input hover:bg-success/10 hover:text-success-foreground'
+                    ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
+                    : 'bg-background text-foreground border-input hover:bg-primary/10 hover:text-primary-foreground'
                 }`}
               >
-                <span className="hidden sm:inline">All Types</span>
-                <span className="sm:hidden">All</span>
+                <span>All Types</span>
                 <span className="ml-1">({categoryFilteredCount})</span>
               </Button>
-              {availableSubcategories.map((subcategory) => (
+              {displaySubcategories.map((subcategory) => (
                 <Button
                   key={subcategory.id}
                   variant="outline"
                   size="sm"
-                  onClick={() => setSelectedSubcategory(subcategory.name)}
-                  className={`rounded-full h-8 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all ${
+                  onClick={() => {
+                    setSelectedSubcategory(subcategory.name);
+                    setShowAllSubcategories(false);
+                  }}
+                  className={`rounded-full h-9 px-4 text-sm font-medium transition-all ${
                     selectedSubcategory === subcategory.name 
-                      ? 'bg-success text-success-foreground border-success hover:bg-success/90' 
-                      : 'bg-background text-foreground border-input hover:bg-success/10 hover:text-success-foreground'
+                      ? 'bg-primary text-primary-foreground border-primary hover:bg-primary/90' 
+                      : 'bg-background text-foreground border-input hover:bg-primary/10 hover:text-primary-foreground'
                   }`}
                 >
                   <span className="truncate max-w-[120px]">{subcategory.name}</span>
                   <span className="ml-1">({subcategoryProductCounts[subcategory.name] || 0})</span>
                 </Button>
               ))}
+              {hasMoreSubcategories && !showAllSubcategories && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAllSubcategories(true)}
+                  className="rounded-full h-9 px-4 text-sm font-medium border-dashed hover:bg-primary/10"
+                >
+                  Show More
+                </Button>
+              )}
+              {showAllSubcategories && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAllSubcategories(false)}
+                  className="rounded-full h-9 px-4 text-sm font-medium border-dashed hover:bg-primary/10"
+                >
+                  Show Less
+                </Button>
+              )}
             </div>
           )}
         </div>
