@@ -194,9 +194,8 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
     : 0;
   const total = subtotal + taxAmount;
 
-  // Determine if price ranges should be shown based on quote status
-  const isSubmittedQuote = ['pending', 'accepted', 'declined', 'expired'].includes(quote.status);
-  const shouldShowPriceRanges = settings.use_price_ranges && isSubmittedQuote;
+  // Show price ranges when enabled, regardless of quote status (so contractor knows customer's view)
+  const shouldShowPriceRanges = settings.use_price_ranges;
 
   if (loading) {
     return <div className="text-center py-8">Loading quote details...</div>;
@@ -291,37 +290,61 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
           <div className="space-y-2">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span className="font-semibold">
+              <div className="text-right">
                 {shouldShowPriceRanges ? (
-                  formatPriceRange(
-                    calculatePriceRange(subtotal, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
-                    settings
-                  )
+                  <div className="space-y-1">
+                    <div className="font-semibold">
+                      {formatPriceRange(
+                        calculatePriceRange(subtotal, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
+                        settings
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Exact: {formatExactPrice(subtotal, {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      })}
+                    </div>
+                  </div>
                 ) : (
-                  formatExactPrice(subtotal, {
-                    currency_symbol: settings.currency_symbol,
-                    decimal_precision: settings.decimal_precision
-                  })
+                  <span className="font-semibold">
+                    {formatExactPrice(subtotal, {
+                      currency_symbol: settings.currency_symbol,
+                      decimal_precision: settings.decimal_precision
+                    })}
+                  </span>
                 )}
-              </span>
+              </div>
             </div>
             
             {taxAmount > 0 && (
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Tax ({settings.global_tax_rate}%):</span>
-                <span>
+                <div className="text-right">
                   {shouldShowPriceRanges ? (
-                    formatPriceRange(
-                      calculatePriceRange(taxAmount, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
-                      settings
-                    )
+                    <div className="space-y-1">
+                      <div>
+                        {formatPriceRange(
+                          calculatePriceRange(taxAmount, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
+                          settings
+                        )}
+                      </div>
+                      <div className="text-xs">
+                        Exact: {formatExactPrice(taxAmount, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}
+                      </div>
+                    </div>
                   ) : (
-                    formatExactPrice(taxAmount, {
-                      currency_symbol: settings.currency_symbol,
-                      decimal_precision: settings.decimal_precision
-                    })
+                    <span>
+                      {formatExactPrice(taxAmount, {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      })}
+                    </span>
                   )}
-                </span>
+                </div>
               </div>
             )}
             
@@ -329,9 +352,29 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             
             <div className="flex justify-between text-2xl font-bold">
               <span>Total:</span>
-              <span className="text-primary">
-                {displayQuoteTotal(total, settings, quote.status)}
-              </span>
+              <div className="text-right text-primary">
+                {shouldShowPriceRanges ? (
+                  <div className="space-y-1">
+                    <div>
+                      {formatPriceRange(
+                        calculatePriceRange(total, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
+                        settings
+                      )}
+                    </div>
+                    <div className="text-sm font-normal text-muted-foreground">
+                      Exact: {formatExactPrice(total, {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  formatExactPrice(total, {
+                    currency_symbol: settings.currency_symbol,
+                    decimal_precision: settings.decimal_precision
+                  })
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
