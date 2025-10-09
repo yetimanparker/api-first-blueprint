@@ -215,17 +215,22 @@ const ProductConfiguration = ({
         };
       });
 
+    // Create measurement with variations and addons nested inside
+    const measurementWithOptions: MeasurementData = {
+      ...measurement,
+      variations: selectedVariationObjects.length > 0 ? selectedVariationObjects : undefined,
+      addons: selectedAddonObjects.length > 0 ? selectedAddonObjects : undefined
+    };
+
     const quoteItem: QuoteItem = {
       id: Date.now().toString(),
       productId: product.id,
       productName: product.name,
-      measurement,
+      measurement: measurementWithOptions,
       unitPrice: product.unit_price,
       quantity: measurement.value,
       lineTotal: calculateItemPrice(),
-      notes: notes || undefined,
-      variations: selectedVariationObjects.length > 0 ? selectedVariationObjects : undefined,
-      addons: selectedAddonObjects.length > 0 ? selectedAddonObjects : undefined
+      notes: notes || undefined
     };
 
     onAddToQuote(quoteItem);
