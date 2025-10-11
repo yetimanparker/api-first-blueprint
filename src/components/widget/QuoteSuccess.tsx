@@ -199,8 +199,13 @@ const QuoteSuccess = ({
         return addon;
       }) || [];
 
+      // Calculate quantity (use cubic yards if depth is provided)
+      const quantity = item.measurement.depth 
+        ? (item.measurement.value * item.measurement.depth) / 324 
+        : item.measurement.value;
+
       // Recalculate line total
-      let basePrice = item.measurement.value * item.unitPrice;
+      let basePrice = quantity * item.unitPrice;
       
       // Apply variations
       if (item.measurement.variations && item.measurement.variations.length > 0) {
@@ -208,7 +213,7 @@ const QuoteSuccess = ({
           if (variation.adjustmentType === 'percentage') {
             basePrice += basePrice * (variation.priceAdjustment / 100);
           } else {
-            basePrice += variation.priceAdjustment * item.measurement.value;
+            basePrice += variation.priceAdjustment * quantity;
           }
         });
       }
@@ -218,7 +223,7 @@ const QuoteSuccess = ({
       updatedAddons.forEach(addon => {
         if (addon.quantity > 0) {
           if (addon.calculationType === 'per_unit') {
-            addonsTotal += addon.priceValue * item.measurement.value * addon.quantity;
+            addonsTotal += addon.priceValue * quantity * addon.quantity;
           } else {
             addonsTotal += addon.priceValue * addon.quantity;
           }
@@ -296,8 +301,11 @@ const QuoteSuccess = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {items.map((item, index) => {
-                const basePrice = item.measurement.value * item.unitPrice;
+            {items.map((item) => {
+                const quantity = item.measurement.depth 
+                  ? (item.measurement.value * item.measurement.depth) / 324 
+                  : item.measurement.value;
+                const basePrice = quantity * item.unitPrice;
                 const showPricing = settings.pricing_visibility === 'before_submit';
                 
                 return (
@@ -306,9 +314,10 @@ const QuoteSuccess = ({
                       <div>
                         <p className="font-semibold">{item.productName}</p>
                         <p className="text-sm text-muted-foreground">
-                          {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
-                          {item.measurement.depth && ` × ${item.measurement.depth}" depth`}
-                          {item.measurement.depth && ` = ${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cubic yards`}
+                          {item.measurement.depth 
+                            ? `${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cubic yards (${item.measurement.value.toLocaleString()} sq ft × ${item.measurement.depth}" depth)`
+                            : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')}`
+                          }
                         </p>
                       </div>
                       {showPricing && (
@@ -332,9 +341,10 @@ const QuoteSuccess = ({
                     <div className="space-y-1 text-sm">
                       {showPricing && (
                         <div className="text-muted-foreground">
-                          Base Price ({item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
-                          {item.measurement.depth && ` × ${item.measurement.depth}" depth`}
-                          {item.measurement.depth && ` = ${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cu yd`}
+                          Base Price ({item.measurement.depth 
+                            ? `${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cu yd (${item.measurement.value.toLocaleString()} sq ft × ${item.measurement.depth}" depth)`
+                            : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')}`
+                          }
                           {' × '}{formatExactPrice(item.unitPrice, {
                             currency_symbol: settings.currency_symbol,
                             decimal_precision: settings.decimal_precision
@@ -356,7 +366,7 @@ const QuoteSuccess = ({
                       {item.measurement.variations && item.measurement.variations.length > 0 && item.measurement.variations.map(v => {
                         const variationPrice = v.adjustmentType === 'percentage' 
                           ? basePrice * (v.priceAdjustment / 100)
-                          : v.priceAdjustment * item.measurement.value;
+                          : v.priceAdjustment * quantity;
                         
                         return (
                           <div key={v.id} className="text-muted-foreground">
@@ -377,7 +387,7 @@ const QuoteSuccess = ({
                       {/* Add-ons with Toggles - Always show, pricing conditional */}
                       {item.measurement.addons && item.measurement.addons.length > 0 && item.measurement.addons.map(addon => {
                         const addonPrice = addon.calculationType === 'per_unit'
-                          ? addon.priceValue * item.measurement.value
+                          ? addon.priceValue * quantity
                           : addon.priceValue;
                         const isEnabled = addon.quantity > 0;
                         
@@ -392,7 +402,7 @@ const QuoteSuccess = ({
                               {showPricing ? (
                                 <>
                                   {addon.name}: {addon.calculationType === 'per_unit' 
-                                    ? `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')} × ` 
+                                    ? `${quantity.toLocaleString()} ${item.measurement.depth ? 'cu yd' : item.measurement.unit.replace('_', ' ')} × ` 
                                     : `${addon.quantity.toFixed(1)} each × `
                                   }+{formatExactPrice(addonPrice * addon.quantity, {
                                     currency_symbol: settings.currency_symbol,

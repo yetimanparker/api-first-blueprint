@@ -369,9 +369,10 @@ const ProductConfiguration = ({
               <div className="flex-1">
                 <h3 className="font-semibold text-lg">{product.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {measurement.value.toLocaleString()} {measurement.unit.replace('_', ' ')}
-                  {measurement.depth && ` × ${measurement.depth}" depth`}
-                  {measurement.depth && ` = ${((measurement.value * measurement.depth) / 324).toFixed(2)} cubic yards`}
+                  {measurement.depth 
+                    ? `${((measurement.value * measurement.depth) / 324).toFixed(2)} cubic yards (${measurement.value.toLocaleString()} sq ft × ${measurement.depth}" depth)`
+                    : `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`
+                  }
                 </p>
               </div>
             </div>
@@ -382,13 +383,18 @@ const ProductConfiguration = ({
                 {/* Base Price */}
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">
-                    Base Price ({measurement.value.toLocaleString()} {measurement.unit.replace('_', ' ')} × {formatExactPrice(product.unit_price, {
+                    Base Price ({measurement.depth 
+                      ? `${((measurement.value * measurement.depth) / 324).toFixed(2)} cu yd`
+                      : `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`
+                    } × {formatExactPrice(product.unit_price, {
                       currency_symbol: settings.currency_symbol,
                       decimal_precision: settings.decimal_precision
                     })})
                   </span>
                   <span className="font-medium">
-                    {formatExactPrice(product.unit_price * measurement.value, {
+                    {formatExactPrice(product.unit_price * (measurement.depth 
+                      ? (measurement.value * measurement.depth) / 324
+                      : measurement.value), {
                       currency_symbol: settings.currency_symbol,
                       decimal_precision: settings.decimal_precision
                     })}
@@ -410,8 +416,12 @@ const ProductConfiguration = ({
                     <span className="font-medium text-primary">
                       +{formatExactPrice(
                         selectedVariationObj.adjustment_type === 'percentage'
-                          ? (product.unit_price * measurement.value * selectedVariationObj.price_adjustment / 100)
-                          : (selectedVariationObj.price_adjustment * measurement.value),
+                          ? (product.unit_price * (measurement.depth 
+                              ? (measurement.value * measurement.depth) / 324 
+                              : measurement.value) * selectedVariationObj.price_adjustment / 100)
+                          : (selectedVariationObj.price_adjustment * (measurement.depth 
+                              ? (measurement.value * measurement.depth) / 324 
+                              : measurement.value)),
                         {
                           currency_symbol: settings.currency_symbol,
                           decimal_precision: settings.decimal_precision
