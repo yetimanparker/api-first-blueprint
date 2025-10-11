@@ -439,6 +439,7 @@ const Widget = () => {
         {(widgetState.currentStep === 'quote-review' || widgetState.currentStep === 'project-comments') && (
           <div id="step-quote-review" className="px-4 py-6 mt-8">
             <QuoteReview
+              key={`review-${widgetState.quoteItems.length}-${Date.now()}`}
               quoteItems={widgetState.quoteItems}
               customerInfo={widgetState.customerInfo}
               contractorId={contractorId!}

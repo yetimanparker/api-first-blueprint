@@ -49,6 +49,7 @@ const QuoteReview = ({
   onRemoveItem,
   onQuoteSubmitted
 }: QuoteReviewProps) => {
+  console.log('🔄 QuoteReview v2.0 - Variations/Addons always visible with toggle - ' + new Date().toISOString());
   const [projectComments, setProjectComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [items, setItems] = useState<QuoteItem[]>(quoteItems);
