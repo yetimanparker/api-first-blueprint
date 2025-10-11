@@ -141,6 +141,13 @@ const ProductConfiguration = ({
     let basePrice = product.unit_price;
     let quantity = measurement.value;
 
+    // If depth is provided for volume-based products (sq_yd), calculate cubic yards
+    if (measurement.depth && measurement.type === 'area') {
+      // Convert: sq ft × depth (inches) / 324 = cubic yards
+      // 324 = 12 inches/foot × 27 cubic feet/cubic yard
+      quantity = (measurement.value * measurement.depth) / 324;
+    }
+
     if (product.use_tiered_pricing && pricingTiers.length > 0) {
       const simplifiedTiers: any[] = pricingTiers.map(tier => ({
         min_quantity: tier.min_quantity,
@@ -363,6 +370,8 @@ const ProductConfiguration = ({
                 <h3 className="font-semibold text-lg">{product.name}</h3>
                 <p className="text-sm text-muted-foreground">
                   {measurement.value.toLocaleString()} {measurement.unit.replace('_', ' ')}
+                  {measurement.depth && ` × ${measurement.depth}" depth`}
+                  {measurement.depth && ` = ${((measurement.value * measurement.depth) / 324).toFixed(2)} cubic yards`}
                 </p>
               </div>
             </div>

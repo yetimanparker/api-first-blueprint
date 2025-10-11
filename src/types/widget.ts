@@ -20,6 +20,7 @@ export interface MeasurementData {
   customName?: string;
   variations?: ProductVariation[];
   addons?: ProductAddon[];
+  depth?: number; // Depth in inches for volume-based products (sq_yd)
 }
 
 export interface QuoteItem {

@@ -517,6 +517,8 @@ const QuoteReview = ({
                         <p className="font-semibold text-lg">{item.productName}</p>
                         <p className="text-sm text-muted-foreground">
                           {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
+                          {item.measurement.depth && ` × ${item.measurement.depth}" depth`}
+                          {item.measurement.depth && ` = ${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cubic yards`}
                         </p>
                       </div>
                     </div>
@@ -547,7 +549,10 @@ const QuoteReview = ({
                     {/* Base Product with pricing if visible */}
                     {settings.pricing_visibility === 'before_submit' && (
                       <div className="text-muted-foreground">
-                        Base {item.productName}: {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')} × {formatExactPrice(item.unitPrice, {
+                        Base {item.productName}: {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
+                        {item.measurement.depth && ` × ${item.measurement.depth}" depth`}
+                        {item.measurement.depth && ` (${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cu yd)`}
+                        {' × '}{formatExactPrice(item.unitPrice, {
                           currency_symbol: settings.currency_symbol,
                           decimal_precision: settings.decimal_precision
                         })} = {formatExactPrice(basePrice, {

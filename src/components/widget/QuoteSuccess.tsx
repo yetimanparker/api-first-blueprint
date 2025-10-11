@@ -307,6 +307,8 @@ const QuoteSuccess = ({
                         <p className="font-semibold">{item.productName}</p>
                         <p className="text-sm text-muted-foreground">
                           {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
+                          {item.measurement.depth && ` × ${item.measurement.depth}" depth`}
+                          {item.measurement.depth && ` = ${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cubic yards`}
                         </p>
                       </div>
                       {showPricing && (
@@ -330,7 +332,10 @@ const QuoteSuccess = ({
                     <div className="space-y-1 text-sm">
                       {showPricing && (
                         <div className="text-muted-foreground">
-                          Base Price ({item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')} × {formatExactPrice(item.unitPrice, {
+                          Base Price ({item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
+                          {item.measurement.depth && ` × ${item.measurement.depth}" depth`}
+                          {item.measurement.depth && ` = ${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cu yd`}
+                          {' × '}{formatExactPrice(item.unitPrice, {
                             currency_symbol: settings.currency_symbol,
                             decimal_precision: settings.decimal_precision
                           })}): {settings.use_price_ranges ? (

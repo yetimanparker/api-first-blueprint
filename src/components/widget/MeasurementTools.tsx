@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type { ParsedAddress } from '@/hooks/useGooglePlaces';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler } from 'lucide-react';
@@ -62,6 +63,7 @@ const MeasurementTools = ({
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [manualValue, setManualValue] = useState('');
   const [searchAddress, setSearchAddress] = useState(customerAddress || '');
+  const [depth, setDepth] = useState<string>('');
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -629,11 +631,13 @@ const MeasurementTools = ({
     const value = parseFloat(manualValue);
     if (isNaN(value) || value <= 0) return;
 
+    const depthValue = depth ? parseFloat(depth) : undefined;
     const measurement: MeasurementData = {
       type: measurementType,
       value: Math.ceil(value),
       unit: measurementType === 'area' ? 'sq_ft' : 'linear_ft',
-      manualEntry: true
+      manualEntry: true,
+      depth: depthValue
     };
 
     setCurrentMeasurement(measurement);
@@ -657,12 +661,14 @@ const MeasurementTools = ({
         });
       }
 
+      const depthValue = depth ? parseFloat(depth) : undefined;
       const measurement: MeasurementData = {
         type: measurementType,
         value: mapMeasurement,
         unit: measurementType === 'area' ? 'sq_ft' : 'linear_ft',
         coordinates: coordinates,
-        manualEntry: false
+        manualEntry: false,
+        depth: depthValue
       };
 
       setCurrentMeasurement(measurement);
@@ -676,7 +682,7 @@ const MeasurementTools = ({
         }
       }, 300);
     }
-  }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement]);
+  }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement, depth]);
 
   if (loading) {
     return (
@@ -852,27 +858,50 @@ const MeasurementTools = ({
           <div className="max-w-7xl mx-auto">
             {/* Show Next Button when measurement is complete */}
             {currentMeasurement && (
-              <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3 mb-4">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={handleUndo}
-                  className="w-full sm:w-auto px-4 sm:px-6 shadow-lg gap-2"
-                >
-                  <Undo2 className="h-4 w-4" />
-                  Remeasure
-                </Button>
-                <Button
-                  variant="success"
-                  size="lg"
-                  onClick={onNext}
-                  className="w-full sm:w-auto px-4 sm:px-8 shadow-lg gap-2 sm:gap-3"
-                >
-                  <span>NEXT (configure)</span>
-                  <span className="text-success-foreground/90 font-semibold">
-                    ({currentMeasurement.value.toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : 'ft'})
-                  </span>
-                </Button>
+              <div className="flex flex-col gap-3 mb-4">
+                {/* Depth Input for square yard products */}
+                {product && product.unit_type.toLowerCase().includes('sq_yd') && measurementType === 'area' && (
+                  <div className="flex items-center justify-center gap-3 max-w-md mx-auto">
+                    <Label htmlFor="depth-input" className="whitespace-nowrap font-semibold">
+                      Depth (inches):
+                    </Label>
+                    <Input
+                      id="depth-input"
+                      type="number"
+                      placeholder="Enter depth"
+                      value={depth}
+                      onChange={(e) => setDepth(e.target.value)}
+                      min="0"
+                      step="0.5"
+                      className="w-32"
+                    />
+                  </div>
+                )}
+                
+                <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={handleUndo}
+                    className="w-full sm:w-auto px-4 sm:px-6 shadow-lg gap-2"
+                  >
+                    <Undo2 className="h-4 w-4" />
+                    Remeasure
+                  </Button>
+                  <Button
+                    variant="success"
+                    size="lg"
+                    onClick={onNext}
+                    disabled={product && product.unit_type.toLowerCase().includes('sq_yd') && measurementType === 'area' && !depth}
+                    className="w-full sm:w-auto px-4 sm:px-8 shadow-lg gap-2 sm:gap-3"
+                  >
+                    <span>NEXT (configure)</span>
+                    <span className="text-success-foreground/90 font-semibold">
+                      ({currentMeasurement.value.toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : 'ft'}
+                      {depth && currentMeasurement.type === 'area' ? ` × ${depth}"` : ''})
+                    </span>
+                  </Button>
+                </div>
               </div>
             )}
             
