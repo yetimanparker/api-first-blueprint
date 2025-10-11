@@ -176,7 +176,9 @@ const ProductConfiguration = ({
           basePrice += variation.price_adjustment;
         }
         
-        if (variation.affects_area_calculation && variation.height_value) {
+        // Only apply area multiplication if no depth is provided
+        // (depth already accounts for volume)
+        if (variation.affects_area_calculation && variation.height_value && !depthValue) {
           if (measurement.type === 'area') {
             quantity = quantity * variation.height_value;
           }
@@ -487,6 +489,13 @@ const ProductConfiguration = ({
                     if (!addon) return null;
                     
                     let quantity = measurement.value;
+                    
+                    // If depth is provided for volume-based products, calculate cubic yards
+                    const depthValue = parseFloat(depth);
+                    if (depthValue && !isNaN(depthValue) && isVolumeBased && measurement.type === 'area') {
+                      quantity = (measurement.value * depthValue) / 324;
+                    }
+                    
                     if (selectedVariationObj?.affects_area_calculation && selectedVariationObj.height_value) {
                       if (measurement.type === 'area') {
                         quantity = quantity * selectedVariationObj.height_value;
