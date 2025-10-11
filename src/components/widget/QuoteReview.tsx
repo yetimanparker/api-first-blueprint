@@ -597,7 +597,7 @@ const QuoteReview = ({
                           <Switch
                             checked={isEnabled}
                             onCheckedChange={() => toggleAddon(item.id, addon.id)}
-                            className="scale-75"
+                            className="scale-90 data-[state=checked]:bg-blue-600"
                           />
                           <span className={isEnabled ? 'text-foreground' : 'text-muted-foreground line-through'}>
                             {settings.pricing_visibility === 'before_submit' ? (
