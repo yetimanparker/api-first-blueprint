@@ -50,6 +50,7 @@ const QuoteReview = ({
   onQuoteSubmitted
 }: QuoteReviewProps) => {
   console.log('🔄 QuoteReview v2.0 - Variations/Addons always visible with toggle - ' + new Date().toISOString());
+  console.log('📦 Quote Items Data:', JSON.stringify(quoteItems, null, 2));
   const [projectComments, setProjectComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [items, setItems] = useState<QuoteItem[]>(quoteItems);
@@ -83,7 +84,7 @@ const QuoteReview = ({
     setItems(prevItems => prevItems.map(item => {
       if (item.id !== itemId) return item;
       
-      const updatedAddons = item.addons?.map(addon => {
+      const updatedAddons = item.measurement.addons?.map(addon => {
         if (addon.id === addonId) {
           const newQuantity = addon.quantity > 0 ? 0 : 1;
           return { ...addon, quantity: newQuantity };
@@ -95,8 +96,8 @@ const QuoteReview = ({
       let basePrice = item.measurement.value * item.unitPrice;
       
       // Apply variations
-      if (item.variations && item.variations.length > 0) {
-        item.variations.forEach(variation => {
+      if (item.measurement.variations && item.measurement.variations.length > 0) {
+        item.measurement.variations.forEach(variation => {
           if (variation.adjustmentType === 'percentage') {
             basePrice += basePrice * (variation.priceAdjustment / 100);
           } else {
@@ -121,7 +122,10 @@ const QuoteReview = ({
 
       return {
         ...item,
-        addons: updatedAddons,
+        measurement: {
+          ...item.measurement,
+          addons: updatedAddons
+        },
         lineTotal: newLineTotal
       };
     }));
@@ -554,7 +558,7 @@ const QuoteReview = ({
                     )}
 
                     {/* Variations - Always show names, prices conditional */}
-                    {item.variations && item.variations.length > 0 && item.variations.map((variation) => {
+                    {item.measurement.variations && item.measurement.variations.length > 0 && item.measurement.variations.map((variation) => {
                       const variationPrice = variation.adjustmentType === 'percentage'
                         ? basePrice * (variation.priceAdjustment / 100)
                         : variation.priceAdjustment * item.measurement.value;
@@ -582,7 +586,7 @@ const QuoteReview = ({
                     })}
 
                     {/* Add-ons with Toggles - Always show, prices conditional */}
-                    {item.addons && item.addons.length > 0 && item.addons.map((addon) => {
+                    {item.measurement.addons && item.measurement.addons.length > 0 && item.measurement.addons.map((addon) => {
                       const addonPrice = addon.calculationType === 'per_unit'
                         ? addon.priceValue * item.measurement.value
                         : addon.priceValue;

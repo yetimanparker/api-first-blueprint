@@ -191,7 +191,7 @@ const QuoteSuccess = ({
     setItems(prevItems => prevItems.map(item => {
       if (item.id !== itemId) return item;
       
-      const updatedAddons = item.addons?.map(addon => {
+      const updatedAddons = item.measurement.addons?.map(addon => {
         if (addon.id === addonId) {
           const newQuantity = addon.quantity > 0 ? 0 : 1;
           return { ...addon, quantity: newQuantity };
@@ -203,8 +203,8 @@ const QuoteSuccess = ({
       let basePrice = item.measurement.value * item.unitPrice;
       
       // Apply variations
-      if (item.variations && item.variations.length > 0) {
-        item.variations.forEach(variation => {
+      if (item.measurement.variations && item.measurement.variations.length > 0) {
+        item.measurement.variations.forEach(variation => {
           if (variation.adjustmentType === 'percentage') {
             basePrice += basePrice * (variation.priceAdjustment / 100);
           } else {
@@ -229,7 +229,10 @@ const QuoteSuccess = ({
 
       return {
         ...item,
-        addons: updatedAddons,
+        measurement: {
+          ...item.measurement,
+          addons: updatedAddons
+        },
         lineTotal: newLineTotal
       };
     }));
@@ -345,7 +348,7 @@ const QuoteSuccess = ({
                       )}
                       
                       {/* Variations - Always show name, pricing conditional */}
-                      {item.variations && item.variations.length > 0 && item.variations.map(v => {
+                      {item.measurement.variations && item.measurement.variations.length > 0 && item.measurement.variations.map(v => {
                         const variationPrice = v.adjustmentType === 'percentage' 
                           ? basePrice * (v.priceAdjustment / 100)
                           : v.priceAdjustment * item.measurement.value;
@@ -367,7 +370,7 @@ const QuoteSuccess = ({
                       })}
                       
                       {/* Add-ons with Toggles - Always show, pricing conditional */}
-                      {item.addons && item.addons.length > 0 && item.addons.map(addon => {
+                      {item.measurement.addons && item.measurement.addons.length > 0 && item.measurement.addons.map(addon => {
                         const addonPrice = addon.calculationType === 'per_unit'
                           ? addon.priceValue * item.measurement.value
                           : addon.priceValue;
