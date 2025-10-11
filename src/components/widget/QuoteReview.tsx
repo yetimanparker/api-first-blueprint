@@ -516,7 +516,7 @@ const QuoteReview = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      {settings.pricing_visibility === 'before_submit' && !settings.use_price_ranges && (
+                      {settings.pricing_visibility === 'before_submit' && (
                         <p className="font-bold text-xl text-green-600">
                           {formatExactPrice(item.lineTotal, {
                             currency_symbol: settings.currency_symbol,
@@ -524,21 +524,23 @@ const QuoteReview = ({
                           })}
                         </p>
                       )}
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => onRemoveItem?.(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {onRemoveItem && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => onRemoveItem(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   
-                    {/* Itemized Breakdown */}
-                  {settings.pricing_visibility === 'before_submit' && !settings.use_price_ranges && (
-                    <div className="ml-6 space-y-2 text-sm">
-                      {/* Base Product */}
+                  {/* Itemized Breakdown - Show variations and add-ons always, prices conditionally */}
+                  <div className="ml-6 space-y-2 text-sm">
+                    {/* Base Product with pricing if visible */}
+                    {settings.pricing_visibility === 'before_submit' && (
                       <div className="text-muted-foreground">
                         Base {item.productName}: {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')} × {formatExactPrice(item.unitPrice, {
                           currency_symbol: settings.currency_symbol,
@@ -548,54 +550,72 @@ const QuoteReview = ({
                           decimal_precision: settings.decimal_precision
                         })}
                       </div>
+                    )}
 
-                      {/* Variations */}
-                      {item.variations && item.variations.length > 0 && item.variations.map((variation) => {
-                        const variationPrice = variation.adjustmentType === 'percentage'
-                          ? basePrice * (variation.priceAdjustment / 100)
-                          : variation.priceAdjustment * item.measurement.value;
-                        
-                        return (
-                          <div key={variation.id} className="text-muted-foreground">
-                            {variation.name}: {variation.adjustmentType === 'percentage' ? `${variation.priceAdjustment}%` : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')} × ${formatExactPrice(variation.priceAdjustment, {
-                              currency_symbol: settings.currency_symbol,
-                              decimal_precision: settings.decimal_precision
-                            })}`} = {formatExactPrice(variationPrice, {
-                              currency_symbol: settings.currency_symbol,
-                              decimal_precision: settings.decimal_precision
-                            })}
-                          </div>
-                        );
-                      })}
-
-                      {/* Add-ons with Toggles */}
-                      {item.addons && item.addons.length > 0 && item.addons.map((addon) => {
-                        const addonPrice = addon.calculationType === 'per_unit'
-                          ? addon.priceValue * item.measurement.value
-                          : addon.priceValue;
-                        const isEnabled = addon.quantity > 0;
-                        
-                        return (
-                          <div key={addon.id} className="flex items-center gap-2">
-                            <Switch
-                              checked={isEnabled}
-                              onCheckedChange={() => toggleAddon(item.id, addon.id)}
-                              className="scale-75"
-                            />
-                            <span className={isEnabled ? 'text-foreground' : 'text-muted-foreground line-through'}>
-                              {addon.name}: {addon.calculationType === 'per_unit' ? `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')} × ` : ''}{formatExactPrice(addon.priceValue, {
-                                currency_symbol: settings.currency_symbol,
-                                decimal_precision: settings.decimal_precision
-                              })} = {formatExactPrice(addonPrice, {
+                    {/* Variations - Always show names, prices conditional */}
+                    {item.variations && item.variations.length > 0 && item.variations.map((variation) => {
+                      const variationPrice = variation.adjustmentType === 'percentage'
+                        ? basePrice * (variation.priceAdjustment / 100)
+                        : variation.priceAdjustment * item.measurement.value;
+                      
+                      return (
+                        <div key={variation.id} className="text-muted-foreground">
+                          {settings.pricing_visibility === 'before_submit' ? (
+                            <>
+                              {variation.name}: {variation.adjustmentType === 'percentage' 
+                                ? `${variation.priceAdjustment}%` 
+                                : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')} × ${formatExactPrice(variation.priceAdjustment, {
+                                    currency_symbol: settings.currency_symbol,
+                                    decimal_precision: settings.decimal_precision
+                                  })}`
+                              } = {formatExactPrice(variationPrice, {
                                 currency_symbol: settings.currency_symbol,
                                 decimal_precision: settings.decimal_precision
                               })}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                            </>
+                          ) : (
+                            <>{variation.name}</>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* Add-ons with Toggles - Always show, prices conditional */}
+                    {item.addons && item.addons.length > 0 && item.addons.map((addon) => {
+                      const addonPrice = addon.calculationType === 'per_unit'
+                        ? addon.priceValue * item.measurement.value
+                        : addon.priceValue;
+                      const isEnabled = addon.quantity > 0;
+                      
+                      return (
+                        <div key={addon.id} className="flex items-center gap-2">
+                          <Switch
+                            checked={isEnabled}
+                            onCheckedChange={() => toggleAddon(item.id, addon.id)}
+                            className="scale-75"
+                          />
+                          <span className={isEnabled ? 'text-foreground' : 'text-muted-foreground line-through'}>
+                            {settings.pricing_visibility === 'before_submit' ? (
+                              <>
+                                {addon.name}: {addon.calculationType === 'per_unit' 
+                                  ? `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')} × ` 
+                                  : `${addon.quantity.toFixed(1)} each × `
+                                }{formatExactPrice(addon.priceValue, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })} = {formatExactPrice(addonPrice * addon.quantity, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })}
+                              </>
+                            ) : (
+                              <>{addon.name}</>
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             })}
