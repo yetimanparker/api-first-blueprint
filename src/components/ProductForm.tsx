@@ -180,6 +180,17 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const updateAddon = (index: number, field: keyof ProductAddon, value: any) => {
     const updatedAddons = [...addons];
     updatedAddons[index] = { ...updatedAddons[index], [field]: value };
+    
+    // Auto-fill formula based on calculation type
+    if (field === "calculation_type") {
+      const formulas: Record<string, string> = {
+        "total": "",
+        "per_unit": "price_value * quantity",
+        "area_calculation": "height * linear_ft"
+      };
+      updatedAddons[index].calculation_formula = formulas[value as string] || "";
+    }
+    
     setAddons(updatedAddons);
   };
 
@@ -984,17 +995,15 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                         </SelectContent>
                       </Select>
                     </div>
-                    {addon.calculation_type === "area_calculation" && (
-                      <div>
-                        <Label htmlFor={`addon-formula-${index}`}>Formula</Label>
-                        <Input
-                          id={`addon-formula-${index}`}
-                          value={addon.calculation_formula || ""}
-                          onChange={(e) => updateAddon(index, "calculation_formula", e.target.value)}
-                          placeholder="e.g., height * linear_ft"
-                        />
-                      </div>
-                    )}
+                    <div>
+                      <Label htmlFor={`addon-formula-${index}`}>Formula (auto-filled)</Label>
+                      <Input
+                        id={`addon-formula-${index}`}
+                        value={addon.calculation_formula || ""}
+                        onChange={(e) => updateAddon(index, "calculation_formula", e.target.value)}
+                        placeholder="Auto-filled based on calculation type"
+                      />
+                    </div>
                   </div>
                   
                   <div className="mt-3 flex items-center gap-2">
