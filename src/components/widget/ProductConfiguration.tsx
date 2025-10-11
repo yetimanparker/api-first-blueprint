@@ -330,11 +330,11 @@ const ProductConfiguration = ({
           {variations.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="variation-select" className="text-base font-semibold">
-                Select Height for {product.name}
+                Select Option
               </Label>
               <Select value={selectedVariation} onValueChange={setSelectedVariation}>
                 <SelectTrigger id="variation-select" className="w-full">
-                  <SelectValue placeholder="Select a height option" />
+                  <SelectValue placeholder="Choose an option" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border border-border shadow-lg z-50">
                   {variations.map((variation) => (
