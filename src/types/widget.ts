@@ -48,7 +48,7 @@ export interface ProductAddon {
   id: string;
   name: string;
   priceValue: number;
-  calculationType: 'total' | 'per_unit';
+  calculationType: 'total' | 'per_unit' | 'area_calculation';
   quantity: number;
 }
 

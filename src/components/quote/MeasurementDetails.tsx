@@ -18,7 +18,7 @@ interface MeasurementData {
     id: string;
     name: string;
     priceValue: number;
-    calculationType: 'total' | 'per_unit';
+    calculationType: 'total' | 'per_unit' | 'area_calculation';
     quantity: number;
   }>;
 }
@@ -131,6 +131,7 @@ export default function MeasurementDetails({
                   <span className="font-medium">
                     +{formatPrice(addon.priceValue)}
                     {addon.calculationType === 'per_unit' && ` per ${measurement.unit}`}
+                    {addon.calculationType === 'area_calculation' && ` per sq ft`}
                   </span>
                 </div>
               ))}

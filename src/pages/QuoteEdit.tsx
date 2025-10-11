@@ -656,14 +656,22 @@ export default function QuoteEdit() {
 
                         {/* Add-ons */}
                         {item.measurement_data?.addons && item.measurement_data.addons.length > 0 && item.measurement_data.addons.filter(addon => addon.quantity > 0).map((addon, idx) => {
-                          const addonPrice = addon.calculationType === 'per_unit'
-                            ? addon.priceValue * item.quantity
-                            : addon.priceValue;
+                          let addonPrice = addon.priceValue;
+                          
+                          if (addon.calculationType === 'per_unit') {
+                            addonPrice = addon.priceValue * item.quantity;
+                          } else if (addon.calculationType === 'area_calculation') {
+                            // For area calculation, we need height × linear feet
+                            // This is already calculated in the priceValue from the widget
+                            addonPrice = addon.priceValue;
+                          }
                           
                           return (
                             <div key={idx} className="text-muted-foreground break-words">
                               {addon.name}: {addon.calculationType === 'per_unit' 
                                 ? `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ` 
+                                : addon.calculationType === 'area_calculation'
+                                ? 'area × '
                                 : ''}{settings ? `${settings.currency_symbol}${addon.priceValue.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${addon.priceValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} = {settings ? `${settings.currency_symbol}${addonPrice.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${addonPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                             </div>
                           );
@@ -866,15 +874,21 @@ export default function QuoteEdit() {
                           {item.measurement_data?.addons && item.measurement_data.addons.length > 0 && (
                             <>
                               {item.measurement_data.addons.map((addon, idx) => {
-                                const addonTotal = addon.calculationType === 'per_unit' 
-                                  ? addon.priceValue * item.quantity * (addon.quantity || 1)
-                                  : addon.priceValue * (addon.quantity || 1);
+                                let addonTotal = addon.priceValue * (addon.quantity || 1);
+                                
+                                if (addon.calculationType === 'per_unit') {
+                                  addonTotal = addon.priceValue * item.quantity * (addon.quantity || 1);
+                                }
+                                // For area_calculation, priceValue already includes the area calculation
+                                
                                 return (
                                   <div key={idx} className="flex justify-between gap-2 text-muted-foreground">
                                     <span className="pl-4 break-words">
                                       + {addon.name} 
                                       {addon.calculationType === 'per_unit' 
                                         ? ` ($${addon.priceValue.toFixed(2)}/${item.product.unit_type})`
+                                        : addon.calculationType === 'area_calculation'
+                                        ? ` (area calc, qty: ${addon.quantity || 1})`
                                         : ` (qty: ${addon.quantity || 1})`
                                       }
                                     </span>
