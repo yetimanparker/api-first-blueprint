@@ -193,6 +193,11 @@ const MeasurementTools = ({
         console.log('Auto-selecting AREA measurement for unit type:', data.unit_type);
         setMeasurementType('area');
       }
+      // For volume/cubic measurements, use area measurement (depth will be added separately)
+      else if (unitType.includes('cubic') || unitType.includes('cu_') || unitType.includes('yard')) {
+        console.log('Auto-selecting AREA measurement for volume-based unit type:', data.unit_type);
+        setMeasurementType('area');
+      }
       // Default to area for other types
       else {
         console.log('Defaulting to AREA measurement for unit type:', data.unit_type);
@@ -642,6 +647,8 @@ const MeasurementTools = ({
 
     setCurrentMeasurement(measurement);
     onMeasurementComplete(measurement);
+    setShowManualEntry(false);
+    setManualValue('');
   };
 
   // Save measurement when map measurement is complete
@@ -682,7 +689,26 @@ const MeasurementTools = ({
         }
       }, 300);
     }
-  }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement, depth]);
+  }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement]);
+
+  // Update measurement when depth changes for volume-based products
+  useEffect(() => {
+    if (currentMeasurement && depth && product && (
+      product.unit_type.toLowerCase().includes('cubic') || 
+      product.unit_type.toLowerCase().includes('cu_') || 
+      product.unit_type.toLowerCase().includes('yard')
+    )) {
+      const depthValue = parseFloat(depth);
+      if (!isNaN(depthValue) && depthValue > 0) {
+        const updatedMeasurement: MeasurementData = {
+          ...currentMeasurement,
+          depth: depthValue
+        };
+        setCurrentMeasurement(updatedMeasurement);
+        onMeasurementComplete(updatedMeasurement);
+      }
+    }
+  }, [depth]);
 
   if (loading) {
     return (
@@ -859,8 +885,8 @@ const MeasurementTools = ({
             {/* Show Next Button when measurement is complete */}
             {currentMeasurement && (
               <div className="flex flex-col gap-3 mb-4">
-                {/* Depth Input for square yard products */}
-                {product && product.unit_type.toLowerCase().includes('sq_yd') && measurementType === 'area' && (
+                {/* Depth Input for volume-based products (cubic_yard, cubic_ft, etc.) */}
+                {product && (product.unit_type.toLowerCase().includes('cubic') || product.unit_type.toLowerCase().includes('cu_') || product.unit_type.toLowerCase().includes('yard')) && measurementType === 'area' && (
                   <div className="flex items-center justify-center gap-3 max-w-md mx-auto">
                     <Label htmlFor="depth-input" className="whitespace-nowrap font-semibold">
                       Depth (inches):
@@ -892,7 +918,7 @@ const MeasurementTools = ({
                     variant="success"
                     size="lg"
                     onClick={onNext}
-                    disabled={product && product.unit_type.toLowerCase().includes('sq_yd') && measurementType === 'area' && !depth}
+                    disabled={product && (product.unit_type.toLowerCase().includes('cubic') || product.unit_type.toLowerCase().includes('cu_') || product.unit_type.toLowerCase().includes('yard')) && measurementType === 'area' && !depth}
                     className="w-full sm:w-auto px-4 sm:px-8 shadow-lg gap-2 sm:gap-3"
                   >
                     <span>NEXT (configure)</span>
