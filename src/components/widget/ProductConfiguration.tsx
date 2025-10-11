@@ -194,24 +194,26 @@ const ProductConfiguration = ({
         if (addon) {
           // For area-based addons, use the original measurement value (linear feet)
           // For per-unit addons on volume products, use the calculated cubic yards
-          let addonQuantity = measurement.value;
+          let addonBaseQuantity = measurement.value;
           
           if (addon.calculation_type !== 'area_calculation') {
             const depthValue = parseFloat(depth);
             if (depthValue && !isNaN(depthValue) && isVolumeBased && measurement.type === 'area') {
-              addonQuantity = (measurement.value * depthValue) / 324;
+              addonBaseQuantity = (measurement.value * depthValue) / 324;
             }
           }
           
-          const variationData = selectedVariationObj ? {
-            height: selectedVariationObj.height_value || null,
-            unit: selectedVariationObj.unit_of_measurement || 'ft',
-            affects_area_calculation: selectedVariationObj.affects_area_calculation || false
+          // Get variation data directly from the selected variation
+          const variation = selectedVariation ? variations.find(v => v.id === selectedVariation) : null;
+          const variationData = variation ? {
+            height: variation.height_value || null,
+            unit: variation.unit_of_measurement || 'ft',
+            affects_area_calculation: variation.affects_area_calculation || false
           } : undefined;
           
           const addonPrice = calculateAddonWithAreaData(
             addon.price_value,
-            addonQuantity,
+            addonBaseQuantity,
             addon.calculation_type,
             variationData
           );
