@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Plus, Minus, Package, Loader2, Trash2, Calculator } from 'lucide-react';
@@ -80,7 +81,15 @@ const ProductConfiguration = ({
   const [selectedVariation, setSelectedVariation] = useState<string>('');
   const [selectedAddons, setSelectedAddons] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState('');
+  const [depth, setDepth] = useState<string>(measurement.depth?.toString() || '');
   const [isAdded, setIsAdded] = useState(false);
+
+  // Check if product is volume-based
+  const isVolumeBased = product && (
+    product.unit_type.toLowerCase().includes('cubic') || 
+    product.unit_type.toLowerCase().includes('cu_') || 
+    product.unit_type.toLowerCase().includes('yard')
+  );
 
   useEffect(() => {
     fetchProductData();
@@ -141,11 +150,12 @@ const ProductConfiguration = ({
     let basePrice = product.unit_price;
     let quantity = measurement.value;
 
-    // If depth is provided for volume-based products (sq_yd), calculate cubic yards
-    if (measurement.depth && measurement.type === 'area') {
+    // If depth is provided for volume-based products, calculate cubic yards
+    const depthValue = parseFloat(depth);
+    if (depthValue && !isNaN(depthValue) && isVolumeBased && measurement.type === 'area') {
       // Convert: sq ft × depth (inches) / 324 = cubic yards
       // 324 = 12 inches/foot × 27 cubic feet/cubic yard
-      quantity = (measurement.value * measurement.depth) / 324;
+      quantity = (measurement.value * depthValue) / 324;
     }
 
     if (product.use_tiered_pricing && pricingTiers.length > 0) {
@@ -223,8 +233,10 @@ const ProductConfiguration = ({
       });
 
     // Create measurement with variations and addons nested inside
+    const depthValue = parseFloat(depth);
     const measurementWithOptions: MeasurementData = {
       ...measurement,
+      depth: (depthValue && !isNaN(depthValue) && isVolumeBased) ? depthValue : undefined,
       variations: selectedVariationObjects.length > 0 ? selectedVariationObjects : undefined,
       addons: selectedAddonObjects.length > 0 ? selectedAddonObjects : undefined
     };
@@ -289,6 +301,29 @@ const ProductConfiguration = ({
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Depth Input for Volume-Based Products */}
+          {isVolumeBased && measurement.type === 'area' && (
+            <div className="space-y-2 p-4 bg-muted/50 rounded-lg border-2 border-primary/20">
+              <Label htmlFor="depth-input" className="text-base font-semibold text-primary">
+                Depth (inches) *
+              </Label>
+              <Input
+                id="depth-input"
+                type="number"
+                placeholder="Enter depth in inches"
+                value={depth}
+                onChange={(e) => setDepth(e.target.value)}
+                min="0.1"
+                step="0.5"
+                className="text-lg"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Required for volume-based products
+              </p>
+            </div>
+          )}
+
           {/* Variations Dropdown */}
           {variations.length > 0 && (
             <div className="space-y-2">
@@ -369,10 +404,13 @@ const ProductConfiguration = ({
               <div className="flex-1">
                 <h3 className="font-semibold text-lg">{product.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {measurement.depth 
-                    ? `${((measurement.value * measurement.depth) / 324).toFixed(2)} cubic yards (${measurement.value.toLocaleString()} sq ft × ${measurement.depth}" depth)`
-                    : `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`
-                  }
+                  {(() => {
+                    const depthValue = parseFloat(depth);
+                    if (depthValue && !isNaN(depthValue) && isVolumeBased) {
+                      return `${((measurement.value * depthValue) / 324).toFixed(2)} cubic yards (${measurement.value.toLocaleString()} sq ft × ${depthValue}" depth)`;
+                    }
+                    return `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`;
+                  })()}
                 </p>
               </div>
             </div>
@@ -383,18 +421,25 @@ const ProductConfiguration = ({
                 {/* Base Price */}
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">
-                    Base Price ({measurement.depth 
-                      ? `${((measurement.value * measurement.depth) / 324).toFixed(2)} cu yd`
-                      : `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`
-                    } × {formatExactPrice(product.unit_price, {
+                    Base Price ({(() => {
+                      const depthValue = parseFloat(depth);
+                      if (depthValue && !isNaN(depthValue) && isVolumeBased) {
+                        return `${((measurement.value * depthValue) / 324).toFixed(2)} cu yd`;
+                      }
+                      return `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`;
+                    })()} × {formatExactPrice(product.unit_price, {
                       currency_symbol: settings.currency_symbol,
                       decimal_precision: settings.decimal_precision
                     })})
                   </span>
                   <span className="font-medium">
-                    {formatExactPrice(product.unit_price * (measurement.depth 
-                      ? (measurement.value * measurement.depth) / 324
-                      : measurement.value), {
+                    {formatExactPrice(product.unit_price * (() => {
+                      const depthValue = parseFloat(depth);
+                      if (depthValue && !isNaN(depthValue) && isVolumeBased) {
+                        return (measurement.value * depthValue) / 324;
+                      }
+                      return measurement.value;
+                    })(), {
                       currency_symbol: settings.currency_symbol,
                       decimal_precision: settings.decimal_precision
                     })}
@@ -415,13 +460,15 @@ const ProductConfiguration = ({
                     </span>
                     <span className="font-medium text-primary">
                       +{formatExactPrice(
-                        selectedVariationObj.adjustment_type === 'percentage'
-                          ? (product.unit_price * (measurement.depth 
-                              ? (measurement.value * measurement.depth) / 324 
-                              : measurement.value) * selectedVariationObj.price_adjustment / 100)
-                          : (selectedVariationObj.price_adjustment * (measurement.depth 
-                              ? (measurement.value * measurement.depth) / 324 
-                              : measurement.value)),
+                        (() => {
+                          const depthValue = parseFloat(depth);
+                          const qty = (depthValue && !isNaN(depthValue) && isVolumeBased) 
+                            ? (measurement.value * depthValue) / 324 
+                            : measurement.value;
+                          return selectedVariationObj.adjustment_type === 'percentage'
+                            ? (product.unit_price * qty * selectedVariationObj.price_adjustment / 100)
+                            : (selectedVariationObj.price_adjustment * qty);
+                        })(),
                         {
                           currency_symbol: settings.currency_symbol,
                           decimal_precision: settings.decimal_precision
@@ -496,7 +543,13 @@ const ProductConfiguration = ({
                 <Trash2 className="h-4 w-4 mr-2" />
                 Remove
               </Button>
-              <Button onClick={handleAddToQuote} variant="success" size="lg" className="flex-1 w-full">
+              <Button 
+                onClick={handleAddToQuote} 
+                variant="success" 
+                size="lg" 
+                className="flex-1 w-full"
+                disabled={isVolumeBased && (!depth || parseFloat(depth) <= 0)}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add to Quote
               </Button>
