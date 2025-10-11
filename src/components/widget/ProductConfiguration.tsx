@@ -336,10 +336,21 @@ const ProductConfiguration = ({
                 <SelectTrigger id="variation-select" className="w-full">
                   <SelectValue placeholder="Select a height option" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border border-border shadow-lg z-50">
                   {variations.map((variation) => (
                     <SelectItem key={variation.id} value={variation.id}>
-                      {variation.name}
+                      <span className="flex items-center justify-between w-full gap-3">
+                        <span>{variation.name}</span>
+                        <span className="text-muted-foreground text-sm font-medium">
+                          {variation.adjustment_type === 'percentage' 
+                            ? `+${variation.price_adjustment}%`
+                            : `+${formatExactPrice(variation.price_adjustment, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })}`
+                          }
+                        </span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
