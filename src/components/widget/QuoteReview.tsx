@@ -299,7 +299,7 @@ const QuoteReview = ({
 
   if (currentStep === 'project-comments') {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className="max-w-3xl mx-auto px-4 py-3">
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -490,7 +490,7 @@ const QuoteReview = ({
         </DialogContent>
       </Dialog>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 py-2 space-y-6">
       {/* Quote Summary Card with Items */}
       <Card ref={quoteSummaryRef} className="bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
         <CardHeader>

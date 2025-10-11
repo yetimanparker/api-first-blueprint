@@ -692,7 +692,7 @@ const MeasurementTools = ({
   return (
     <div className={`flex flex-col w-full ${isConfigurationMode ? 'h-full' : 'h-screen'}`}>
       {/* Header with Search and Title */}
-      <div ref={headerRef} className="bg-background border-b px-4 sm:px-6 py-4 z-20 shadow-md">
+      <div ref={headerRef} className="bg-background border-b px-4 sm:px-6 py-3 z-20 shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 max-w-7xl mx-auto">
           <h2 className="text-xl sm:text-2xl font-semibold text-foreground">
             Measure Your Project
@@ -848,7 +848,7 @@ const MeasurementTools = ({
 
       {/* Bottom Control Bar and Measurement Display */}
       {!mapLoading && !mapError && (
-        <div className="bg-background border-t px-3 sm:px-6 py-3 measurement-controls">
+        <div className="bg-background border-t px-3 sm:px-6 py-2 measurement-controls">
           <div className="max-w-7xl mx-auto">
             {/* Show Next Button when measurement is complete */}
             {currentMeasurement && (

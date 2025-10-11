@@ -410,7 +410,7 @@ const Widget = () => {
         
         {/* Product Configuration Section - Appears below map */}
         {isStepVisible('product-configuration') && widgetState.currentMeasurement && (
-          <div id="step-product-configuration" className="px-4 py-6 bg-background">
+          <div id="step-product-configuration" className="px-4 py-4 bg-background">
             <ProductConfiguration
               productId={widgetState.currentProductId!}
               measurement={widgetState.currentMeasurement}
@@ -437,7 +437,7 @@ const Widget = () => {
 
         {/* Quote Review Section - Only show when actually on review step */}
         {(widgetState.currentStep === 'quote-review' || widgetState.currentStep === 'project-comments') && (
-          <div id="step-quote-review" className="px-4 py-6 mt-8">
+          <div id="step-quote-review" className="px-4 py-4 mt-2">
             <QuoteReview
               key={`review-${widgetState.quoteItems.length}-${Date.now()}`}
               quoteItems={widgetState.quoteItems}
