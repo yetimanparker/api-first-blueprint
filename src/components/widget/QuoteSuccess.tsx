@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { 
   CheckCircle2, 
   Download, 
@@ -49,6 +50,7 @@ const QuoteSuccess = ({
 }: QuoteSuccessProps) => {
   const [contractorInfo, setContractorInfo] = useState<ContractorInfo | null>(null);
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [items, setItems] = useState<QuoteItem[]>(quoteItems);
   const mapRef = useRef<google.maps.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
@@ -180,7 +182,60 @@ const QuoteSuccess = ({
     }
   };
 
-  const subtotal = quoteItems.reduce((sum, item) => sum + item.lineTotal, 0);
+  // Sync local items state with quoteItems prop
+  useEffect(() => {
+    setItems(quoteItems);
+  }, [quoteItems]);
+
+  const toggleAddon = (itemId: string, addonId: string) => {
+    setItems(prevItems => prevItems.map(item => {
+      if (item.id !== itemId) return item;
+      
+      const updatedAddons = item.addons?.map(addon => {
+        if (addon.id === addonId) {
+          const newQuantity = addon.quantity > 0 ? 0 : 1;
+          return { ...addon, quantity: newQuantity };
+        }
+        return addon;
+      }) || [];
+
+      // Recalculate line total
+      let basePrice = item.measurement.value * item.unitPrice;
+      
+      // Apply variations
+      if (item.variations && item.variations.length > 0) {
+        item.variations.forEach(variation => {
+          if (variation.adjustmentType === 'percentage') {
+            basePrice += basePrice * (variation.priceAdjustment / 100);
+          } else {
+            basePrice += variation.priceAdjustment * item.measurement.value;
+          }
+        });
+      }
+      
+      // Apply active addons
+      let addonsTotal = 0;
+      updatedAddons.forEach(addon => {
+        if (addon.quantity > 0) {
+          if (addon.calculationType === 'per_unit') {
+            addonsTotal += addon.priceValue * item.measurement.value * addon.quantity;
+          } else {
+            addonsTotal += addon.priceValue * addon.quantity;
+          }
+        }
+      });
+
+      const newLineTotal = basePrice + addonsTotal;
+
+      return {
+        ...item,
+        addons: updatedAddons,
+        lineTotal: newLineTotal
+      };
+    }));
+  };
+
+  const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const taxAmount = settings.global_tax_rate > 0 
     ? subtotal * (settings.global_tax_rate / 100)
     : 0;
@@ -238,8 +293,9 @@ const QuoteSuccess = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {quoteItems.map((item, index) => {
+              {items.map((item, index) => {
                 const basePrice = item.measurement.value * item.unitPrice;
+                const showPricing = settings.pricing_visibility === 'before_submit';
                 
                 return (
                   <div key={item.id} className="border-l-4 border-primary pl-4 py-2">
@@ -250,54 +306,98 @@ const QuoteSuccess = ({
                           {item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')}
                         </p>
                       </div>
-                      <p className="font-bold text-lg">
-                        {settings.use_price_ranges ? (
-                          formatPriceRange(
-                            calculatePriceRange(item.lineTotal, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
-                            settings
-                          )
-                        ) : (
-                          formatExactPrice(item.lineTotal, {
-                            currency_symbol: settings.currency_symbol,
-                            decimal_precision: settings.decimal_precision
-                          })
-                        )}
-                      </p>
+                      {showPricing && (
+                        <p className="font-bold text-lg">
+                          {settings.use_price_ranges ? (
+                            formatPriceRange(
+                              calculatePriceRange(item.lineTotal, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
+                              settings
+                            )
+                          ) : (
+                            formatExactPrice(item.lineTotal, {
+                              currency_symbol: settings.currency_symbol,
+                              decimal_precision: settings.decimal_precision
+                            })
+                          )}
+                        </p>
+                      )}
                     </div>
 
-                    {/* Itemized breakdown */}
-                    <div className="space-y-1 text-sm text-muted-foreground">
-                      <div>Base: {settings.use_price_ranges ? (
-                        formatPriceRange(
-                          calculatePriceRange(basePrice, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
-                          settings
-                        )
-                      ) : (
-                        formatExactPrice(basePrice, {
-                          currency_symbol: settings.currency_symbol,
-                          decimal_precision: settings.decimal_precision
-                        })
-                      )}</div>
-                      
-                      {item.variations?.map(v => (
-                        <div key={v.id}>
-                          {v.name}: +{formatExactPrice(
-                            v.adjustmentType === 'percentage' 
-                              ? basePrice * (v.priceAdjustment / 100)
-                              : v.priceAdjustment * item.measurement.value,
-                            { currency_symbol: settings.currency_symbol, decimal_precision: settings.decimal_precision }
+                    {/* Itemized breakdown - Always show variations/addons, pricing conditional */}
+                    <div className="space-y-1 text-sm">
+                      {showPricing && (
+                        <div className="text-muted-foreground">
+                          Base Price ({item.measurement.value.toLocaleString()} {item.measurement.unit.replace('_', ' ')} × {formatExactPrice(item.unitPrice, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })}): {settings.use_price_ranges ? (
+                            formatPriceRange(
+                              calculatePriceRange(basePrice, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
+                              settings
+                            )
+                          ) : (
+                            formatExactPrice(basePrice, {
+                              currency_symbol: settings.currency_symbol,
+                              decimal_precision: settings.decimal_precision
+                            })
                           )}
                         </div>
-                      ))}
+                      )}
                       
-                      {item.addons?.filter(a => a.quantity > 0).map(a => (
-                        <div key={a.id}>
-                          {a.name}: +{formatExactPrice(
-                            (a.calculationType === 'per_unit' ? a.priceValue * item.measurement.value : a.priceValue) * a.quantity,
-                            { currency_symbol: settings.currency_symbol, decimal_precision: settings.decimal_precision }
-                          )}
-                        </div>
-                      ))}
+                      {/* Variations - Always show name, pricing conditional */}
+                      {item.variations && item.variations.length > 0 && item.variations.map(v => {
+                        const variationPrice = v.adjustmentType === 'percentage' 
+                          ? basePrice * (v.priceAdjustment / 100)
+                          : v.priceAdjustment * item.measurement.value;
+                        
+                        return (
+                          <div key={v.id} className="text-muted-foreground">
+                            {showPricing ? (
+                              <>
+                                {v.name}: +{formatExactPrice(variationPrice, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })}
+                              </>
+                            ) : (
+                              <>{v.name}</>
+                            )}
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Add-ons with Toggles - Always show, pricing conditional */}
+                      {item.addons && item.addons.length > 0 && item.addons.map(addon => {
+                        const addonPrice = addon.calculationType === 'per_unit'
+                          ? addon.priceValue * item.measurement.value
+                          : addon.priceValue;
+                        const isEnabled = addon.quantity > 0;
+                        
+                        return (
+                          <div key={addon.id} className="flex items-center gap-2">
+                            <Switch
+                              checked={isEnabled}
+                              onCheckedChange={() => toggleAddon(item.id, addon.id)}
+                              className="scale-75"
+                            />
+                            <span className={isEnabled ? 'text-foreground' : 'text-muted-foreground line-through'}>
+                              {showPricing ? (
+                                <>
+                                  {addon.name}: {addon.calculationType === 'per_unit' 
+                                    ? `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')} × ` 
+                                    : `${addon.quantity.toFixed(1)} each × `
+                                  }+{formatExactPrice(addonPrice * addon.quantity, {
+                                    currency_symbol: settings.currency_symbol,
+                                    decimal_precision: settings.decimal_precision
+                                  })}
+                                </>
+                              ) : (
+                                <>{addon.name}</>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
