@@ -236,7 +236,10 @@ const ProductConfiguration = ({
           id: variation.id,
           name: variation.name,
           priceAdjustment: variation.price_adjustment,
-          adjustmentType: variation.adjustment_type
+          adjustmentType: variation.adjustment_type,
+          height_value: variation.height_value,
+          unit_of_measurement: variation.unit_of_measurement,
+          affects_area_calculation: variation.affects_area_calculation
         });
       }
     }

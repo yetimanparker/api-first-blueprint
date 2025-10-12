@@ -19,7 +19,8 @@ import {
   applyGlobalMarkup, 
   applyGlobalTax, 
   formatExactPrice,
-  calculateFinalPrice 
+  calculateFinalPrice,
+  calculateAddonWithAreaData
 } from '@/lib/priceUtils';
 
 interface QuoteReviewProps {
@@ -115,11 +116,28 @@ const QuoteReview = ({
       let addonsTotal = 0;
       updatedAddons.forEach(addon => {
         if (addon.quantity > 0) {
-          if (addon.calculationType === 'per_unit') {
-            addonsTotal += addon.priceValue * quantity * addon.quantity;
-          } else {
-            addonsTotal += addon.priceValue * addon.quantity;
-          }
+          // Get variation data for area calculations
+          const variationData = item.measurement.variations && item.measurement.variations.length > 0
+            ? {
+                height: item.measurement.variations[0].height_value || null,
+                unit: item.measurement.variations[0].unit_of_measurement || 'ft',
+                affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
+              }
+            : undefined;
+          
+          // Use the same calculation method as ProductConfiguration
+          const baseQuantity = item.measurement.depth
+            ? (item.measurement.value * item.measurement.depth) / 324
+            : item.measurement.value;
+          
+          const addonPrice = calculateAddonWithAreaData(
+            addon.priceValue,
+            baseQuantity,
+            addon.calculationType,
+            variationData
+          );
+          
+          addonsTotal += addonPrice * addon.quantity;
         }
       });
 

@@ -42,6 +42,9 @@ export interface ProductVariation {
   name: string;
   priceAdjustment: number;
   adjustmentType: 'fixed' | 'percentage';
+  height_value?: number | null;
+  unit_of_measurement?: string;
+  affects_area_calculation?: boolean;
 }
 
 export interface ProductAddon {
