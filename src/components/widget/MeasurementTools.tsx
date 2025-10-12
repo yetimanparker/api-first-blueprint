@@ -449,21 +449,28 @@ const MeasurementTools = ({
     });
   };
 
+  const getNextMeasurementColor = () => {
+    const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
+    return MAP_COLORS[colorIndex];
+  };
+
   const setupDrawingManager = (map: google.maps.Map) => {
+    const nextColor = getNextMeasurementColor();
+    
     const drawingManager = new google.maps.drawing.DrawingManager({
       drawingMode: null,
       drawingControl: false,
       polygonOptions: {
-        fillColor: '#10B981',
+        fillColor: nextColor,
         fillOpacity: 0.3,
-        strokeColor: '#10B981',
+        strokeColor: nextColor,
         strokeWeight: 2,
         clickable: true,
         editable: true,
         zIndex: 1,
       },
       polylineOptions: {
-        strokeColor: '#10B981',
+        strokeColor: nextColor,
         strokeWeight: 2,
         clickable: true,
         editable: true,
@@ -574,7 +581,7 @@ const MeasurementTools = ({
       },
       label: {
         text: `${value.toLocaleString()} ${unit}`,
-        color: '#10B981',
+        color: getNextMeasurementColor(),
         fontSize: '13px',
         fontWeight: '600',
       },
@@ -593,6 +600,26 @@ const MeasurementTools = ({
     setIsDrawing(true);
     setShowManualEntry(false);
     clearMapDrawing();
+
+    // Update drawing manager colors to match the next measurement color
+    const nextColor = getNextMeasurementColor();
+    drawingManagerRef.current.setOptions({
+      polygonOptions: {
+        fillColor: nextColor,
+        fillOpacity: 0.3,
+        strokeColor: nextColor,
+        strokeWeight: 2,
+        clickable: true,
+        editable: true,
+        zIndex: 1,
+      },
+      polylineOptions: {
+        strokeColor: nextColor,
+        strokeWeight: 2,
+        clickable: true,
+        editable: true,
+      },
+    });
 
     const mode = measurementType === 'area' 
       ? google.maps.drawing.OverlayType.POLYGON 
