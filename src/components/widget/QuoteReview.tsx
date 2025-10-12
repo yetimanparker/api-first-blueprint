@@ -537,16 +537,12 @@ const QuoteReview = ({
                   <div className="flex flex-col gap-3 mb-3">
                     {/* Row 1: Color badge + Product name */}
                     <div className="flex items-start gap-2">
-                      <Badge 
-                        className="text-xs px-2 py-0.5 font-medium flex-shrink-0" 
+                      <div 
+                        className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5" 
                         style={{ 
-                          backgroundColor: `${item.measurement.mapColor || '#3B82F6'}20`,
-                          color: item.measurement.mapColor || '#3B82F6',
-                          border: `1px solid ${item.measurement.mapColor || '#3B82F6'}`
+                          backgroundColor: item.measurement.mapColor || '#3B82F6',
                         }}
-                      >
-                        Area {itemIndex + 1}
-                      </Badge>
+                      />
                       <h3 className="font-semibold text-base flex-1 break-words leading-tight">{item.productName}</h3>
                       {onRemoveItem && (
                         <Button 
