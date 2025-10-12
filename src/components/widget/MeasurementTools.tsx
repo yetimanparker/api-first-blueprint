@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ParsedAddress } from '@/hooks/useGooglePlaces';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler } from 'lucide-react';
+import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft } from 'lucide-react';
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader } from '@googlemaps/js-api-loader';
@@ -892,6 +892,37 @@ const MeasurementTools = ({
         )}
       </div>
 
+      {/* Action Buttons Row */}
+      {!mapLoading && !mapError && (
+        <div className="bg-background border-t px-3 sm:px-6 py-3">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3 mb-3">
+              <Button
+                variant="outline"
+                size="default"
+                onClick={onChangeProduct}
+                className="w-full sm:w-auto gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Switch Product
+              </Button>
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => {
+                  setShowManualEntry(true);
+                  clearMapDrawing();
+                }}
+                className="w-full sm:w-auto gap-2 text-orange-600 hover:text-orange-700"
+              >
+                <PencilRuler className="h-4 w-4" />
+                Enter Manually
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Control Bar and Measurement Display */}
       {!mapLoading && !mapError && (
         <div className="bg-background border-t px-3 sm:px-6 py-2 measurement-controls">
@@ -979,21 +1010,6 @@ const MeasurementTools = ({
                 >
                   <Undo2 className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Undo</span>
-                </Button>
-
-                <Separator orientation="vertical" className="h-6 sm:h-8 mx-0.5 sm:mx-1" />
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setShowManualEntry(true);
-                    clearMapDrawing();
-                  }}
-                  className="gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm text-orange-600 hover:text-orange-700"
-                >
-                  <PencilRuler className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Enter Manually</span>
                 </Button>
               </div>
             </div>

@@ -369,7 +369,7 @@ const Widget = () => {
         )}
 
         {/* Product Selection Section */}
-        {isStepVisible('product-selection') && (
+        {isStepVisible('product-selection') && !widgetState.currentProductId && (
           <div id="step-product-selection" className="w-full py-6">
             <ProductSelector
               categories={categories}
