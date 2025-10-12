@@ -316,7 +316,7 @@ const ProductConfiguration = ({
   return (
     <div className="w-full bg-background">
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-6 py-3 space-y-6">
       {/* Configure Product Options Section */}
       <Card>
         <CardHeader>
