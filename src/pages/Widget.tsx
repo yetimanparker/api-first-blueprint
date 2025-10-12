@@ -144,22 +144,40 @@ const Widget = () => {
         // Delay initial attempt to ensure DOM is ready
         setTimeout(attemptScroll, 200);
       } else if (widgetState.currentStep === 'measurement') {
-        // For measurement step, scroll to show the header with address search
+        // For measurement step, scroll to show the action buttons
         setTimeout(() => {
-          const measurementHeader = document.querySelector('[class*="bg-background border-b"]') as HTMLElement;
+          const actionButtonsRow = document.getElementById('action-buttons-row');
           
-          if (measurementHeader) {
-            console.log('📍 Found measurement header, scrolling to show address search');
+          if (actionButtonsRow) {
+            console.log('📍 Found action buttons row, scrolling into view');
             
-            // Scroll to position the header at the top with some padding
-            const yOffset = -100; // Negative to show header fully
-            const elementPosition = measurementHeader.getBoundingClientRect().top + window.pageYOffset;
-            const offsetPosition = elementPosition + yOffset;
+            // Get the sticky header height to offset scroll properly
+            const header = document.querySelector('.sticky.top-0');
+            const headerHeight = header?.getBoundingClientRect().height || 0;
+            
+            // Calculate position to scroll to
+            const elementPosition = actionButtonsRow.getBoundingClientRect().top + window.pageYOffset;
+            const offsetPosition = elementPosition - headerHeight - 20; // 20px extra padding
             
             window.scrollTo({
               top: offsetPosition,
               behavior: 'smooth'
             });
+          } else {
+            console.log('⚠️ Action buttons row not found, falling back to measurement header scroll');
+            // Fallback to original behavior if action buttons not found
+            const measurementHeader = document.querySelector('[class*="bg-background border-b"]') as HTMLElement;
+            
+            if (measurementHeader) {
+              const yOffset = -100;
+              const elementPosition = measurementHeader.getBoundingClientRect().top + window.pageYOffset;
+              const offsetPosition = elementPosition + yOffset;
+              
+              window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+              });
+            }
           }
         }, 300);
       } else {

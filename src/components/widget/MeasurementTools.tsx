@@ -894,9 +894,9 @@ const MeasurementTools = ({
 
       {/* Action Buttons Row */}
       {!mapLoading && !mapError && (
-        <div className="bg-background border-t px-3 sm:px-6 py-3">
+        <div id="action-buttons-row" className="bg-background border-t px-3 sm:px-6 py-3">
           <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3 mb-3">
+            <div className="flex flex-row justify-center gap-2 sm:gap-3 mb-3">
               <Button
                 variant="outline"
                 size="default"
