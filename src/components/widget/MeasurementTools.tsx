@@ -73,6 +73,16 @@ const MeasurementTools = ({
   const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
   const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
   
+  // Color palette for different measurements on the map
+  const MAP_COLORS = [
+    '#3B82F6', // blue
+    '#F59E0B', // amber
+    '#8B5CF6', // purple
+    '#EC4899', // pink
+    '#14B8A6', // teal
+    '#F97316', // orange
+  ];
+  
   // Store map state in sessionStorage to persist across component unmounts
   const STORAGE_KEY = `map-state-${customerAddress || 'default'}`;
 
@@ -358,22 +368,13 @@ const MeasurementTools = ({
     previousLabelsRef.current.forEach(label => label.setMap(null));
     previousLabelsRef.current = [];
 
-    // Color palette for different products
-    const colors = [
-      '#3B82F6', // blue
-      '#F59E0B', // amber
-      '#8B5CF6', // purple
-      '#EC4899', // pink
-      '#14B8A6', // teal
-      '#F97316', // orange
-    ];
-
     existingQuoteItems.forEach((item, index) => {
       if (!item.measurement.coordinates || item.measurement.coordinates.length === 0) {
         return;
       }
 
-      const color = colors[index % colors.length];
+      // Use the measurement's stored map color, or fall back to a default
+      const color = item.measurement.mapColor || '#3B82F6';
       const latLngs = item.measurement.coordinates.map(coord => ({
         lat: coord[0],
         lng: coord[1]
@@ -635,11 +636,16 @@ const MeasurementTools = ({
     const value = parseFloat(manualValue);
     if (isNaN(value) || value <= 0) return;
 
+    // Assign a color from the palette based on existing quote items count
+    const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
+    const mapColor = MAP_COLORS[colorIndex];
+
     const measurement: MeasurementData = {
       type: measurementType,
       value: Math.ceil(value),
       unit: measurementType === 'area' ? 'sq_ft' : 'linear_ft',
-      manualEntry: true
+      manualEntry: true,
+      mapColor: mapColor
     };
 
     setCurrentMeasurement(measurement);
@@ -665,12 +671,17 @@ const MeasurementTools = ({
         });
       }
 
+      // Assign a color from the palette based on existing quote items count
+      const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
+      const mapColor = MAP_COLORS[colorIndex];
+
       const measurement: MeasurementData = {
         type: measurementType,
         value: mapMeasurement,
         unit: measurementType === 'area' ? 'sq_ft' : 'linear_ft',
         coordinates: coordinates,
-        manualEntry: false
+        manualEntry: false,
+        mapColor: mapColor
       };
 
       setCurrentMeasurement(measurement);

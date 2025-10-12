@@ -525,7 +525,7 @@ const QuoteReview = ({
         <CardContent className="space-y-4">
           {/* Detailed Quote Items */}
           <div className="space-y-4 mb-6">
-            {items.map((item) => {
+            {items.map((item, itemIndex) => {
               const quantity = item.measurement.depth 
                 ? (item.measurement.value * item.measurement.depth) / 324 
                 : item.measurement.value;
@@ -533,46 +533,54 @@ const QuoteReview = ({
               
               return (
                 <div key={item.id} className="bg-background rounded-lg p-4 border border-green-200 dark:border-green-800">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-3">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div 
-                        className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
-                        style={{ backgroundColor: '#10B981' }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-lg break-words">{item.productName}</p>
-                        <p className="text-sm text-muted-foreground break-words">
-                          {item.measurement.depth 
-                            ? `${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cubic yards (${item.measurement.value.toLocaleString()} sq ft × ${item.measurement.depth}" depth)`
-                            : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')}`
-                          }
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0 sm:items-start">
-                      {settings.pricing_visibility === 'before_submit' && (
-                        <p className="font-bold text-xl text-green-600 whitespace-nowrap">
-                          {formatExactPrice(item.lineTotal, {
-                            currency_symbol: settings.currency_symbol,
-                            decimal_precision: settings.decimal_precision
-                          })}
-                        </p>
-                      )}
+                  {/* Mobile-optimized layout: stack everything vertically on mobile */}
+                  <div className="flex flex-col gap-3 mb-3">
+                    {/* Row 1: Color badge + Product name */}
+                    <div className="flex items-start gap-2">
+                      <Badge 
+                        className="text-xs px-2 py-0.5 font-medium flex-shrink-0" 
+                        style={{ 
+                          backgroundColor: `${item.measurement.mapColor || '#3B82F6'}20`,
+                          color: item.measurement.mapColor || '#3B82F6',
+                          border: `1px solid ${item.measurement.mapColor || '#3B82F6'}`
+                        }}
+                      >
+                        Area {itemIndex + 1}
+                      </Badge>
+                      <h3 className="font-semibold text-base flex-1 break-words leading-tight">{item.productName}</h3>
                       {onRemoveItem && (
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
                           onClick={() => onRemoveItem(item.id)}
                         >
-                          <Trash2 className="h-5 w-5" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
+                    
+                    {/* Row 2: Measurement details */}
+                    <p className="text-sm text-muted-foreground">
+                      {item.measurement.depth 
+                        ? `${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cubic yards (${item.measurement.value.toLocaleString()} sq ft × ${item.measurement.depth}" depth)`
+                        : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')}`
+                      }
+                    </p>
+                    
+                    {/* Row 3: Price (if visible) */}
+                    {settings.pricing_visibility === 'before_submit' && (
+                      <p className="font-bold text-lg text-green-600">
+                        {formatExactPrice(item.lineTotal, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}
+                      </p>
+                    )}
                   </div>
                   
                   {/* Itemized Breakdown - Show variations and add-ons always, prices conditionally */}
-                  <div className="ml-6 space-y-2 text-sm">
+                  <div className="space-y-2 text-sm">
                     {/* Base Product with pricing if visible */}
                     {settings.pricing_visibility === 'before_submit' && (
                       <div className="text-muted-foreground">

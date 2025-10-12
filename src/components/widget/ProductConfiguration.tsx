@@ -428,33 +428,27 @@ const ProductConfiguration = ({
       </Card>
 
       {/* Product Summary Card at Bottom */}
-      <Card className="border-l-4 shadow-sm" style={{ borderLeftColor: product.color_hex }}>
+      <Card className="border-l-4 shadow-sm border-primary">
         <CardContent className="p-6">
           <div className="space-y-4">
-            {/* Product Header */}
-            <div className="flex items-start gap-3">
-              <div 
-                className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
-                style={{ backgroundColor: product.color_hex }}
-              />
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">{product.name}</h3>
-                <p className="text-sm text-muted-foreground">
+            {/* Product Header - No color dot */}
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg">{product.name}</h3>
+              <p className="text-sm text-muted-foreground">
                   {(() => {
                     const depthValue = parseFloat(depth);
                     if (depthValue && !isNaN(depthValue) && isVolumeBased) {
                       return `${((measurement.value * depthValue) / 324).toFixed(2)} cubic yards (${measurement.value.toLocaleString()} sq ft × ${depthValue}" depth)`;
                     }
-                    return `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`;
-                  })()}
-                </p>
-              </div>
+                  return `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`;
+                })()}
+              </p>
             </div>
 
             {/* Itemized Pricing Breakdown */}
             {settings.pricing_visibility === 'before_submit' && !settings.use_price_ranges && 
              (!isVolumeBased || (isVolumeBased && depth && parseFloat(depth) > 0)) && (
-              <div className="space-y-2 pl-6">
+              <div className="space-y-2">
                 {/* Base Price */}
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">

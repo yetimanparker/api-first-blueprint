@@ -21,6 +21,7 @@ export interface MeasurementData {
   variations?: ProductVariation[];
   addons?: ProductAddon[];
   depth?: number; // Depth in inches for volume-based products (sq_yd)
+  mapColor?: string; // Color assigned to this measurement on the map
 }
 
 export interface QuoteItem {
