@@ -32,6 +32,7 @@ interface MeasurementToolsProps {
     measurement: MeasurementData;
   }>;
   onAddressSelect?: (address: ParsedAddress) => void;
+  onResetToMeasurement?: () => void;
 }
 
 interface Product {
@@ -49,7 +50,8 @@ const MeasurementTools = ({
   onChangeProduct,
   isConfigurationMode = false,
   existingQuoteItems = [],
-  onAddressSelect
+  onAddressSelect,
+  onResetToMeasurement
 }: MeasurementToolsProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -651,6 +653,12 @@ const MeasurementTools = ({
   const handleUndo = () => {
     clearMapDrawing();
     setCurrentMeasurement(null); // Clear the saved measurement to allow new one
+    
+    // If we're in configuration mode, reset back to measurement step
+    if (isConfigurationMode && onResetToMeasurement) {
+      onResetToMeasurement();
+    }
+    
     // Restart drawing mode immediately after clearing
     setTimeout(() => {
       if (!showManualEntry) {

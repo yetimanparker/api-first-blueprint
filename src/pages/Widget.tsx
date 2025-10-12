@@ -245,6 +245,15 @@ const Widget = () => {
     }));
   };
 
+  const resetToMeasurement = () => {
+    console.log('Resetting to measurement step, clearing current measurement');
+    setWidgetState(prev => ({
+      ...prev,
+      currentStep: 'measurement',
+      currentMeasurement: undefined
+    }));
+  };
+
   const nextStep = () => {
     console.log('Moving to next step from:', widgetState.currentStep);
     console.log('Current widget state:', widgetState);
@@ -412,6 +421,7 @@ const Widget = () => {
               onChangeProduct={goToProductSelection}
               isConfigurationMode={widgetState.currentStep === 'product-configuration'}
               existingQuoteItems={widgetState.quoteItems}
+              onResetToMeasurement={resetToMeasurement}
               onAddressSelect={(address) => {
                 updateCustomerInfo({
                   address: `${address.streetAddress}, ${address.city}, ${address.state} ${address.zipCode}`,
