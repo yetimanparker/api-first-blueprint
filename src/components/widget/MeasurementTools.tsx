@@ -687,6 +687,14 @@ const MeasurementTools = ({
     onMeasurementComplete(measurement);
     setShowManualEntry(false);
     setManualValue('');
+    
+    // Scroll to the action buttons after manual entry
+    setTimeout(() => {
+      const actionButtonsRow = document.getElementById('action-buttons-row');
+      if (actionButtonsRow) {
+        actionButtonsRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 300);
   };
 
   // Save measurement when map measurement is complete
