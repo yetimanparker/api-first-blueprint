@@ -533,15 +533,15 @@ const QuoteReview = ({
               
               return (
                 <div key={item.id} className="bg-background rounded-lg p-4 border border-green-200 dark:border-green-800">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-start gap-3 flex-1">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
                       <div 
                         className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
                         style={{ backgroundColor: '#10B981' }}
                       />
-                      <div>
-                        <p className="font-semibold text-lg">{item.productName}</p>
-                        <p className="text-sm text-muted-foreground">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-lg break-words">{item.productName}</p>
+                        <p className="text-sm text-muted-foreground break-words">
                           {item.measurement.depth 
                             ? `${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cubic yards (${item.measurement.value.toLocaleString()} sq ft × ${item.measurement.depth}" depth)`
                             : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')}`
@@ -549,9 +549,9 @@ const QuoteReview = ({
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-start gap-2 flex-shrink-0">
                       {settings.pricing_visibility === 'before_submit' && (
-                        <p className="font-bold text-xl text-green-600">
+                        <p className="font-bold text-xl text-green-600 whitespace-nowrap">
                           {formatExactPrice(item.lineTotal, {
                             currency_symbol: settings.currency_symbol,
                             decimal_precision: settings.decimal_precision
@@ -562,10 +562,10 @@ const QuoteReview = ({
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="text-destructive hover:text-destructive"
+                          className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
                           onClick={() => onRemoveItem(item.id)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-5 w-5" />
                         </Button>
                       )}
                     </div>
