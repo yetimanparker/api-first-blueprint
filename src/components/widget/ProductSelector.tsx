@@ -324,16 +324,10 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
               )}
               
               <CardContent className="p-5">
-                <div className="flex items-start gap-2 mb-3">
-                  <div 
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5"
-                    style={{ backgroundColor: product.color_hex }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-base leading-tight mb-1">
-                      {product.name}
-                    </h3>
-                  </div>
+                <div className="mb-3">
+                  <h3 className="font-semibold text-base leading-tight mb-1">
+                    {product.name}
+                  </h3>
                 </div>
 
                 {product.description && (
