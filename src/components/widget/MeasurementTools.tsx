@@ -894,9 +894,9 @@ const MeasurementTools = ({
 
       {/* Action Buttons Row */}
       {!mapLoading && !mapError && (
-        <div id="action-buttons-row" className="bg-background border-t px-3 sm:px-6 py-3">
+        <div id="action-buttons-row" className="bg-background border-t px-3 sm:px-6 py-2">
           <div className="max-w-7xl mx-auto">
-            <div className="flex flex-row justify-center gap-2 sm:gap-3 mb-3">
+            <div className="flex flex-row justify-center gap-2 sm:gap-3">
               <Button
                 variant="outline"
                 size="default"
@@ -929,9 +929,7 @@ const MeasurementTools = ({
           <div className="max-w-7xl mx-auto">
             {/* Show Next Button when measurement is complete */}
             {currentMeasurement && (
-              <div className="flex flex-col gap-3 mb-4">
-                
-                <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3">
+              <div className="flex flex-row justify-center gap-2 sm:gap-3">
                   <Button
                     variant="outline"
                     size="lg"
@@ -952,67 +950,8 @@ const MeasurementTools = ({
                       ({currentMeasurement.value.toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : 'ft'})
                     </span>
                   </Button>
-                </div>
               </div>
             )}
-            
-            {/* Control Bar */}
-            <div className="flex justify-center mb-4 overflow-x-auto">
-              <div className="bg-background rounded-lg shadow-lg border px-1 sm:px-2 py-2 flex items-center gap-0.5 sm:gap-1 min-w-max">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    console.log('Line button clicked');
-                    setMeasurementType('linear');
-                    setShowManualEntry(false);
-                    setTimeout(() => startDrawing(), 100);
-                  }}
-                  disabled={product?.unit_type && !product.unit_type.toLowerCase().includes('linear')}
-                  className={`gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm ${
-                    measurementType === 'linear' && !showManualEntry
-                      ? 'text-foreground font-semibold bg-primary/10' 
-                      : 'text-muted-foreground'
-                  }`}
-                >
-                  <Ruler className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Line</span>
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    console.log('Area button clicked');
-                    setMeasurementType('area');
-                    setShowManualEntry(false);
-                    setTimeout(() => startDrawing(), 100);
-                  }}
-                  disabled={product?.unit_type && !(product.unit_type.toLowerCase().includes('sq_') || product.unit_type.toLowerCase().includes('square') || product.unit_type.toLowerCase().includes('area'))}
-                  className={`gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm ${
-                    measurementType === 'area' && !showManualEntry
-                      ? 'text-foreground font-semibold bg-primary/10' 
-                      : 'text-muted-foreground'
-                  }`}
-                >
-                  <Square className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Area</span>
-                </Button>
-
-                <Separator orientation="vertical" className="h-6 sm:h-8 mx-0.5 sm:mx-1" />
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleUndo}
-                  disabled={!mapMeasurement && !isDrawing}
-                  className="gap-1 sm:gap-2 px-2 sm:px-4 text-xs sm:text-sm"
-                >
-                  <Undo2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Undo</span>
-                </Button>
-              </div>
-            </div>
 
           </div>
         </div>
