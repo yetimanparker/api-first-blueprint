@@ -91,6 +91,9 @@ const ProductConfiguration = ({
     product.unit_type.toLowerCase().includes('yard')
   );
 
+  // Check if product is 'each' type (point measurement)
+  const isEachType = measurement.type === 'point';
+
   useEffect(() => {
     fetchProductData();
   }, [productId]);
@@ -436,6 +439,11 @@ const ProductConfiguration = ({
               <h3 className="font-semibold text-lg">{product.name}</h3>
               <p className="text-sm text-muted-foreground">
                   {(() => {
+                    // For 'each' type products, show quantity
+                    if (isEachType) {
+                      return `Quantity: ${measurement.value} ${measurement.value === 1 ? 'item' : 'items'}`;
+                    }
+                    // For volume-based products with depth
                     const depthValue = parseFloat(depth);
                     if (depthValue && !isNaN(depthValue) && isVolumeBased) {
                       return `${((measurement.value * depthValue) / 324).toFixed(2)} cubic yards (${measurement.value.toLocaleString()} sq ft × ${depthValue}" depth)`;

@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import ContactForm from '@/components/widget/ContactForm';
 import ProductSelector from '@/components/widget/ProductSelector';
 import MeasurementTools from '@/components/widget/MeasurementTools';
+import QuantityInput from '@/components/widget/QuantityInput';
 import ProductConfiguration from '@/components/widget/ProductConfiguration';
 import QuoteReview from '@/components/widget/QuoteReview';
 import QuoteSuccess from '@/components/widget/QuoteSuccess';
@@ -233,15 +234,19 @@ const Widget = () => {
     // Fetch product details to display in UI
     const { data: productData } = await supabase
       .from('products')
-      .select('id, name, description, unit_type, unit_price')
+      .select('id, name, description, unit_type, unit_price, min_order_quantity, photo_url')
       .eq('id', productId)
       .single();
     
     setSelectedProduct(productData);
+    
+    // Route to quantity-input for 'each' type products, otherwise to measurement
+    const nextStep = productData?.unit_type === 'each' ? 'quantity-input' : 'measurement';
+    
     setWidgetState(prev => ({
       ...prev,
       currentProductId: productId,
-      currentStep: 'measurement'
+      currentStep: nextStep
     }));
   };
 
@@ -261,6 +266,7 @@ const Widget = () => {
     const stepFlow: Record<WorkflowStep, WorkflowStep> = {
       'contact-before': 'product-selection',
       'product-selection': 'measurement',
+      'quantity-input': 'product-configuration',
       'measurement': 'product-configuration',
       'product-configuration': 'add-another-check',
       'add-another-check': 'project-comments',
@@ -347,7 +353,7 @@ const Widget = () => {
   // Helper to check if a step should be visible
   const isStepVisible = (step: WorkflowStep): boolean => {
     const stepOrder: WorkflowStep[] = [
-      'contact-before', 'product-selection', 'measurement', 'product-configuration',
+      'contact-before', 'product-selection', 'quantity-input', 'measurement', 'product-configuration',
       'add-another-check', 'contact-after', 'project-comments', 'quote-review', 'confirmation'
     ];
     const currentIndex = stepOrder.indexOf(widgetState.currentStep);
@@ -403,6 +409,32 @@ const Widget = () => {
               onProductSelect={setCurrentProduct}
               settings={settings}
               contractorId={contractorId!}
+            />
+          </div>
+        )}
+
+        {/* Quantity Input Section - For 'each' type products */}
+        {isStepVisible('quantity-input') && widgetState.currentStep === 'quantity-input' && selectedProduct && (
+          <div id="step-quantity-input" className="w-full py-6">
+            <QuantityInput
+              productId={widgetState.currentProductId!}
+              productName={selectedProduct.name}
+              productImage={selectedProduct.photo_url}
+              minQuantity={selectedProduct.min_order_quantity || 1}
+              onQuantitySet={(quantity) => {
+                const measurement: MeasurementData = {
+                  type: 'point',
+                  value: quantity,
+                  unit: 'each',
+                  manualEntry: true
+                };
+                setWidgetState(prev => ({
+                  ...prev,
+                  currentMeasurement: measurement,
+                  currentStep: 'product-configuration'
+                }));
+              }}
+              settings={settings}
             />
           </div>
         )}

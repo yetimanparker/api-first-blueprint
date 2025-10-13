@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Ruler, Package } from "lucide-react";
 
 interface MeasurementData {
-  type: 'area' | 'linear';
+  type: 'area' | 'linear' | 'point';
   value: number;
   unit: string;
   coordinates?: number[][];
@@ -75,7 +75,7 @@ export default function MeasurementDetails({
           <div className="flex-1">
             <p className="font-medium">Measurement</p>
             <p className="text-sm text-muted-foreground">
-              {measurement.type === 'area' ? 'Area: ' : 'Linear: '}
+              {measurement.type === 'area' ? 'Area: ' : measurement.type === 'linear' ? 'Linear: ' : 'Quantity: '}
               <span className="font-semibold">{measurement.value.toLocaleString()} {measurement.unit || 'units'}</span>
             </p>
             {measurement.manualEntry && (

@@ -12,10 +12,11 @@ export interface CustomerInfo {
 }
 
 export interface MeasurementData {
-  type: 'area' | 'linear';
+  type: 'area' | 'linear' | 'point';
   value: number;
   unit: string;
   coordinates?: number[][];
+  pointLocations?: Array<{lat: number, lng: number}>; // For 'point' type measurements
   manualEntry?: boolean;
   customName?: string;
   variations?: ProductVariation[];
@@ -68,6 +69,7 @@ export interface QuoteSummary {
 export type WorkflowStep = 
   | 'contact-before' 
   | 'product-selection' 
+  | 'quantity-input'
   | 'measurement' 
   | 'product-configuration' 
   | 'add-another-check'

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface MeasurementMapProps {
   measurements: Array<{
-    type: 'area' | 'linear';
+    type: 'area' | 'linear' | 'point';
     coordinates?: number[][];
     productName: string;
     productColor: string;
