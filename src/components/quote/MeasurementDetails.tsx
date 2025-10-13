@@ -7,6 +7,7 @@ interface MeasurementData {
   value: number;
   unit: string;
   coordinates?: number[][];
+  pointLocations?: Array<{lat: number, lng: number}>;
   manualEntry?: boolean;
   variations?: Array<{
     id: string;
@@ -78,14 +79,19 @@ export default function MeasurementDetails({
               {measurement.type === 'area' ? 'Area: ' : measurement.type === 'linear' ? 'Linear: ' : 'Quantity: '}
               <span className="font-semibold">{measurement.value.toLocaleString()} {measurement.unit || 'units'}</span>
             </p>
+            {measurement.type === 'point' && measurement.pointLocations && measurement.pointLocations.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {measurement.pointLocations.length} location{measurement.pointLocations.length !== 1 ? 's' : ''} marked on map
+              </p>
+            )}
             {measurement.manualEntry && (
               <Badge variant="outline" className="mt-1">Manual Entry</Badge>
             )}
           </div>
         </div>
 
-        {/* Coordinates Info */}
-        {measurement.coordinates && measurement.coordinates.length > 0 && (
+        {/* Coordinates Info - Only show for non-point measurements */}
+        {measurement.type !== 'point' && measurement.coordinates && measurement.coordinates.length > 0 && (
           <div className="flex items-start gap-3">
             <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
             <div className="flex-1">

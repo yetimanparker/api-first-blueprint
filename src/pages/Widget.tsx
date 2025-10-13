@@ -12,6 +12,7 @@ import ContactForm from '@/components/widget/ContactForm';
 import ProductSelector from '@/components/widget/ProductSelector';
 import MeasurementTools from '@/components/widget/MeasurementTools';
 import QuantityInput from '@/components/widget/QuantityInput';
+import PointPlacement from '@/components/widget/PointPlacement';
 import ProductConfiguration from '@/components/widget/ProductConfiguration';
 import QuoteReview from '@/components/widget/QuoteReview';
 import QuoteSuccess from '@/components/widget/QuoteSuccess';
@@ -267,6 +268,7 @@ const Widget = () => {
       'contact-before': 'product-selection',
       'product-selection': 'measurement',
       'quantity-input': 'product-configuration',
+      'point-placement': 'product-configuration',
       'measurement': 'product-configuration',
       'product-configuration': 'add-another-check',
       'add-another-check': 'project-comments',
@@ -353,7 +355,7 @@ const Widget = () => {
   // Helper to check if a step should be visible
   const isStepVisible = (step: WorkflowStep): boolean => {
     const stepOrder: WorkflowStep[] = [
-      'contact-before', 'product-selection', 'quantity-input', 'measurement', 'product-configuration',
+      'contact-before', 'product-selection', 'quantity-input', 'point-placement', 'measurement', 'product-configuration',
       'add-another-check', 'contact-after', 'project-comments', 'quote-review', 'confirmation'
     ];
     const currentIndex = stepOrder.indexOf(widgetState.currentStep);
@@ -421,17 +423,18 @@ const Widget = () => {
               productName={selectedProduct.name}
               productImage={selectedProduct.photo_url}
               minQuantity={selectedProduct.min_order_quantity || 1}
-              onQuantitySet={(quantity) => {
+              customerAddress={widgetState.customerInfo.address}
+              onQuantitySet={(quantity, useMapPoints) => {
                 const measurement: MeasurementData = {
                   type: 'point',
                   value: quantity,
                   unit: 'each',
-                  manualEntry: true
+                  manualEntry: !useMapPoints
                 };
                 setWidgetState(prev => ({
                   ...prev,
                   currentMeasurement: measurement,
-                  currentStep: 'product-configuration'
+                  currentStep: useMapPoints ? 'point-placement' : 'product-configuration'
                 }));
               }}
               settings={settings}
@@ -439,8 +442,37 @@ const Widget = () => {
           </div>
         )}
 
-        {/* Measurement Section - Full width, always visible once reached */}
-        {isStepVisible('measurement') && widgetState.currentProductId && (
+        {/* Point Placement Section - For 'each' products with map */}
+        {isStepVisible('point-placement') && widgetState.currentStep === 'point-placement' && (
+          <div id="step-point-placement" className="w-full py-6">
+            <PointPlacement
+              productId={widgetState.currentProductId!}
+              productName={selectedProduct?.name || ''}
+              quantity={widgetState.currentMeasurement?.value || 1}
+              customerAddress={widgetState.customerInfo.address}
+              existingQuoteItems={widgetState.quoteItems}
+              onPointsSet={(measurement) => {
+                setWidgetState(prev => ({
+                  ...prev,
+                  currentMeasurement: measurement,
+                  currentStep: 'product-configuration'
+                }));
+              }}
+              onSkip={() => {
+                setWidgetState(prev => ({
+                  ...prev,
+                  currentStep: 'product-configuration'
+                }));
+              }}
+            />
+          </div>
+        )}
+
+        {/* Measurement Section - Only show for non-'each' products */}
+        {isStepVisible('measurement') && 
+         widgetState.currentStep !== 'quantity-input' &&
+         widgetState.currentStep !== 'point-placement' &&
+         widgetState.currentProductId && (
           <div id="step-measurement" className="w-full mb-2">
             <MeasurementTools
               productId={widgetState.currentProductId}

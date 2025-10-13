@@ -70,6 +70,7 @@ export type WorkflowStep =
   | 'contact-before' 
   | 'product-selection' 
   | 'quantity-input'
+  | 'point-placement'
   | 'measurement' 
   | 'product-configuration' 
   | 'add-another-check'
