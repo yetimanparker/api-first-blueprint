@@ -91,14 +91,20 @@ const PointPlacement = ({
         await loader.load();
       }
 
+      // Determine map center - default to US center, will geocode later if address provided
       let center = { lat: 39.8283, lng: -98.5795 };
       let zoom = 4;
 
+      // Try to geocode if address exists, but don't block map initialization
       if (customerAddress) {
-        const geocodedCenter = await geocodeAddress(customerAddress);
-        if (geocodedCenter) {
-          center = geocodedCenter;
-          zoom = 21;
+        try {
+          const geocodedCenter = await geocodeAddress(customerAddress);
+          if (geocodedCenter) {
+            center = geocodedCenter;
+            zoom = 21;
+          }
+        } catch (error) {
+          console.log('Geocoding skipped, will use default center');
         }
       }
 
@@ -292,6 +298,13 @@ const PointPlacement = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!customerAddress && (
+            <div className="bg-muted/50 border border-border rounded-lg p-3">
+              <p className="text-sm text-muted-foreground">
+                💡 <strong>Tip:</strong> For best results, enter your property address first to center the map. You can zoom and pan to find your location.
+              </p>
+            </div>
+          )}
           <p className="text-sm text-muted-foreground">
             Click on the map to mark exact locations for each item. You can drag markers to adjust their positions.
           </p>

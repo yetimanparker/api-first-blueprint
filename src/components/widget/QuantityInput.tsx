@@ -130,22 +130,16 @@ const QuantityInput = ({
               Continue to Configure
             </Button>
             
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => handleContinue(true)}
-              className="w-full"
-              disabled={quantity < (minQuantity || 1) || !customerAddress}
-            >
-              <MapPin className="mr-2 h-5 w-5" />
-              Place {quantity} Point{quantity !== 1 ? 's' : ''} on Map
-            </Button>
-            
-            {!customerAddress && (
-              <p className="text-xs text-muted-foreground text-center">
-                Map placement available after entering address
-              </p>
-            )}
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => handleContinue(true)}
+            className="w-full"
+            disabled={quantity < (minQuantity || 1)}
+          >
+            <MapPin className="mr-2 h-5 w-5" />
+            Place {quantity} Point{quantity !== 1 ? 's' : ''} on Map
+          </Button>
           </div>
         </CardContent>
       </Card>
