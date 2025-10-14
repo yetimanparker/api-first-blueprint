@@ -650,9 +650,12 @@ const MeasurementTools = ({
     }
 
     console.log('Starting drawing mode:', measurementType);
-    setIsDrawing(true);
     setShowManualEntry(false);
     clearMapDrawing();
+    
+    // Set drawing state AFTER clearing to avoid it being reset
+    setIsDrawing(true);
+    isDrawingRef.current = true; // Update ref immediately
 
     const nextColor = getNextMeasurementColor();
     
