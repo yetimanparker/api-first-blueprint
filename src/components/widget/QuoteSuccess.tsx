@@ -129,6 +129,7 @@ const QuoteSuccess = ({
           lng: coord[1]
         }));
 
+        // Extend bounds for each coordinate
         latLngs.forEach(coord => bounds.extend(coord));
 
         if (item.measurement.type === 'area') {
@@ -176,7 +177,23 @@ const QuoteSuccess = ({
         }
       });
 
-      map.fitBounds(bounds);
+      // Fit bounds with padding and max zoom to ensure all measurements are visible
+      if (!bounds.isEmpty()) {
+        map.fitBounds(bounds, {
+          top: 50,
+          bottom: 50,
+          left: 50,
+          right: 50
+        });
+        
+        // Set a max zoom level to prevent being too close
+        const listener = google.maps.event.addListener(map, 'idle', () => {
+          if (map.getZoom()! > 20) {
+            map.setZoom(20);
+          }
+          google.maps.event.removeListener(listener);
+        });
+      }
     } catch (error) {
       console.error('Map initialization failed:', error);
     }

@@ -162,9 +162,22 @@ export default function MeasurementMap({ measurements, center, className = "" }:
           }
         });
 
-        // Fit bounds if we have coordinates
+        // Fit bounds if we have coordinates with padding
         if (hasCoordinates) {
-          map.fitBounds(bounds);
+          map.fitBounds(bounds, {
+            top: 50,
+            bottom: 50,
+            left: 50,
+            right: 50
+          });
+          
+          // Set a max zoom level to prevent being too close
+          const listener = google.maps.event.addListener(map, 'idle', () => {
+            if (map.getZoom()! > 20) {
+              map.setZoom(20);
+            }
+            google.maps.event.removeListener(listener);
+          });
         }
 
         setLoading(false);
