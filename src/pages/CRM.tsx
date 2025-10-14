@@ -10,6 +10,7 @@ import { ArrowLeft, Search, Users, FileText, Phone, Mail, MapPin, MoreHorizontal
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { CustomerQuoteDialog } from "@/components/CustomerQuoteDialog";
+import { CustomerDialog } from "@/components/CustomerDialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface Customer {
@@ -263,13 +264,18 @@ const CRM = () => {
                 <p className="text-sm text-muted-foreground hidden md:block">Manage customers and quotes</p>
               </div>
             </div>
-            <CustomerQuoteDialog onQuoteCreated={handleQuoteCreated} />
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Action Buttons */}
+        <div className="flex gap-3 mb-6">
+          <CustomerDialog />
+          <CustomerQuoteDialog onQuoteCreated={handleQuoteCreated} />
+        </div>
+
         {/* Search and Filter */}
         <Card className="mb-6">
           <CardHeader>
