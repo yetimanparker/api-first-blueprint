@@ -240,8 +240,8 @@ const Widget = () => {
     
     setSelectedProduct(productData);
     
-    // Route to quantity-input for 'each' type products, otherwise to measurement
-    const nextStep = productData?.unit_type === 'each' ? 'quantity-input' : 'measurement';
+    // All products now go directly to measurement step
+    const nextStep = 'measurement';
     
     setWidgetState(prev => ({
       ...prev,
