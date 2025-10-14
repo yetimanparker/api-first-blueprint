@@ -79,20 +79,27 @@ Deno.serve(async (req) => {
       .from('contractor_settings')
       .select('*')
       .eq('contractor_id', contractor_id)
-      .single()
+      .maybeSingle()
 
     if (settingsError) {
       console.error('Error fetching contractor settings:', settingsError)
-      throw new Error('Contractor settings not found')
+      return new Response(
+        JSON.stringify({
+          valid: false,
+          message: 'Error fetching service area settings',
+          method: 'radius'
+        } as ServiceAreaValidationResponse),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
-    // If service area is disabled, always allow
-    if (!settings.service_area_enabled) {
+    // If settings don't exist or service area is disabled, always allow
+    if (!settings || !settings.service_area_enabled) {
       return new Response(
         JSON.stringify({
           valid: true,
           message: 'Service area restrictions are not enabled',
-          method: settings.service_area_method
+          method: settings?.service_area_method || 'radius'
         } as ServiceAreaValidationResponse),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
