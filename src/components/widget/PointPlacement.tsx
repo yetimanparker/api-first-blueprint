@@ -75,8 +75,21 @@ const PointPlacement = ({
   };
 
   const initializeMap = async () => {
-    if (!mapContainerRef.current || !apiKey) return;
-    if (mapRef.current) return;
+    if (!mapContainerRef.current || !apiKey) {
+      setLoading(false);
+      return;
+    }
+    if (mapRef.current) {
+      setLoading(false);
+      return;
+    }
+
+    // Set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.error('Map initialization timeout');
+      setError('Map loading timeout. Please try again.');
+      setLoading(false);
+    }, 10000); // 10 second timeout
 
     try {
       setLoading(true);
@@ -125,7 +138,11 @@ const PointPlacement = ({
 
       mapRef.current = map;
 
-      renderExistingMeasurements(map);
+      try {
+        renderExistingMeasurements(map);
+      } catch (error) {
+        console.error('Error rendering existing measurements:', error);
+      }
 
       clickListenerRef.current = map.addListener('click', (e: google.maps.MapMouseEvent) => {
         if (placedPoints.length < quantity && e.latLng) {
@@ -133,8 +150,10 @@ const PointPlacement = ({
         }
       });
 
+      clearTimeout(timeoutId);
       setLoading(false);
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Map initialization failed:', error);
       setError(`Unable to load map: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setLoading(false);
