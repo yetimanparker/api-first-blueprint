@@ -440,7 +440,7 @@ const Widget = () => {
         )}
 
         {/* Measurement Section - Full width, always visible once reached */}
-        {isStepVisible('measurement') && widgetState.currentProductId && (
+        {isStepVisible('measurement') && widgetState.currentProductId && selectedProduct?.unit_type !== 'each' && (
           <div id="step-measurement" className="w-full mb-2">
             <MeasurementTools
               productId={widgetState.currentProductId}
