@@ -264,7 +264,9 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
                 <span className="sm:hidden">All</span>
                 <span className="ml-1">({categoryFilteredCount})</span>
               </Button>
-              {availableSubcategories.map((subcategory) => (
+              {availableSubcategories
+                .filter(subcategory => (subcategoryProductCounts[subcategory.name] || 0) > 0)
+                .map((subcategory) => (
                 <Button
                   key={subcategory.id}
                   variant="outline"
