@@ -121,13 +121,25 @@ const QuoteSuccess = ({
       const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899'];
 
       quoteItems.forEach((item, index) => {
-        if (!item.measurement.coordinates || item.measurement.coordinates.length === 0) return;
-
         const color = colors[index % colors.length];
-        const latLngs = item.measurement.coordinates.map(coord => ({
-          lat: coord[0],
-          lng: coord[1]
-        }));
+        let latLngs: google.maps.LatLngLiteral[] = [];
+
+        // Handle different measurement types and their coordinate storage
+        if (item.measurement.type === 'point' && item.measurement.pointLocations && item.measurement.pointLocations.length > 0) {
+          // Point measurements use pointLocations
+          latLngs = item.measurement.pointLocations.map(coord => ({
+            lat: coord[0],
+            lng: coord[1]
+          }));
+        } else if (item.measurement.coordinates && item.measurement.coordinates.length > 0) {
+          // Area and linear measurements use coordinates
+          latLngs = item.measurement.coordinates.map(coord => ({
+            lat: coord[0],
+            lng: coord[1]
+          }));
+        } else {
+          return; // Skip if no coordinates
+        }
 
         // Extend bounds for each coordinate
         latLngs.forEach(coord => bounds.extend(coord));
