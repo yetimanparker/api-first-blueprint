@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Minus, Package, MapPin } from 'lucide-react';
+import { Plus, Minus, Package } from 'lucide-react';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
 
 interface QuantityInputProps {
@@ -11,9 +11,8 @@ interface QuantityInputProps {
   productName: string;
   productImage?: string;
   minQuantity: number;
-  onQuantitySet: (quantity: number, useMapPoints: boolean) => void;
+  onQuantitySet: (quantity: number) => void;
   settings: GlobalSettings;
-  customerAddress?: string;
 }
 
 const QuantityInput = ({ 
@@ -21,7 +20,6 @@ const QuantityInput = ({
   productImage, 
   minQuantity, 
   onQuantitySet,
-  customerAddress,
 }: QuantityInputProps) => {
   const [quantity, setQuantity] = useState<number>(minQuantity || 1);
 
@@ -40,9 +38,9 @@ const QuantityInput = ({
     }
   };
 
-  const handleContinue = (useMapPoints: boolean) => {
+  const handleContinue = () => {
     if (quantity >= (minQuantity || 1)) {
-      onQuantitySet(quantity, useMapPoints);
+      onQuantitySet(quantity);
     }
   };
 
@@ -123,23 +121,12 @@ const QuantityInput = ({
           <div className="flex flex-col gap-3 pt-4">
             <Button
               size="lg"
-              onClick={() => handleContinue(false)}
+              onClick={handleContinue}
               className="w-full"
               disabled={quantity < (minQuantity || 1)}
             >
               Continue to Configure
             </Button>
-            
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={() => handleContinue(true)}
-            className="w-full"
-            disabled={quantity < (minQuantity || 1)}
-          >
-            <MapPin className="mr-2 h-5 w-5" />
-            Place {quantity} Point{quantity !== 1 ? 's' : ''} on Map
-          </Button>
           </div>
         </CardContent>
       </Card>

@@ -6,7 +6,6 @@ interface MeasurementMapProps {
   measurements: Array<{
     type: 'area' | 'linear' | 'point';
     coordinates?: number[][];
-    pointLocations?: Array<{lat: number, lng: number}>;
     productName: string;
     productColor: string;
     value: number;
@@ -76,47 +75,10 @@ export default function MeasurementMap({ measurements, center, className = "" }:
 
         // Draw measurements
         measurements.forEach((measurement, index) => {
-          const color = measurement.productColor || '#3B82F6';
-
-          // Handle point measurements
-          if (measurement.type === 'point' && measurement.pointLocations) {
-            measurement.pointLocations.forEach((point, pointIndex) => {
-              new google.maps.Marker({
-                position: { lat: point.lat, lng: point.lng },
-                map: map,
-                label: {
-                  text: (pointIndex + 1).toString(),
-                  color: 'white',
-                  fontSize: '12px',
-                  fontWeight: 'bold'
-                },
-                icon: {
-                  path: google.maps.SymbolPath.CIRCLE,
-                  fillColor: color,
-                  fillOpacity: 0.9,
-                  strokeColor: 'white',
-                  strokeWeight: 2,
-                  scale: 12,
-                },
-                title: `${measurement.productName} ${pointIndex + 1}`
-              });
-
-              bounds.extend({ lat: point.lat, lng: point.lng });
-            });
-
-            if (measurement.pointLocations.length > 0) {
-              const infoWindow = new google.maps.InfoWindow({
-                content: `<div style="padding: 8px;"><strong>${measurement.productName}</strong><br/>${measurement.pointLocations.length} points</div>`,
-                position: measurement.pointLocations[0]
-              });
-              infoWindow.open(map);
-            }
-            return;
-          }
-
           if (!measurement.coordinates || measurement.coordinates.length === 0) return;
 
           const path = measurement.coordinates.map(([lat, lng]) => ({ lat, lng }));
+          const color = measurement.productColor || '#3B82F6';
 
           if (measurement.type === 'area') {
             // Draw polygon for area measurements
