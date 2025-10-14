@@ -743,7 +743,7 @@ const MeasurementTools = ({
       lng: location.lng()
     };
     
-    const markerNumber = pointLocations.length + 1;
+    const markerNumber = pointMarkers.length + 1;
     const nextColor = getNextMeasurementColor();
     
     // Create marker
