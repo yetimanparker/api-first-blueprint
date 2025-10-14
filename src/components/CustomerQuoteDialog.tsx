@@ -130,8 +130,8 @@ export function CustomerQuoteDialog({ onQuoteCreated }: CustomerQuoteDialogProps
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="h-4 w-4 md:mr-2" />
-          <span className="hidden md:inline">New Quote</span>
+          <Plus className="h-4 w-4 mr-2" />
+          Quote
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
