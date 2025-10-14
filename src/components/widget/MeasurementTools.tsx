@@ -76,6 +76,8 @@ const MeasurementTools = ({
   const headerRef = useRef<HTMLDivElement>(null);
   const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
   const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
+  const measurementTypeRef = useRef<'area' | 'linear' | 'point'>('area');
+  const isDrawingRef = useRef(false);
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -148,6 +150,9 @@ const MeasurementTools = ({
   }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, mapLoading]);
 
   useEffect(() => {
+    // Update ref when measurement type changes
+    measurementTypeRef.current = measurementType;
+    
     // Reset measurements when measurement type changes
     setMapMeasurement(null);
     setCurrentMeasurement(null);
@@ -155,6 +160,11 @@ const MeasurementTools = ({
     
     // Map state is now automatically preserved via listeners
   }, [measurementType]);
+
+  // Update isDrawing ref when state changes
+  useEffect(() => {
+    isDrawingRef.current = isDrawing;
+  }, [isDrawing]);
 
   // Re-render existing measurements when quote items change
   useEffect(() => {
@@ -514,9 +524,11 @@ const MeasurementTools = ({
     drawingManager.setMap(map);
     drawingManagerRef.current = drawingManager;
 
-    // Add map click listener for point placement mode
+    // Add map click listener for point placement mode using refs
     google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
-      if (measurementType === 'point' && isDrawing && event.latLng) {
+      console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current);
+      if (measurementTypeRef.current === 'point' && isDrawingRef.current && event.latLng) {
+        console.log('Adding point marker at:', event.latLng.lat(), event.latLng.lng());
         addPointMarker(event.latLng);
       }
     });
