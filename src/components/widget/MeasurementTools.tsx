@@ -313,7 +313,7 @@ const MeasurementTools = ({
         tilt: 0,
         rotateControl: false,
         gestureHandling: 'greedy',
-        disableDefaultUI: false,
+        disableDefaultUI: true, // Disable all default UI to hide map/satellite selector
         styles: [
           {
             featureType: 'poi',
