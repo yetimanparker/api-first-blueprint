@@ -204,10 +204,15 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     ? products.filter(p => p.category === selectedCategory).length 
     : allProductsCount;
 
+  // Filter categories to only show those with products
+  const categoriesWithProducts = categories.filter(category => 
+    categoryProductCounts[category.name] > 0
+  );
+
   return (
     <div className="w-full px-4 lg:px-6 xl:px-8">
       {/* Category filters - Compact Pills */}
-      {categories.length > 0 && (
+      {categoriesWithProducts.length > 0 && (
         <div className="bg-background pb-4 mb-4 space-y-3 pt-4 border-b">
           <div className="flex flex-wrap gap-2">
             <Button
@@ -224,7 +229,7 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
               <span className="sm:hidden">All</span>
               <span className="ml-1">({allProductsCount})</span>
             </Button>
-            {categories.map((category) => (
+            {categoriesWithProducts.map((category) => (
               <Button
                 key={category.id}
                 variant="outline"
