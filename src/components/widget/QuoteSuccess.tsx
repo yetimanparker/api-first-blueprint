@@ -174,6 +174,29 @@ const QuoteSuccess = ({
               fontWeight: 'bold',
             },
           });
+        } else if (item.measurement.type === 'point') {
+          // Handle point measurements (e.g., individual trees)
+          latLngs.forEach((position, idx) => {
+            new google.maps.Marker({
+              position: position,
+              map: map,
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: color,
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 2,
+              },
+              label: {
+                text: `${idx + 1}`,
+                color: '#ffffff',
+                fontSize: '11px',
+                fontWeight: 'bold',
+              },
+              title: `${item.productName} - Location ${idx + 1}`,
+            });
+          });
         }
       });
 

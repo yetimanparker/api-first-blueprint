@@ -107,7 +107,7 @@ export default function MeasurementMap({ measurements, center, className = "" }:
             polygon.addListener('click', () => {
               infoWindow.open(map);
             });
-          } else {
+          } else if (measurement.type === 'linear') {
             // Draw polyline for linear measurements
             const polyline = new google.maps.Polyline({
               path: path,
@@ -158,6 +158,41 @@ export default function MeasurementMap({ measurements, center, className = "" }:
 
             polyline.addListener('click', () => {
               infoWindow.open(map);
+            });
+          } else if (measurement.type === 'point') {
+            // Draw markers for point measurements (e.g., individual trees)
+            path.forEach((position, idx) => {
+              const marker = new google.maps.Marker({
+                position: position,
+                map: map,
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 8,
+                  fillColor: color,
+                  fillOpacity: 1,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2,
+                },
+                label: {
+                  text: `${idx + 1}`,
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                },
+              });
+
+              const infoWindow = new google.maps.InfoWindow({
+                content: `
+                  <div style="padding: 8px;">
+                    <strong>${measurement.productName}</strong><br/>
+                    Location ${idx + 1} of ${path.length}
+                  </div>
+                `,
+              });
+
+              marker.addListener('click', () => {
+                infoWindow.open(map, marker);
+              });
             });
           }
         });
