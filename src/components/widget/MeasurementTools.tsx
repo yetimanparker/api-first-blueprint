@@ -1038,31 +1038,6 @@ const MeasurementTools = ({
           </div>
         )}
 
-        {/* Drawing Instructions */}
-        {isDrawing && !mapMeasurement && !showManualEntry && measurementType !== 'point' && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground rounded-lg px-6 py-3 shadow-lg animate-pulse">
-            <p className="text-sm font-medium">
-              {measurementType === 'area' 
-                ? 'Click on the map to draw a shape. Click the first point again to close the shape.'
-                : 'Click on the map to start drawing a line. Double-click to finish.'}
-            </p>
-          </div>
-        )}
-
-        {/* Point Placement Instructions and Counter */}
-        {measurementType === 'point' && isDrawing && !currentMeasurement && (
-          <div className="absolute top-4 left-4 z-10 bg-primary text-primary-foreground rounded-lg px-6 py-3 shadow-lg max-w-md">
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-sm font-medium">
-                Click on map to place markers
-              </p>
-              <span className="text-sm font-bold">
-                Placed: {pointLocations.length}
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* Point Placement Controls */}
         {measurementType === 'point' && pointLocations.length > 0 && !currentMeasurement && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-background border rounded-lg shadow-lg p-4 flex gap-2">
