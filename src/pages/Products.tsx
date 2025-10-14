@@ -251,6 +251,30 @@ export default function Products() {
     fetchProducts();
   };
 
+  const handleStatusChange = async (productId: string, newStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("products")
+        .update({ is_active: newStatus })
+        .eq("id", productId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Product ${newStatus ? 'activated' : 'deactivated'} successfully`,
+      });
+      
+      fetchProducts();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto py-8">
@@ -573,19 +597,28 @@ export default function Products() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={product.is_active ? "default" : "secondary"}>
-                                {product.is_active ? (
-                                  <>
-                                    <Eye className="h-3 w-3 mr-1" />
-                                    Active
-                                  </>
-                                ) : (
-                                  <>
-                                    <EyeOff className="h-3 w-3 mr-1" />
-                                    Inactive
-                                  </>
-                                )}
-                              </Badge>
+                              <Select 
+                                value={product.is_active ? "active" : "inactive"}
+                                onValueChange={(value) => handleStatusChange(product.id, value === "active")}
+                              >
+                                <SelectTrigger className="w-[130px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="active">
+                                    <div className="flex items-center">
+                                      <Eye className="h-3 w-3 mr-2" />
+                                      Active
+                                    </div>
+                                  </SelectItem>
+                                  <SelectItem value="inactive">
+                                    <div className="flex items-center">
+                                      <EyeOff className="h-3 w-3 mr-2" />
+                                      Inactive
+                                    </div>
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline">
