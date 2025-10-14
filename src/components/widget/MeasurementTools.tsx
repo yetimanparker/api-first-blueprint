@@ -379,7 +379,7 @@ const MeasurementTools = ({
   };
 
   const renderExistingMeasurements = (map: google.maps.Map) => {
-    console.log('🗺️ Rendering existing measurements. Items:', existingQuoteItems.length);
+    console.log('🗺️ MeasurementTools - Rendering existing measurements. Items:', existingQuoteItems.length);
     
     // Clear any existing previous shapes and labels
     console.log('🧹 Clearing previous shapes:', previousShapesRef.current.length);
@@ -389,16 +389,34 @@ const MeasurementTools = ({
     previousLabelsRef.current = [];
 
     existingQuoteItems.forEach((item, index) => {
-      if (!item.measurement.coordinates || item.measurement.coordinates.length === 0) {
+      console.log(`📍 Rendering item ${index} (${item.productName}):`, {
+        type: item.measurement.type,
+        hasCoordinates: !!item.measurement.coordinates,
+        coordinatesLength: item.measurement.coordinates?.length || 0,
+        hasPointLocations: !!item.measurement.pointLocations,
+        pointLocationsLength: item.measurement.pointLocations?.length || 0,
+        mapColor: item.measurement.mapColor
+      });
+      
+      // Skip if no coordinates or point locations
+      const hasCoordinates = item.measurement.coordinates && item.measurement.coordinates.length > 0;
+      const hasPointLocations = item.measurement.type === 'point' && item.measurement.pointLocations && item.measurement.pointLocations.length > 0;
+      
+      if (!hasCoordinates && !hasPointLocations) {
+        console.log('⚠️ Skipping item with no coordinates:', item.productName);
         return;
       }
 
       // Use the measurement's stored map color, or fall back to a default
       const color = item.measurement.mapColor || '#3B82F6';
-      const latLngs = item.measurement.coordinates.map(coord => ({
-        lat: coord[0],
-        lng: coord[1]
-      }));
+      
+      // Only convert coordinates if they exist (not for point measurements)
+      const latLngs = hasCoordinates 
+        ? item.measurement.coordinates!.map(coord => ({
+            lat: coord[0],
+            lng: coord[1]
+          }))
+        : [];
 
       if (item.measurement.type === 'area') {
         const polygon = new google.maps.Polygon({
@@ -467,9 +485,11 @@ const MeasurementTools = ({
         previousLabelsRef.current.push(marker);
       } else if (item.measurement.type === 'point' && item.measurement.pointLocations) {
         // Render point measurements
+        console.log(`  ➡️ Rendering ${item.measurement.pointLocations.length} point markers with color ${color}`);
         item.measurement.pointLocations.forEach((point, idx) => {
+          console.log(`    • Point ${idx + 1}:`, point);
           const marker = new google.maps.Marker({
-            position: point,
+            position: point, // Already in {lat, lng} format
             map: map,
             label: {
               text: `${idx + 1}`,
@@ -492,6 +512,8 @@ const MeasurementTools = ({
         });
       }
     });
+    
+    console.log('✅ MeasurementTools - Rendering complete. Shapes:', previousShapesRef.current.length, 'Labels:', previousLabelsRef.current.length);
   };
 
   const getNextMeasurementColor = () => {

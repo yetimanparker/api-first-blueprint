@@ -92,6 +92,8 @@ const QuoteSuccess = ({
     if (!mapContainerRef.current || !apiKey) return;
 
     try {
+      console.log('🗺️ QuoteSuccess - Initializing map with items:', quoteItems.length);
+      
       const loader = new Loader({
         apiKey: apiKey,
         version: 'weekly',
@@ -100,15 +102,58 @@ const QuoteSuccess = ({
 
       await loader.load();
 
-      // Use first item's coordinates to center map
-      const firstCoord = quoteItems[0]?.measurement?.coordinates?.[0];
-      const center = firstCoord 
-        ? { lat: firstCoord[0], lng: firstCoord[1] }
-        : { lat: 39.8283, lng: -98.5795 };
+      // Calculate bounds from all measurements
+      const bounds = new google.maps.LatLngBounds();
+      let hasAnyCoordinates = false;
+
+      quoteItems.forEach((item, index) => {
+        console.log(`📍 Item ${index} (${item.productName}):`, {
+          type: item.measurement.type,
+          hasCoordinates: !!item.measurement.coordinates,
+          coordinatesLength: item.measurement.coordinates?.length || 0,
+          hasPointLocations: !!item.measurement.pointLocations,
+          pointLocationsLength: item.measurement.pointLocations?.length || 0
+        });
+
+        // For point measurements
+        if (item.measurement.type === 'point' && item.measurement.pointLocations) {
+          item.measurement.pointLocations.forEach(point => {
+            bounds.extend(point);
+            hasAnyCoordinates = true;
+          });
+        }
+        // For area/linear measurements
+        else if (item.measurement.coordinates) {
+          item.measurement.coordinates.forEach(([lat, lng]) => {
+            bounds.extend({ lat, lng });
+            hasAnyCoordinates = true;
+          });
+        }
+      });
+
+      let center;
+      let zoom = 19;
+
+      if (hasAnyCoordinates) {
+        center = bounds.getCenter();
+        console.log('✅ Calculated center from bounds:', center.toJSON());
+      } else {
+        // Fallback to first coordinate if available
+        const firstItem = quoteItems[0];
+        if (firstItem?.measurement.pointLocations?.[0]) {
+          center = firstItem.measurement.pointLocations[0];
+        } else if (firstItem?.measurement.coordinates?.[0]) {
+          center = { lat: firstItem.measurement.coordinates[0][0], lng: firstItem.measurement.coordinates[0][1] };
+        } else {
+          center = { lat: 39.8283, lng: -98.5795 }; // Center of US as fallback
+          zoom = 4;
+        }
+        console.log('⚠️ Using fallback center:', center);
+      }
 
       const map = new google.maps.Map(mapContainerRef.current, {
         center: center,
-        zoom: 19,
+        zoom: zoom,
         mapTypeId: google.maps.MapTypeId.HYBRID,
         disableDefaultUI: true,
         zoomControl: true,
@@ -116,35 +161,62 @@ const QuoteSuccess = ({
 
       mapRef.current = map;
 
+      // Fit bounds if we have coordinates
+      if (hasAnyCoordinates) {
+        map.fitBounds(bounds);
+        // Set a reasonable zoom level after fitting
+        google.maps.event.addListenerOnce(map, 'bounds_changed', () => {
+          const currentZoom = map.getZoom();
+          if (currentZoom && currentZoom > 20) {
+            map.setZoom(20);
+          }
+        });
+      }
+
+      console.log('🎨 Starting to render measurements...');
+
       // Render all measurements
-      const bounds = new google.maps.LatLngBounds();
       const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899'];
 
       quoteItems.forEach((item, index) => {
         const color = colors[index % colors.length];
-        let latLngs: google.maps.LatLngLiteral[] = [];
+        
+        console.log(`🎨 Rendering item ${index} (${item.productName}, type: ${item.measurement.type})`);
 
-        // Handle different measurement types and their coordinate storage
-        if (item.measurement.type === 'point' && item.measurement.pointLocations && item.measurement.pointLocations.length > 0) {
-          // Point measurements use pointLocations
-          latLngs = item.measurement.pointLocations.map(coord => ({
-            lat: coord[0],
-            lng: coord[1]
-          }));
-        } else if (item.measurement.coordinates && item.measurement.coordinates.length > 0) {
-          // Area and linear measurements use coordinates
-          latLngs = item.measurement.coordinates.map(coord => ({
-            lat: coord[0],
-            lng: coord[1]
-          }));
-        } else {
-          return; // Skip if no coordinates
+        if (item.measurement.type === 'point' && item.measurement.pointLocations) {
+          // Handle point measurements (e.g., individual trees)
+          console.log(`  ➡️ Rendering ${item.measurement.pointLocations.length} point markers`);
+          item.measurement.pointLocations.forEach((position, idx) => {
+            new google.maps.Marker({
+              position: position, // Already in {lat, lng} format
+              map: map,
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: color,
+                fillOpacity: 0.9,
+                strokeColor: '#ffffff',
+                strokeWeight: 2,
+              },
+              label: {
+                text: `${idx + 1}`,
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 'bold',
+              },
+              title: `${item.productName} - Location ${idx + 1}`,
+            });
+          });
         }
 
-        // Extend bounds for each coordinate
-        latLngs.forEach(coord => bounds.extend(coord));
+        else if (item.measurement.type === 'area' && item.measurement.coordinates) {
+          const latLngs = item.measurement.coordinates.map(coord => ({
+            lat: coord[0],
+            lng: coord[1]
+          }));
+          
+          console.log(`  ➡️ Rendering area polygon with ${latLngs.length} points`);
 
-        if (item.measurement.type === 'area') {
           const polygon = new google.maps.Polygon({
             paths: latLngs,
             fillColor: color,
@@ -154,9 +226,12 @@ const QuoteSuccess = ({
           });
           polygon.setMap(map);
 
-          const center = bounds.getCenter();
+          const areaBounds = new google.maps.LatLngBounds();
+          latLngs.forEach(coord => areaBounds.extend(coord));
+          const areaCenter = areaBounds.getCenter();
+          
           new google.maps.Marker({
-            position: center,
+            position: areaCenter,
             map: map,
             icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
             label: {
@@ -166,7 +241,14 @@ const QuoteSuccess = ({
               fontWeight: 'bold',
             },
           });
-        } else if (item.measurement.type === 'linear') {
+        } else if (item.measurement.type === 'linear' && item.measurement.coordinates) {
+          const latLngs = item.measurement.coordinates.map(coord => ({
+            lat: coord[0],
+            lng: coord[1]
+          }));
+          
+          console.log(`  ➡️ Rendering linear path with ${latLngs.length} points`);
+
           const polyline = new google.maps.Polyline({
             path: latLngs,
             strokeColor: color,
@@ -186,49 +268,10 @@ const QuoteSuccess = ({
               fontWeight: 'bold',
             },
           });
-        } else if (item.measurement.type === 'point') {
-          // Handle point measurements (e.g., individual trees)
-          latLngs.forEach((position, idx) => {
-            new google.maps.Marker({
-              position: position,
-              map: map,
-              icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 8,
-                fillColor: color,
-                fillOpacity: 1,
-                strokeColor: '#ffffff',
-                strokeWeight: 2,
-              },
-              label: {
-                text: `${idx + 1}`,
-                color: '#ffffff',
-                fontSize: '11px',
-                fontWeight: 'bold',
-              },
-              title: `${item.productName} - Location ${idx + 1}`,
-            });
-          });
         }
       });
 
-      // Fit bounds with padding and max zoom to ensure all measurements are visible
-      if (!bounds.isEmpty()) {
-        map.fitBounds(bounds, {
-          top: 50,
-          bottom: 50,
-          left: 50,
-          right: 50
-        });
-        
-        // Set a max zoom level to prevent being too close
-        const listener = google.maps.event.addListener(map, 'idle', () => {
-          if (map.getZoom()! > 20) {
-            map.setZoom(20);
-          }
-          google.maps.event.removeListener(listener);
-        });
-      }
+      console.log('✅ QuoteSuccess map rendering complete');
     } catch (error) {
       console.error('Map initialization failed:', error);
     }
