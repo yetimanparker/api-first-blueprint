@@ -55,7 +55,7 @@ const MeasurementTools = ({
 }: MeasurementToolsProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [measurementType, setMeasurementType] = useState<'area' | 'linear'>('area');
+  const [measurementType, setMeasurementType] = useState<'area' | 'linear' | 'point'>('area');
   const [mapMeasurement, setMapMeasurement] = useState<number | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentMeasurement, setCurrentMeasurement] = useState<MeasurementData | null>(null);
@@ -65,6 +65,8 @@ const MeasurementTools = ({
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [manualValue, setManualValue] = useState('');
   const [searchAddress, setSearchAddress] = useState(customerAddress || '');
+  const [pointLocations, setPointLocations] = useState<Array<{lat: number, lng: number}>>([]);
+  const [pointMarkers, setPointMarkers] = useState<google.maps.Marker[]>([]);
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -194,8 +196,13 @@ const MeasurementTools = ({
       // Auto-select measurement type based on product unit type
       const unitType = data.unit_type.toLowerCase();
       
-      // Check for linear measurements first (linear_ft, linear, etc.)
-      if (unitType.includes('linear')) {
+      // Check for 'each' type products first
+      if (unitType === 'each') {
+        console.log('Auto-selecting POINT measurement for unit type:', data.unit_type);
+        setMeasurementType('point');
+      }
+      // Check for linear measurements (linear_ft, linear, etc.)
+      else if (unitType.includes('linear')) {
         console.log('Auto-selecting LINEAR measurement for unit type:', data.unit_type);
         setMeasurementType('linear');
       }
@@ -447,6 +454,31 @@ const MeasurementTools = ({
           },
         });
         previousLabelsRef.current.push(marker);
+      } else if (item.measurement.type === 'point' && item.measurement.pointLocations) {
+        // Render point measurements
+        item.measurement.pointLocations.forEach((point, idx) => {
+          const marker = new google.maps.Marker({
+            position: point,
+            map: map,
+            label: {
+              text: `${idx + 1}`,
+              color: 'white',
+              fontSize: '12px',
+              fontWeight: 'bold'
+            },
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              fillColor: color,
+              fillOpacity: 0.8,
+              strokeColor: 'white',
+              strokeWeight: 2,
+              scale: 10
+            },
+            title: `${item.customName || item.productName} - Point ${idx + 1}`
+          });
+          
+          previousLabelsRef.current.push(marker);
+        });
       }
     });
   };
@@ -481,6 +513,13 @@ const MeasurementTools = ({
 
     drawingManager.setMap(map);
     drawingManagerRef.current = drawingManager;
+
+    // Add map click listener for point placement mode
+    google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
+      if (measurementType === 'point' && isDrawing && event.latLng) {
+        addPointMarker(event.latLng);
+      }
+    });
 
     google.maps.event.addListener(drawingManager, 'overlaycomplete', (event: any) => {
       setIsDrawing(false);
@@ -593,7 +632,7 @@ const MeasurementTools = ({
   };
 
   const startDrawing = () => {
-    if (!drawingManagerRef.current) {
+    if (!drawingManagerRef.current || !mapRef.current) {
       console.log('Cannot start drawing: drawingManager not ready');
       return;
     }
@@ -603,32 +642,39 @@ const MeasurementTools = ({
     setShowManualEntry(false);
     clearMapDrawing();
 
-    // Update drawing manager colors to match the next measurement color
     const nextColor = getNextMeasurementColor();
-    drawingManagerRef.current.setOptions({
-      polygonOptions: {
-        fillColor: nextColor,
-        fillOpacity: 0.3,
-        strokeColor: nextColor,
-        strokeWeight: 2,
-        clickable: true,
-        editable: true,
-        zIndex: 1,
-      },
-      polylineOptions: {
-        strokeColor: nextColor,
-        strokeWeight: 2,
-        clickable: true,
-        editable: true,
-      },
-    });
-
-    const mode = measurementType === 'area' 
-      ? google.maps.drawing.OverlayType.POLYGON 
-      : google.maps.drawing.OverlayType.POLYLINE;
     
-    drawingManagerRef.current.setDrawingMode(mode);
-    console.log('Drawing mode activated:', mode);
+    if (measurementType === 'point') {
+      // For point mode, just enable clicking (no drawing manager needed)
+      drawingManagerRef.current.setDrawingMode(null);
+      console.log('Point placement mode activated - click to place markers');
+    } else {
+      // Update drawing manager colors to match the next measurement color
+      drawingManagerRef.current.setOptions({
+        polygonOptions: {
+          fillColor: nextColor,
+          fillOpacity: 0.3,
+          strokeColor: nextColor,
+          strokeWeight: 2,
+          clickable: true,
+          editable: true,
+          zIndex: 1,
+        },
+        polylineOptions: {
+          strokeColor: nextColor,
+          strokeWeight: 2,
+          clickable: true,
+          editable: true,
+        },
+      });
+
+      const mode = measurementType === 'area' 
+        ? google.maps.drawing.OverlayType.POLYGON 
+        : google.maps.drawing.OverlayType.POLYLINE;
+      
+      drawingManagerRef.current.setDrawingMode(mode);
+      console.log('Drawing mode activated:', mode);
+    }
   };
 
   const clearMapDrawing = () => {
@@ -640,6 +686,13 @@ const MeasurementTools = ({
     if (measurementLabelRef.current) {
       measurementLabelRef.current.setMap(null);
       measurementLabelRef.current = null;
+    }
+    
+    // Clear point markers
+    if (measurementType === 'point') {
+      pointMarkers.forEach(marker => marker.setMap(null));
+      setPointMarkers([]);
+      setPointLocations([]);
     }
     
     if (drawingManagerRef.current) {
@@ -667,6 +720,90 @@ const MeasurementTools = ({
     }, 100);
   };
 
+  const addPointMarker = (location: google.maps.LatLng) => {
+    if (!mapRef.current) return;
+    
+    const newPoint = {
+      lat: location.lat(),
+      lng: location.lng()
+    };
+    
+    const markerNumber = pointLocations.length + 1;
+    const nextColor = getNextMeasurementColor();
+    
+    // Create marker
+    const marker = new google.maps.Marker({
+      position: location,
+      map: mapRef.current,
+      draggable: true,
+      label: {
+        text: `${markerNumber}`,
+        color: 'white',
+        fontSize: '14px',
+        fontWeight: 'bold'
+      },
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        fillColor: nextColor,
+        fillOpacity: 1,
+        strokeColor: 'white',
+        strokeWeight: 2,
+        scale: 12
+      },
+      animation: google.maps.Animation.DROP
+    });
+    
+    // Add drag listener to update position
+    google.maps.event.addListener(marker, 'dragend', (e: google.maps.MapMouseEvent) => {
+      if (e.latLng) {
+        const index = pointMarkers.indexOf(marker);
+        if (index !== -1) {
+          const updatedLocations = [...pointLocations];
+          updatedLocations[index] = {
+            lat: e.latLng.lat(),
+            lng: e.latLng.lng()
+          };
+          setPointLocations(updatedLocations);
+        }
+      }
+    });
+    
+    setPointLocations(prev => [...prev, newPoint]);
+    setPointMarkers(prev => [...prev, marker]);
+  };
+
+  const removeLastPoint = () => {
+    if (pointMarkers.length === 0) return;
+    
+    // Remove last marker from map
+    const lastMarker = pointMarkers[pointMarkers.length - 1];
+    lastMarker.setMap(null);
+    
+    // Update state
+    setPointMarkers(prev => prev.slice(0, -1));
+    setPointLocations(prev => prev.slice(0, -1));
+    
+    // Renumber remaining markers
+    pointMarkers.slice(0, -1).forEach((marker, idx) => {
+      marker.setLabel({
+        text: `${idx + 1}`,
+        color: 'white',
+        fontSize: '14px',
+        fontWeight: 'bold'
+      });
+    });
+  };
+
+  const clearAllPoints = () => {
+    // Remove all markers from map
+    pointMarkers.forEach(marker => marker.setMap(null));
+    
+    // Clear state
+    setPointMarkers([]);
+    setPointLocations([]);
+    setIsDrawing(true);
+  };
+
   const handleManualSubmit = () => {
     const value = parseFloat(manualValue);
     if (isNaN(value) || value <= 0) return;
@@ -678,7 +815,7 @@ const MeasurementTools = ({
     const measurement: MeasurementData = {
       type: measurementType,
       value: Math.ceil(value),
-      unit: measurementType === 'area' ? 'sq_ft' : 'linear_ft',
+      unit: measurementType === 'area' ? 'sq_ft' : measurementType === 'linear' ? 'linear_ft' : 'each',
       manualEntry: true,
       mapColor: mapColor
     };
@@ -699,7 +836,31 @@ const MeasurementTools = ({
 
   // Save measurement when map measurement is complete
   useEffect(() => {
-    if (mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement && currentShapeRef.current) {
+    // Handle point measurements
+    if (measurementType === 'point' && pointLocations.length > 0 && !isDrawing && !showManualEntry && !currentMeasurement) {
+      const nextColor = getNextMeasurementColor();
+      const measurement: MeasurementData = {
+        type: 'point',
+        value: pointLocations.length,
+        unit: 'each',
+        pointLocations: pointLocations,
+        manualEntry: false,
+        mapColor: nextColor
+      };
+      
+      setCurrentMeasurement(measurement);
+      onMeasurementComplete(measurement);
+      
+      // Scroll to show the measurement tools after completing measurement
+      setTimeout(() => {
+        const bottomControls = document.querySelector('.measurement-controls');
+        if (bottomControls) {
+          bottomControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 300);
+    }
+    // Handle area/linear measurements
+    else if (mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement && currentShapeRef.current) {
       // Get coordinates from the current shape
       const coordinates: number[][] = [];
       if (currentShapeRef.current instanceof google.maps.Polygon) {
@@ -738,7 +899,7 @@ const MeasurementTools = ({
         }
       }, 300);
     }
-  }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement]);
+  }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement, pointLocations, measurementType]);
 
   if (loading) {
     return (
@@ -855,7 +1016,7 @@ const MeasurementTools = ({
         )}
 
         {/* Drawing Instructions */}
-        {isDrawing && !mapMeasurement && !showManualEntry && (
+        {isDrawing && !mapMeasurement && !showManualEntry && measurementType !== 'point' && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground rounded-lg px-6 py-3 shadow-lg animate-pulse">
             <p className="text-sm font-medium">
               {measurementType === 'area' 
@@ -865,23 +1026,71 @@ const MeasurementTools = ({
           </div>
         )}
 
+        {/* Point Placement Instructions and Counter */}
+        {measurementType === 'point' && isDrawing && !currentMeasurement && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground rounded-lg px-6 py-3 shadow-lg max-w-md">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm font-medium">
+                Click on map to place markers
+              </p>
+              <span className="text-sm font-bold">
+                Placed: {pointLocations.length}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Point Placement Controls */}
+        {measurementType === 'point' && pointLocations.length > 0 && !currentMeasurement && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-background border rounded-lg shadow-lg p-4 flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={removeLastPoint}
+            >
+              <Undo2 className="mr-2 h-4 w-4" />
+              Remove Last
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearAllPoints}
+            >
+              Clear All
+            </Button>
+            
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setIsDrawing(false)}
+            >
+              Done ({pointLocations.length})
+            </Button>
+          </div>
+        )}
+
         {/* Manual Entry Modal */}
         {showManualEntry && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-30">
             <div className="bg-background border-2 rounded-lg shadow-2xl p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">Enter Measurement</h3>
+              <h3 className="text-lg font-semibold mb-4">
+                {measurementType === 'point' ? 'Enter Quantity' : 'Enter Measurement'}
+              </h3>
               <div className="flex gap-2 mb-4">
                 <Input
                   type="number"
-                  placeholder={`Enter ${unitLabel}`}
+                  placeholder={measurementType === 'point' ? 'Enter quantity' : `Enter ${unitLabel}`}
                   value={manualValue}
                   onChange={(e) => setManualValue(e.target.value)}
                   min="0"
-                  step="0.01"
+                  step={measurementType === 'point' ? '1' : '0.01'}
                   className="flex-1"
                   autoFocus
                 />
-                <span className="flex items-center text-sm text-muted-foreground">{unitAbbr}</span>
+                <span className="flex items-center text-sm text-muted-foreground">
+                  {measurementType === 'point' ? 'items' : unitAbbr}
+                </span>
               </div>
               <div className="flex gap-2">
                 <Button 
@@ -963,7 +1172,7 @@ const MeasurementTools = ({
                   >
                     <span>NEXT (configure)</span>
                     <span className="text-success-foreground/90 font-semibold">
-                      ({currentMeasurement.value.toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : 'ft'})
+                      ({currentMeasurement.value.toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : currentMeasurement.type === 'linear' ? 'ft' : 'items'})
                     </span>
                   </Button>
               </div>
