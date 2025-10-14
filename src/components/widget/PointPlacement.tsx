@@ -1,7 +1,6 @@
 /// <reference types="@types/google.maps" />
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Undo2, Check, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader } from '@googlemaps/js-api-loader';
@@ -281,7 +280,7 @@ const PointPlacement = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12">
+      <div className="w-full flex items-center justify-center p-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -289,87 +288,89 @@ const PointPlacement = ({
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <Card className="border-destructive">
-          <CardContent className="pt-6">
-            <p className="text-destructive mb-4">{error}</p>
-            <Button onClick={onSkip} variant="outline" className="w-full">
-              Skip Map and Continue
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="w-full space-y-4">
+        <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
+          <p className="text-destructive mb-4">{error}</p>
+          <Button onClick={onSkip} variant="outline" className="w-full">
+            Skip Map and Continue
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-primary" />
-              Place {productName} Locations
-            </span>
-            <span className="text-sm font-normal text-muted-foreground">
-              Placed {placedPoints.length} of {quantity}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!customerAddress && (
-            <div className="bg-muted/50 border border-border rounded-lg p-3">
-              <p className="text-sm text-muted-foreground">
-                💡 <strong>Tip:</strong> For best results, enter your property address first to center the map. You can zoom and pan to find your location.
-              </p>
-            </div>
-          )}
+    <div className="w-full space-y-4">
+      {/* Title and Counter */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold">
+            Place {productName} Locations
+          </h3>
+        </div>
+        <span className="text-sm text-muted-foreground">
+          Placed {placedPoints.length} of {quantity}
+        </span>
+      </div>
+
+      {/* Address Tip */}
+      {!customerAddress && (
+        <div className="bg-muted/50 border border-border rounded-lg p-3">
           <p className="text-sm text-muted-foreground">
-            Click on the map to mark exact locations for each item. You can drag markers to adjust their positions.
+            💡 <strong>Tip:</strong> For best results, enter your property address first to center the map. You can zoom and pan to find your location.
           </p>
+        </div>
+      )}
 
-          <div 
-            ref={mapContainerRef} 
-            className="w-full h-[500px] rounded-lg border-2 border-border overflow-hidden"
-            style={{ cursor: placedPoints.length < quantity ? 'crosshair' : 'default' }}
-          />
+      {/* Instructions */}
+      <p className="text-sm text-muted-foreground">
+        Click on the map to mark exact locations for each item. You can drag markers to adjust their positions.
+      </p>
 
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={handleRemoveLast}
-              disabled={placedPoints.length === 0}
-              className="flex-1"
-            >
-              <Undo2 className="mr-2 h-4 w-4" />
-              Remove Last
-            </Button>
-            
-            <Button
-              variant="outline"
-              onClick={onSkip}
-              className="flex-1"
-            >
-              Skip Map
-            </Button>
-            
-            <Button
-              onClick={handleContinue}
-              disabled={placedPoints.length === 0}
-              className="flex-1"
-            >
-              <Check className="mr-2 h-4 w-4" />
-              Continue ({placedPoints.length}/{quantity})
-            </Button>
-          </div>
+      {/* Map Container */}
+      <div 
+        ref={mapContainerRef} 
+        className="w-full h-[500px] rounded-lg border-2 border-border overflow-hidden"
+        style={{ cursor: placedPoints.length < quantity ? 'crosshair' : 'default' }}
+      />
 
-          {placedPoints.length === quantity && (
-            <p className="text-sm text-green-600 font-medium text-center">
-              ✓ All {quantity} points placed! Click "Continue" to proceed.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        <Button
+          variant="outline"
+          onClick={handleRemoveLast}
+          disabled={placedPoints.length === 0}
+          className="flex-1"
+        >
+          <Undo2 className="mr-2 h-4 w-4" />
+          Remove Last
+        </Button>
+        
+        <Button
+          variant="outline"
+          onClick={onSkip}
+          className="flex-1"
+        >
+          Skip Map
+        </Button>
+        
+        <Button
+          onClick={handleContinue}
+          disabled={placedPoints.length === 0}
+          className="flex-1"
+        >
+          <Check className="mr-2 h-4 w-4" />
+          Continue ({placedPoints.length}/{quantity})
+        </Button>
+      </div>
+
+      {/* Success Message */}
+      {placedPoints.length === quantity && (
+        <p className="text-sm text-green-600 font-medium text-center">
+          ✓ All {quantity} points placed! Click "Continue" to proceed.
+        </p>
+      )}
     </div>
   );
 };
