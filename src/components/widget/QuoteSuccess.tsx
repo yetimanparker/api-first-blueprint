@@ -404,7 +404,11 @@ const QuoteSuccess = ({
                 const showPricing = settings.pricing_visibility === 'before_submit';
                 
                 return (
-                  <div key={item.id} className="border-l-4 border-primary pl-4 py-2">
+                  <div 
+                    key={item.id} 
+                    className="border-l-4 pl-4 py-2"
+                    style={{ borderLeftColor: item.measurement.mapColor || '#3B82F6' }}
+                  >
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="font-semibold">{item.productName}</p>

@@ -104,11 +104,18 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
 
       await loader.load();
 
-      // Use first item's coordinates to center map
-      const firstCoord = quoteItems[0]?.measurement_data?.coordinates?.[0];
-      const center = firstCoord 
-        ? { lat: firstCoord[0], lng: firstCoord[1] }
-        : { lat: 39.8283, lng: -98.5795 };
+      // Use first item's coordinates or point locations to center map
+      let center = { lat: 39.8283, lng: -98.5795 }; // Default US center
+      
+      const firstItem = quoteItems[0];
+      if (firstItem?.measurement_data) {
+        if (firstItem.measurement_data.coordinates?.[0]) {
+          const firstCoord = firstItem.measurement_data.coordinates[0];
+          center = { lat: firstCoord[0], lng: firstCoord[1] };
+        } else if (firstItem.measurement_data.pointLocations?.[0]) {
+          center = firstItem.measurement_data.pointLocations[0];
+        }
+      }
 
       const map = new google.maps.Map(mapContainerRef.current, {
         center: center,
@@ -125,58 +132,96 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
       const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899'];
 
       quoteItems.forEach((item, index) => {
-        if (!item.measurement_data?.coordinates || item.measurement_data.coordinates.length === 0) return;
+        const hasCoordinates = item.measurement_data?.coordinates?.length > 0;
+        const hasPointLocations = item.measurement_data?.pointLocations?.length > 0;
+        
+        if (!hasCoordinates && !hasPointLocations) return;
 
-        const color = colors[index % colors.length];
-        const latLngs = item.measurement_data.coordinates.map((coord: number[]) => ({
-          lat: coord[0],
-          lng: coord[1]
-        }));
+        const color = item.measurement_data?.mapColor || colors[index % colors.length];
 
-        latLngs.forEach((coord: google.maps.LatLngLiteral) => bounds.extend(coord));
+        if (item.measurement_data.type === 'point' && hasPointLocations) {
+          // Handle point measurements (each)
+          item.measurement_data.pointLocations.forEach((point: { lat: number; lng: number }, pointIndex: number) => {
+            bounds.extend(point);
+            
+            const marker = new google.maps.Marker({
+              position: point,
+              map: map,
+              label: {
+                text: (pointIndex + 1).toString(),
+                color: '#FFFFFF',
+                fontSize: '12px',
+                fontWeight: 'bold',
+              },
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                fillColor: color,
+                fillOpacity: 1,
+                strokeColor: '#FFFFFF',
+                strokeWeight: 2,
+                scale: 12,
+              },
+            });
 
-        if (item.measurement_data.type === 'area') {
-          const polygon = new google.maps.Polygon({
-            paths: latLngs,
-            fillColor: color,
-            fillOpacity: 0.3,
-            strokeColor: color,
-            strokeWeight: 2,
+            const infoWindow = new google.maps.InfoWindow({
+              content: `<div style="color: ${color}; font-weight: bold;">${item.products.name} #${pointIndex + 1}</div>`,
+            });
+
+            marker.addListener('click', () => {
+              infoWindow.open(map, marker);
+            });
           });
-          polygon.setMap(map);
+        } else if (hasCoordinates) {
+          const latLngs = item.measurement_data.coordinates.map((coord: number[]) => ({
+            lat: coord[0],
+            lng: coord[1]
+          }));
 
-          const center = bounds.getCenter();
-          new google.maps.Marker({
-            position: center,
-            map: map,
-            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-            label: {
-              text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} sq ft`,
-              color: color,
-              fontSize: '12px',
-              fontWeight: 'bold',
-            },
-          });
-        } else if (item.measurement_data.type === 'linear') {
-          const polyline = new google.maps.Polyline({
-            path: latLngs,
-            strokeColor: color,
-            strokeWeight: 3,
-          });
-          polyline.setMap(map);
+          latLngs.forEach((coord: google.maps.LatLngLiteral) => bounds.extend(coord));
 
-          const midIndex = Math.floor(latLngs.length / 2);
-          new google.maps.Marker({
-            position: latLngs[midIndex],
-            map: map,
-            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-            label: {
-              text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} ft`,
-              color: color,
-              fontSize: '12px',
-              fontWeight: 'bold',
-            },
-          });
+          if (item.measurement_data.type === 'area') {
+            const polygon = new google.maps.Polygon({
+              paths: latLngs,
+              fillColor: color,
+              fillOpacity: 0.3,
+              strokeColor: color,
+              strokeWeight: 2,
+            });
+            polygon.setMap(map);
+
+            const center = bounds.getCenter();
+            new google.maps.Marker({
+              position: center,
+              map: map,
+              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+              label: {
+                text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} sq ft`,
+                color: color,
+                fontSize: '12px',
+                fontWeight: 'bold',
+              },
+            });
+          } else if (item.measurement_data.type === 'linear') {
+            const polyline = new google.maps.Polyline({
+              path: latLngs,
+              strokeColor: color,
+              strokeWeight: 3,
+            });
+            polyline.setMap(map);
+
+            const midIndex = Math.floor(latLngs.length / 2);
+            new google.maps.Marker({
+              position: latLngs[midIndex],
+              map: map,
+              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+              label: {
+                text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} ft`,
+                color: color,
+                fontSize: '12px',
+                fontWeight: 'bold',
+              },
+            });
+          }
         }
       });
 
@@ -204,7 +249,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
   return (
     <div className="space-y-6">
       {/* Map */}
-      {quoteItems.some(item => item.measurement_data?.coordinates?.length > 0) && (
+      {quoteItems.some(item => item.measurement_data?.coordinates?.length > 0 || item.measurement_data?.pointLocations?.length > 0) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -238,7 +283,11 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             const addons = item.measurement_data?.addons || [];
             
             return (
-              <div key={item.id} className="border-l-4 border-primary pl-4 py-2">
+              <div 
+                key={item.id} 
+                className="border-l-4 pl-4 py-2"
+                style={{ borderLeftColor: item.measurement_data?.mapColor || '#3B82F6' }}
+              >
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <p className="font-semibold">{item.products.name}</p>
