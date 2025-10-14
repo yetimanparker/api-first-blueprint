@@ -78,6 +78,7 @@ const MeasurementTools = ({
   const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
   const measurementTypeRef = useRef<'area' | 'linear' | 'point'>('area');
   const isDrawingRef = useRef(false);
+  const pointCountRef = useRef(0); // Track point count for reliable sequential numbering
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -708,6 +709,7 @@ const MeasurementTools = ({
       pointMarkers.forEach(marker => marker.setMap(null));
       setPointMarkers([]);
       setPointLocations([]);
+      pointCountRef.current = 0; // Reset counter
     }
     
     if (drawingManagerRef.current) {
@@ -743,7 +745,9 @@ const MeasurementTools = ({
       lng: location.lng()
     };
     
-    const markerNumber = pointMarkers.length + 1;
+    // Increment ref counter for reliable sequential numbering
+    pointCountRef.current += 1;
+    const markerNumber = pointCountRef.current;
     const nextColor = getNextMeasurementColor();
     
     // Create marker
@@ -798,6 +802,9 @@ const MeasurementTools = ({
     setPointMarkers(prev => prev.slice(0, -1));
     setPointLocations(prev => prev.slice(0, -1));
     
+    // Decrement counter
+    pointCountRef.current = Math.max(0, pointCountRef.current - 1);
+    
     // Renumber remaining markers
     pointMarkers.slice(0, -1).forEach((marker, idx) => {
       marker.setLabel({
@@ -816,6 +823,7 @@ const MeasurementTools = ({
     // Clear state
     setPointMarkers([]);
     setPointLocations([]);
+    pointCountRef.current = 0; // Reset counter
     setIsDrawing(true);
   };
 
