@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ArrowLeft, Search, Users, FileText, Phone, Mail, MapPin, MoreHorizontal, Edit, Plus, ArrowUpDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { PhoneQuoteDialog } from "@/components/PhoneQuoteDialog";
+import { CustomerQuoteDialog } from "@/components/CustomerQuoteDialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface Customer {
@@ -263,7 +263,7 @@ const CRM = () => {
                 <p className="text-sm text-muted-foreground hidden md:block">Manage customers and quotes</p>
               </div>
             </div>
-            <PhoneQuoteDialog onQuoteCreated={handleQuoteCreated} />
+            <CustomerQuoteDialog onQuoteCreated={handleQuoteCreated} />
           </div>
         </div>
       </header>
