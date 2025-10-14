@@ -1087,7 +1087,7 @@ const MeasurementTools = ({
               variant="default"
               size="sm"
               onClick={() => setIsDrawing(false)}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              className="bg-green-600 text-white hover:bg-green-700"
             >
               Done ({pointLocations.length})
             </Button>
