@@ -97,13 +97,7 @@ export function NewQuoteDialog({ onQuoteCreated }: NewQuoteDialogProps) {
 
       if (quoteNumberError) throw quoteNumberError;
 
-      // Generate access token
-      const { data: accessToken, error: tokenError } = await supabase
-        .rpc('generate_quote_access_token');
-
-      if (tokenError) throw tokenError;
-
-      // Create the quote
+      // Create the quote (access_token is optional for internal quotes)
       const { data: newQuote, error: quoteError } = await supabase
         .from('quotes')
         .insert({
@@ -112,7 +106,6 @@ export function NewQuoteDialog({ onQuoteCreated }: NewQuoteDialogProps) {
           contractor_id: contractorId,
           status: 'draft',
           total_amount: 0,
-          access_token: accessToken,
         })
         .select()
         .single();
