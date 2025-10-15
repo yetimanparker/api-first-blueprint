@@ -176,10 +176,9 @@ const QuoteSuccess = ({
       console.log('🎨 Starting to render measurements...');
 
       // Render all measurements
-      const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899'];
-
       quoteItems.forEach((item, index) => {
-        const color = colors[index % colors.length];
+        // Use the mapColor that was assigned when the measurement was created
+        const color = item.measurement.mapColor || '#3B82F6';
         
         console.log(`🎨 Rendering item ${index} (${item.productName}, type: ${item.measurement.type})`);
 
