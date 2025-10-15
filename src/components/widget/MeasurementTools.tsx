@@ -367,13 +367,9 @@ const MeasurementTools = ({
       // Render existing measurements from quote items
       renderExistingMeasurements(map);
       
-      // Auto-start drawing after a brief delay to ensure everything is ready
-      console.log('Map initialized, preparing to auto-start drawing');
-      setTimeout(() => {
-        if (!showManualEntry) {
-          startDrawing();
-        }
-      }, 500);
+      // Note: Auto-start is now handled by the useEffect that waits for product to load
+      console.log('Map initialized, auto-start will be handled by useEffect');
+      
       
     } catch (error) {
       console.error('Map initialization failed:', error);
