@@ -315,21 +315,17 @@ export default function Products() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <Tabs defaultValue="products" className="space-y-4 sm:space-y-6">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto gap-1">
-            <TabsTrigger value="products" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
-              <Package className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline">Products</span>
+            <TabsTrigger value="products" className="text-xs sm:text-sm py-2 px-2">
+              Products
             </TabsTrigger>
-            <TabsTrigger value="bulk-pricing" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
-              <Upload className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline">Bulk Pricing</span>
+            <TabsTrigger value="bulk-pricing" className="text-xs sm:text-sm py-2 px-2">
+              Bulk Pricing
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
-              <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline">Settings</span>
+            <TabsTrigger value="settings" className="text-xs sm:text-sm py-2 px-2">
+              Settings
             </TabsTrigger>
-            <TabsTrigger value="categories" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
-              <Tag className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline">Categories</span>
+            <TabsTrigger value="categories" className="text-xs sm:text-sm py-2 px-2">
+              Categories
             </TabsTrigger>
           </TabsList>
 
