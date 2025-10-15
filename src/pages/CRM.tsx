@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, Search, Users, FileText, Phone, Mail, MapPin, MoreHorizontal, Edit, Plus, ArrowUpDown } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Search, Users, FileText, Phone, Mail, MapPin, MoreHorizontal, Edit, Plus, ArrowUpDown, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CustomerQuoteDialog } from "@/components/CustomerQuoteDialog";
@@ -36,15 +37,31 @@ interface Quote {
   total_amount: number;
   created_at: string;
   first_viewed_at: string | null;
+  customer_id: string;
+}
+
+interface QuoteWithCustomer extends Quote {
+  customer?: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string | null;
+  };
 }
 
 const CRM = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [customerQuotes, setCustomerQuotes] = useState<Record<string, Quote[]>>({});
+  const [allQuotes, setAllQuotes] = useState<QuoteWithCustomer[]>([]);
+  const [filteredQuotes, setFilteredQuotes] = useState<QuoteWithCustomer[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("recent");
+  const [quoteSearchTerm, setQuoteSearchTerm] = useState("");
+  const [quoteStatusFilter, setQuoteStatusFilter] = useState("all");
+  const [quoteSortBy, setQuoteSortBy] = useState("unseen_first");
+  const [activeTab, setActiveTab] = useState("customers");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -52,10 +69,12 @@ const CRM = () => {
 
   useEffect(() => {
     fetchCustomers();
+    fetchAllQuotes();
     // Check for URL filter parameter
     const filterParam = searchParams.get('filter');
     if (filterParam === 'unviewed') {
-      setStatusFilter('unviewed');
+      setActiveTab('quotes');
+      setQuoteStatusFilter('unviewed');
     }
   }, [searchParams]);
 
@@ -114,6 +133,51 @@ const CRM = () => {
     setFilteredCustomers(filtered);
   }, [customers, searchTerm, statusFilter, sortBy, customerQuotes]);
 
+  // Filter and sort quotes
+  useEffect(() => {
+    let filtered = allQuotes.filter(quote => {
+      const customerName = quote.customer 
+        ? `${quote.customer.first_name} ${quote.customer.last_name}`.toLowerCase()
+        : '';
+      const matchesSearch = 
+        quote.quote_number.toLowerCase().includes(quoteSearchTerm.toLowerCase()) ||
+        customerName.includes(quoteSearchTerm.toLowerCase()) ||
+        (quote.customer?.email && quote.customer.email.toLowerCase().includes(quoteSearchTerm.toLowerCase()));
+
+      if (quoteStatusFilter === "all") return matchesSearch;
+      if (quoteStatusFilter === "unviewed") return matchesSearch && quote.first_viewed_at === null;
+      return matchesSearch && quote.status === quoteStatusFilter;
+    });
+
+    // Sort quotes
+    filtered.sort((a, b) => {
+      switch (quoteSortBy) {
+        case "unseen_first":
+          // Unseen quotes first (null first_viewed_at)
+          if (a.first_viewed_at === null && b.first_viewed_at !== null) return -1;
+          if (a.first_viewed_at !== null && b.first_viewed_at === null) return 1;
+          // Then by most recent
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "recent":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "oldest":
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case "amount_high":
+          return b.total_amount - a.total_amount;
+        case "amount_low":
+          return a.total_amount - b.total_amount;
+        case "customer":
+          const aName = a.customer ? `${a.customer.first_name} ${a.customer.last_name}` : '';
+          const bName = b.customer ? `${b.customer.first_name} ${b.customer.last_name}` : '';
+          return aName.localeCompare(bName);
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredQuotes(filtered);
+  }, [allQuotes, quoteSearchTerm, quoteStatusFilter, quoteSortBy]);
+
   const fetchCustomers = async () => {
     try {
       const { data: customersData, error: customersError } = await supabase
@@ -163,6 +227,45 @@ const CRM = () => {
     }
   };
 
+  const fetchAllQuotes = async () => {
+    try {
+      const { data: quotesData, error } = await supabase
+        .from("quotes")
+        .select(`
+          id,
+          quote_number,
+          status,
+          total_amount,
+          created_at,
+          first_viewed_at,
+          customer_id,
+          customers (
+            first_name,
+            last_name,
+            email,
+            phone
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const quotesWithCustomer = (quotesData || []).map(quote => ({
+        ...quote,
+        customer: Array.isArray(quote.customers) ? quote.customers[0] : quote.customers
+      }));
+
+      setAllQuotes(quotesWithCustomer);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to load quotes",
+        variant: "destructive",
+      });
+      console.error("Error fetching quotes:", error);
+    }
+  };
+
   const updateCustomerStatus = async (customerId: string, newStatus: Customer['status']) => {
     try {
       const { error } = await supabase
@@ -197,6 +300,7 @@ const CRM = () => {
 
   const handleQuoteCreated = () => {
     fetchCustomers();
+    fetchAllQuotes();
     toast({
       title: "Success",
       description: "Phone quote created successfully",
@@ -286,65 +390,79 @@ const CRM = () => {
           <CustomerQuoteDialog onQuoteCreated={handleQuoteCreated} />
         </div>
 
-        {/* Search and Filter */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              Search & Filter
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              placeholder="Search by name, email, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Customers</SelectItem>
-                  <SelectItem value="unviewed">Unviewed Quotes</SelectItem>
-                  <SelectItem value="lead">Leads</SelectItem>
-                  <SelectItem value="contacted">Contacted</SelectItem>
-                  <SelectItem value="quoted">Quoted</SelectItem>
-                  <SelectItem value="negotiating">Negotiating</SelectItem>
-                  <SelectItem value="converted">Converted</SelectItem>
-                  <SelectItem value="lost">Lost</SelectItem>
-                  <SelectItem value="active">Active Quotes</SelectItem>
-                  <SelectItem value="no_quotes">No Quotes</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recent">Recent Activity</SelectItem>
-                  <SelectItem value="name">Name A-Z</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="quotes">Quote Count</SelectItem>
-                  <SelectItem value="quote_value">Quote Value</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="customers" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Customers
+            </TabsTrigger>
+            <TabsTrigger value="quotes" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              All Quotes
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Customer Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Customers ({filteredCustomers.length})
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
+          {/* Customers Tab */}
+          <TabsContent value="customers" className="space-y-6">
+            {/* Search and Filter */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Search & Filter
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  placeholder="Search by name, email, or phone..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Customers</SelectItem>
+                      <SelectItem value="unviewed">Unviewed Quotes</SelectItem>
+                      <SelectItem value="lead">Leads</SelectItem>
+                      <SelectItem value="contacted">Contacted</SelectItem>
+                      <SelectItem value="quoted">Quoted</SelectItem>
+                      <SelectItem value="negotiating">Negotiating</SelectItem>
+                      <SelectItem value="converted">Converted</SelectItem>
+                      <SelectItem value="lost">Lost</SelectItem>
+                      <SelectItem value="active">Active Quotes</SelectItem>
+                      <SelectItem value="no_quotes">No Quotes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recent">Recent Activity</SelectItem>
+                      <SelectItem value="name">Name A-Z</SelectItem>
+                      <SelectItem value="status">Status</SelectItem>
+                      <SelectItem value="quotes">Quote Count</SelectItem>
+                      <SelectItem value="quote_value">Quote Value</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Customer Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Customers ({filteredCustomers.length})
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -523,8 +641,180 @@ const CRM = () => {
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Quotes Tab */}
+          <TabsContent value="quotes" className="space-y-6">
+            {/* Search and Filter for Quotes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Search & Filter Quotes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  placeholder="Search by quote number, customer name, or email..."
+                  value={quoteSearchTerm}
+                  onChange={(e) => setQuoteSearchTerm(e.target.value)}
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select value={quoteStatusFilter} onValueChange={setQuoteStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Quotes</SelectItem>
+                      <SelectItem value="unviewed">Unviewed</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="accepted">Accepted</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={quoteSortBy} onValueChange={setQuoteSortBy}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unseen_first">Unseen First</SelectItem>
+                      <SelectItem value="recent">Most Recent</SelectItem>
+                      <SelectItem value="oldest">Oldest First</SelectItem>
+                      <SelectItem value="amount_high">Highest Amount</SelectItem>
+                      <SelectItem value="amount_low">Lowest Amount</SelectItem>
+                      <SelectItem value="customer">Customer A-Z</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quotes Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    All Quotes ({filteredQuotes.length})
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Quote</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead className="hidden sm:table-cell">Status</TableHead>
+                        <TableHead className="hidden md:table-cell">Amount</TableHead>
+                        <TableHead className="hidden lg:table-cell">Created</TableHead>
+                        <TableHead className="w-[50px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredQuotes.map((quote) => (
+                        <TableRow
+                          key={quote.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => navigate(`/quote/edit/${quote.id}`)}
+                        >
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{quote.quote_number}</span>
+                                {quote.first_viewed_at === null && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    Unseen
+                                  </Badge>
+                                )}
+                              </div>
+                              {/* Mobile: Show status below quote number */}
+                              <div className="sm:hidden mt-1">
+                                <Badge variant={getStatusBadgeVariant(quote.status)} className="text-xs">
+                                  {quote.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <div className="font-medium">
+                                {quote.customer
+                                  ? `${quote.customer.first_name} ${quote.customer.last_name}`
+                                  : "Unknown"}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {quote.customer?.email}
+                              </div>
+                              {/* Mobile: Show amount below customer */}
+                              <div className="md:hidden text-sm font-medium mt-1">
+                                {formatCurrency(quote.total_amount)}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            <Badge variant={getStatusBadgeVariant(quote.status)}>
+                              {quote.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            <span className="font-medium">{formatCurrency(quote.total_amount)}</span>
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            <div className="text-sm text-muted-foreground">
+                              {formatDate(quote.created_at)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/quote/edit/${quote.id}`);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit Quote
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/customer/${quote.customer_id}`);
+                                  }}
+                                >
+                                  <Users className="h-4 w-4 mr-2" />
+                                  View Customer
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {filteredQuotes.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-8 w-8 mx-auto mb-4 opacity-50" />
+                      <p>No quotes found</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
