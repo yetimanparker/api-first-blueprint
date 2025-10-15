@@ -150,7 +150,20 @@ const MeasurementTools = ({
 
   useEffect(() => {
     if (apiKey && !mapRef.current) {
-      initializeMap();
+      // Use requestAnimationFrame to ensure DOM is fully rendered
+      requestAnimationFrame(() => {
+        // Double RAF for extra safety on slower devices
+        requestAnimationFrame(() => {
+          if (mapContainerRef.current) {
+            console.log('✅ Map container ready, initializing map');
+            initializeMap();
+          } else {
+            console.error('❌ Map container still not ready after RAF');
+            setMapError('Map container failed to load');
+            setMapLoading(false);
+          }
+        });
+      });
     }
   }, [apiKey]);
 
