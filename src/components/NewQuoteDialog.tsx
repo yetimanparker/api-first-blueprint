@@ -120,8 +120,8 @@ export function NewQuoteDialog({ onQuoteCreated }: NewQuoteDialogProps) {
       setOpen(false);
       onQuoteCreated?.();
       
-      // Navigate to the quote builder
-      navigate(`/quote/builder/${newQuote.id}`);
+      // Navigate to the quote edit page
+      navigate(`/quote/edit/${newQuote.id}`);
 
     } catch (error) {
       console.error('Error creating quote:', error);
