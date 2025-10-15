@@ -169,11 +169,12 @@ const MeasurementTools = ({
 
   // Auto-start drawing when map and drawing manager are ready
   useEffect(() => {
-    if (mapRef.current && drawingManagerRef.current && !showManualEntry && !mapLoading) {
+    // Don't auto-start until product is loaded to avoid starting with wrong type
+    if (mapRef.current && drawingManagerRef.current && !showManualEntry && !mapLoading && product) {
       console.log('Map ready, auto-starting drawing for type:', measurementType);
       setTimeout(() => startDrawing(), 300);
     }
-  }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, mapLoading]);
+  }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, mapLoading, product]);
 
   useEffect(() => {
     // Update ref when measurement type changes
