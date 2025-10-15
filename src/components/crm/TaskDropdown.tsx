@@ -25,13 +25,24 @@ import {
 } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Loader2, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+
+interface Task {
+  id: string;
+  title: string;
+  description?: string | null;
+  task_type: string;
+  priority: string;
+  due_date?: string | null;
+}
 
 interface TaskDropdownProps {
   customerId?: string;
   quoteId?: string;
+  task?: Task;
+  mode?: 'create' | 'edit';
   onTaskCreated?: () => void;
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
@@ -41,6 +52,8 @@ interface TaskDropdownProps {
 export function TaskDropdown({
   customerId,
   quoteId,
+  task,
+  mode = 'create',
   onTaskCreated,
   variant = 'default',
   size = 'default',
@@ -48,11 +61,13 @@ export function TaskDropdown({
 }: TaskDropdownProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [taskType, setTaskType] = useState<string>('follow_up');
-  const [priority, setPriority] = useState<string>('medium');
-  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+  const [title, setTitle] = useState(task?.title || '');
+  const [description, setDescription] = useState(task?.description || '');
+  const [taskType, setTaskType] = useState<string>(task?.task_type || 'follow_up');
+  const [priority, setPriority] = useState<string>(task?.priority || 'medium');
+  const [dueDate, setDueDate] = useState<Date | undefined>(
+    task?.due_date ? new Date(task.due_date) : undefined
+  );
   const [showCalendar, setShowCalendar] = useState(false);
   const { toast } = useToast();
 
@@ -64,7 +79,7 @@ export function TaskDropdown({
     setDueDate(undefined);
   };
 
-  const handleCreateTask = async () => {
+  const handleSaveTask = async () => {
     if (!title.trim()) {
       toast({
         title: 'Error',
@@ -77,40 +92,62 @@ export function TaskDropdown({
     setLoading(true);
 
     try {
-      const { data: contractorId, error: contractorError } = await supabase.rpc(
-        'get_current_contractor_id'
-      );
+      if (mode === 'edit' && task) {
+        // Update existing task
+        const { error } = await supabase
+          .from('tasks')
+          .update({
+            title: title.trim(),
+            description: description.trim() || null,
+            task_type: taskType,
+            priority: priority,
+            due_date: dueDate?.toISOString() || null,
+          })
+          .eq('id', task.id);
 
-      if (contractorError) throw contractorError;
-      if (!contractorId) throw new Error('Contractor not found');
+        if (error) throw error;
 
-      const { error } = await supabase.from('tasks').insert({
-        contractor_id: contractorId,
-        customer_id: customerId || null,
-        quote_id: quoteId || null,
-        title: title.trim(),
-        description: description.trim() || null,
-        task_type: taskType,
-        priority: priority,
-        status: 'pending',
-        due_date: dueDate?.toISOString() || null,
-      });
+        toast({
+          title: 'Success',
+          description: 'Task updated successfully',
+        });
+      } else {
+        // Create new task
+        const { data: contractorId, error: contractorError } = await supabase.rpc(
+          'get_current_contractor_id'
+        );
 
-      if (error) throw error;
+        if (contractorError) throw contractorError;
+        if (!contractorId) throw new Error('Contractor not found');
 
-      toast({
-        title: 'Success',
-        description: 'Task created successfully',
-      });
+        const { error } = await supabase.from('tasks').insert({
+          contractor_id: contractorId,
+          customer_id: customerId || null,
+          quote_id: quoteId || null,
+          title: title.trim(),
+          description: description.trim() || null,
+          task_type: taskType,
+          priority: priority,
+          status: 'pending',
+          due_date: dueDate?.toISOString() || null,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: 'Success',
+          description: 'Task created successfully',
+        });
+      }
 
       resetForm();
       setOpen(false);
       onTaskCreated?.();
     } catch (error: any) {
-      console.error('Error creating task:', error);
+      console.error('Error saving task:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create task',
+        description: error.message || `Failed to ${mode} task`,
         variant: 'destructive',
       });
     } finally {
@@ -122,13 +159,19 @@ export function TaskDropdown({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant={variant} size={size} className={className}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Task
+          {mode === 'edit' ? (
+            <Pencil className="h-4 w-4" />
+          ) : (
+            <>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Task
+            </>
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Task</DialogTitle>
+          <DialogTitle>{mode === 'edit' ? 'Edit Task' : 'Create New Task'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -232,17 +275,17 @@ export function TaskDropdown({
           {/* Actions */}
           <div className="flex gap-2 pt-2">
             <Button
-              onClick={handleCreateTask}
+              onClick={handleSaveTask}
               disabled={loading}
               className="flex-1"
             >
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
+                  {mode === 'edit' ? 'Updating...' : 'Creating...'}
                 </>
               ) : (
-                'Create Task'
+                mode === 'edit' ? 'Update Task' : 'Create Task'
               )}
             </Button>
             <Button

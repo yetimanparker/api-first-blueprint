@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Phone, Mail, Users, MapPin, Clock, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Phone, Mail, Users, MapPin, Clock, CheckCircle, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { TaskDropdown } from "./TaskDropdown";
 
 interface Task {
   id: string;
@@ -163,6 +165,15 @@ export default function QuoteTasksSection({ quoteId }: QuoteTasksSectionProps) {
                     {isOverdue && (
                       <Badge variant="destructive">Overdue</Badge>
                     )}
+                    <TaskDropdown
+                      task={task}
+                      mode="edit"
+                      quoteId={quoteId}
+                      onTaskCreated={fetchTasks}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8"
+                    />
                   </div>
                 </div>
                 

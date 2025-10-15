@@ -6,10 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Calendar, Phone, Mail, Users, MapPin, Clock, CheckCircle, FileText } from "lucide-react";
+import { Plus, Calendar, Phone, Mail, Users, MapPin, Clock, CheckCircle, FileText, Pencil } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { TaskDropdown } from "./TaskDropdown";
 
 interface Task {
   id: string;
@@ -330,6 +331,15 @@ export default function CustomerTasksSection({ customerId }: CustomerTasksSectio
                         {isOverdue && (
                           <Badge variant="destructive">Overdue</Badge>
                         )}
+                        <TaskDropdown
+                          task={task}
+                          mode="edit"
+                          customerId={customerId}
+                          onTaskCreated={fetchTasks}
+                          variant="ghost"
+                          size="sm"
+                          className="h-8"
+                        />
                       </div>
                     </div>
                     
