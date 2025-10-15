@@ -290,20 +290,20 @@ export default function Products() {
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-4 sm:h-16 gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/dashboard")}
-                className="mr-4"
+                className="self-start sm:mr-4"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                Back
               </Button>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">Product Management</h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-lg sm:text-xl font-semibold text-foreground">Product Management</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Manage products, settings, and categories
                 </p>
               </div>
@@ -312,38 +312,38 @@ export default function Products() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="products" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="products" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Products
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <Tabs defaultValue="products" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto gap-1">
+            <TabsTrigger value="products" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+              <Package className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Products</span>
             </TabsTrigger>
-            <TabsTrigger value="bulk-pricing" className="flex items-center gap-2">
-              <Upload className="h-4 w-4" />
-              Bulk Pricing
+            <TabsTrigger value="bulk-pricing" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+              <Upload className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Bulk Pricing</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Settings
+            <TabsTrigger value="settings" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+              <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Settings</span>
             </TabsTrigger>
-            <TabsTrigger value="categories" className="flex items-center gap-2">
-              <Tag className="h-4 w-4" />
-              Categories
+            <TabsTrigger value="categories" className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+              <Tag className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Categories</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="products" className="space-y-6">
-            <div className="flex items-center justify-between">
+          <TabsContent value="products" className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold">Products</h2>
-                <p className="text-muted-foreground">
+                <h2 className="text-xl sm:text-2xl font-bold">Products</h2>
+                <p className="text-sm text-muted-foreground">
                   {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
                 </p>
               </div>
               <Dialog open={!!editingProduct} onOpenChange={(open) => !open && setEditingProduct(null)}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => setEditingProduct({})}>
+                  <Button onClick={() => setEditingProduct({})} className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Product
                   </Button>
@@ -402,10 +402,10 @@ export default function Products() {
                 {/* Filters */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Filter Products</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">Filter Products</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                         <Input
@@ -447,83 +447,84 @@ export default function Products() {
                 {/* Products Table */}
                 <Card>
                   <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead 
-                            className="cursor-pointer select-none hover:bg-muted/50 transition-colors"
-                            onClick={() => handleSort('name')}
-                          >
-                            <div className="flex items-center gap-2">
-                              Product
-                              {sortField === 'name' ? (
-                                sortDirection === 'asc' ? (
-                                  <ChevronUp className="h-4 w-4" />
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead 
+                              className="cursor-pointer select-none hover:bg-muted/50 transition-colors whitespace-nowrap"
+                              onClick={() => handleSort('name')}
+                            >
+                              <div className="flex items-center gap-2">
+                                Product
+                                {sortField === 'name' ? (
+                                  sortDirection === 'asc' ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )
                                 ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )
-                              ) : (
-                                <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                              )}
-                            </div>
-                          </TableHead>
-                          <TableHead 
-                            className="cursor-pointer select-none hover:bg-muted/50 transition-colors"
-                            onClick={() => handleSort('category')}
-                          >
-                            <div className="flex items-center gap-2">
-                              Category
-                              {sortField === 'category' ? (
-                                sortDirection === 'asc' ? (
-                                  <ChevronUp className="h-4 w-4" />
+                                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                                )}
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer select-none hover:bg-muted/50 transition-colors whitespace-nowrap"
+                              onClick={() => handleSort('category')}
+                            >
+                              <div className="flex items-center gap-2">
+                                Category
+                                {sortField === 'category' ? (
+                                  sortDirection === 'asc' ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )
                                 ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )
-                              ) : (
-                                <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                              )}
-                            </div>
-                          </TableHead>
-                          <TableHead 
-                            className="cursor-pointer select-none hover:bg-muted/50 transition-colors"
-                            onClick={() => handleSort('price')}
-                          >
-                            <div className="flex items-center gap-2">
-                              Price
-                              {sortField === 'price' ? (
-                                sortDirection === 'asc' ? (
-                                  <ChevronUp className="h-4 w-4" />
+                                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                                )}
+                              </div>
+                            </TableHead>
+                            <TableHead 
+                              className="cursor-pointer select-none hover:bg-muted/50 transition-colors whitespace-nowrap"
+                              onClick={() => handleSort('price')}
+                            >
+                              <div className="flex items-center gap-2">
+                                Price
+                                {sortField === 'price' ? (
+                                  sortDirection === 'asc' ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )
                                 ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )
-                              ) : (
-                                <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                              )}
-                            </div>
-                          </TableHead>
-                          <TableHead>Min Order</TableHead>
-                          <TableHead 
-                            className="cursor-pointer select-none hover:bg-muted/50 transition-colors"
-                            onClick={() => handleSort('status')}
-                          >
-                            <div className="flex items-center gap-2">
-                              Status
-                              {sortField === 'status' ? (
-                                sortDirection === 'asc' ? (
-                                  <ChevronUp className="h-4 w-4" />
+                                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                                )}
+                              </div>
+                            </TableHead>
+                            <TableHead className="whitespace-nowrap">Min Order</TableHead>
+                            <TableHead 
+                              className="cursor-pointer select-none hover:bg-muted/50 transition-colors whitespace-nowrap"
+                              onClick={() => handleSort('status')}
+                            >
+                              <div className="flex items-center gap-2">
+                                Status
+                                {sortField === 'status' ? (
+                                  sortDirection === 'asc' ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )
                                 ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )
-                              ) : (
-                                <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                              )}
-                            </div>
-                          </TableHead>
-                          <TableHead>Variations</TableHead>
-                          <TableHead>Add-ons</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                                )}
+                              </div>
+                            </TableHead>
+                            <TableHead className="whitespace-nowrap">Variations</TableHead>
+                            <TableHead className="whitespace-nowrap">Add-ons</TableHead>
+                            <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
                       <TableBody>
                         {filteredProducts.map((product) => (
                           <TableRow key={product.id}>
@@ -669,6 +670,7 @@ export default function Products() {
                         ))}
                       </TableBody>
                     </Table>
+                    </div>
                   </CardContent>
                 </Card>
               </>

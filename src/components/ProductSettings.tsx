@@ -161,7 +161,7 @@ export function ProductSettings() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Default Settings */}
             <div className="space-y-4">
-              <h3 className="font-semibold">Default Product Settings</h3>
+              <h3 className="font-semibold text-base sm:text-lg">Default Product Settings</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
@@ -184,7 +184,7 @@ export function ProductSettings() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormDescription>
+                      <FormDescription className="text-sm">
                         Default unit type for new products
                       </FormDescription>
                       <FormMessage />
@@ -198,22 +198,23 @@ export function ProductSettings() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Default Product Color</FormLabel>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <FormControl>
                           <Input
                             type="color"
                             {...field}
-                            className="w-20"
+                            className="w-full sm:w-20 h-10"
                           />
                         </FormControl>
                         <FormControl>
                           <Input
                             {...field}
                             placeholder="#3B82F6"
+                            className="flex-1"
                           />
                         </FormControl>
                       </div>
-                      <FormDescription>
+                      <FormDescription className="text-sm">
                         Default color for new products
                       </FormDescription>
                       <FormMessage />
@@ -222,15 +223,15 @@ export function ProductSettings() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-4">
                 <FormField
                   control={form.control}
                   name="auto_activate_products"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
+                    <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-lg border p-4 gap-2">
+                      <div className="space-y-0.5 flex-1">
                         <FormLabel className="text-base">Auto-activate Products</FormLabel>
-                        <FormDescription>
+                        <FormDescription className="text-sm">
                           Automatically activate new products when created
                         </FormDescription>
                       </div>
@@ -248,10 +249,10 @@ export function ProductSettings() {
                   control={form.control}
                   name="require_product_photos"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
+                    <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-lg border p-4 gap-2">
+                      <div className="space-y-0.5 flex-1">
                         <FormLabel className="text-base">Require Product Photos</FormLabel>
-                        <FormDescription>
+                        <FormDescription className="text-sm">
                           Require photos when creating products
                         </FormDescription>
                       </div>
@@ -269,7 +270,7 @@ export function ProductSettings() {
 
             {/* Pricing Settings */}
             <div className="space-y-4">
-              <h3 className="font-semibold">Pricing Settings</h3>
+              <h3 className="font-semibold text-base sm:text-lg">Pricing Settings</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
@@ -288,7 +289,7 @@ export function ProductSettings() {
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                       </FormControl>
-                      <FormDescription>
+                      <FormDescription className="text-sm">
                         Default tax rate applied to all quotes
                       </FormDescription>
                       <FormMessage />
@@ -312,7 +313,7 @@ export function ProductSettings() {
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                       </FormControl>
-                      <FormDescription>
+                      <FormDescription className="text-sm">
                         Default markup applied to all products
                       </FormDescription>
                       <FormMessage />
@@ -342,7 +343,7 @@ export function ProductSettings() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormDescription>
+                      <FormDescription className="text-sm">
                         Currency symbol used in quotes
                       </FormDescription>
                       <FormMessage />
@@ -365,7 +366,7 @@ export function ProductSettings() {
                           onChange={(e) => field.onChange(parseInt(e.target.value) || 2)}
                         />
                       </FormControl>
-                      <FormDescription>
+                      <FormDescription className="text-sm">
                         Number of decimal places for prices
                       </FormDescription>
                       <FormMessage />
@@ -375,7 +376,7 @@ export function ProductSettings() {
               </div>
             </div>
 
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving} className="w-full sm:w-auto">
               {saving ? "Saving..." : "Save Product Settings"}
             </Button>
           </form>
