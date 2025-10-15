@@ -236,7 +236,7 @@ const Widget = () => {
     // Fetch product details to display in UI
     const { data: productData } = await supabase
       .from('products')
-      .select('id, name, description, unit_type, unit_price, min_order_quantity, photo_url')
+      .select('id, name, description, unit_type, unit_price, min_order_quantity, photo_url, has_fixed_dimensions, default_width, default_length, dimension_unit, allow_dimension_editing')
       .eq('id', productId)
       .single();
     
