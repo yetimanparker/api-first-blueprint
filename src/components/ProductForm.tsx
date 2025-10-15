@@ -17,6 +17,7 @@ import { displayPrice, calculateFinalPrice, PricingTier, validateTiers } from "@
 import { Plus, Trash2, GripVertical, Upload, Image } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useContractorId } from "@/hooks/useContractorId";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
@@ -94,10 +95,13 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const [loading, setLoading] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [showNewCategoryDialog, setShowNewCategoryDialog] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryColor, setNewCategoryColor] = useState("#3B82F6");
   const { toast } = useToast();
   const { settings: globalSettings } = useGlobalSettings();
   const { contractorId } = useContractorId();
-  const { categories, getSubcategoriesForCategory } = useProductCategories(contractorId);
+  const { categories, getSubcategoriesForCategory, refetch: refetchCategories } = useProductCategories(contractorId);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -438,6 +442,59 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
     }
   };
 
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast({
+        title: "Error",
+        description: "Category name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: contractorData, error: contractorError } = await supabase
+        .from("contractors")
+        .select("id")
+        .maybeSingle();
+
+      if (contractorError) throw contractorError;
+      if (!contractorData) throw new Error("Contractor profile not found");
+
+      const { error } = await supabase
+        .from("product_categories")
+        .insert({
+          contractor_id: contractorData.id,
+          name: newCategoryName.trim(),
+          color_hex: newCategoryColor,
+          display_order: categories.length,
+          is_active: true,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Category created successfully",
+      });
+
+      // Refresh categories and select the new one
+      await refetchCategories();
+      form.setValue("category", newCategoryName.trim());
+      
+      // Reset and close dialog
+      setNewCategoryName("");
+      setNewCategoryColor("#3B82F6");
+      setShowNewCategoryDialog(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const unitTypeOptions = [
     { value: "sq_ft", label: "Square Feet" },
     { value: "linear_ft", label: "Linear Feet" },
@@ -501,7 +558,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -513,6 +570,17 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                         {category.name}
                       </SelectItem>
                     ))}
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-primary"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowNewCategoryDialog(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add New Category
+                    </Button>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -1132,6 +1200,57 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           </Button>
         </div>
       </form>
+
+      {/* New Category Dialog */}
+      <Dialog open={showNewCategoryDialog} onOpenChange={setShowNewCategoryDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Category</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="new-category-name">Category Name</Label>
+              <Input
+                id="new-category-name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="e.g., Landscaping"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCreateCategory();
+                  }
+                }}
+              />
+            </div>
+            <div>
+              <Label htmlFor="new-category-color">Color</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="new-category-color"
+                  type="color"
+                  value={newCategoryColor}
+                  onChange={(e) => setNewCategoryColor(e.target.value)}
+                  className="w-20"
+                />
+                <Input
+                  value={newCategoryColor}
+                  onChange={(e) => setNewCategoryColor(e.target.value)}
+                  placeholder="#3B82F6"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewCategoryDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateCategory}>
+              Create Category
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Form>
   );
 }
