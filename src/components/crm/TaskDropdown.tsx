@@ -125,7 +125,7 @@ export function TaskDropdown({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-80 p-4 bg-background border border-border shadow-lg z-[100]"
+        className="w-80 max-h-[80vh] overflow-y-auto p-4 bg-background border border-border shadow-lg z-[100]"
         align="end"
         sideOffset={5}
       >
