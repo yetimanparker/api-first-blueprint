@@ -161,7 +161,6 @@ export default function InternalQuoteBuilder() {
 
   const handleMeasurementComplete = (measurement: MeasurementData) => {
     setCurrentMeasurement(measurement);
-    setCurrentStep('product-configuration');
   };
 
   const handleAddToQuote = async (item: QuoteItem) => {
