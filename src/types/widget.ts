@@ -23,6 +23,14 @@ export interface MeasurementData {
   addons?: ProductAddon[];
   depth?: number; // Depth in inches for volume-based products (sq_yd)
   mapColor?: string; // Color assigned to this measurement on the map
+  isDimensional?: boolean; // Whether this is a predefined dimensional product
+  dimensions?: {
+    width: number;
+    length: number;
+    unit: string;
+  };
+  rotation?: number; // Rotation angle in degrees (0-360)
+  centerPoint?: {lat: number, lng: number}; // Center coordinates for dimensional products
 }
 
 export interface QuoteItem {

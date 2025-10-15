@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobalSettings, useProductCategories } from "@/hooks/useGlobalSettings";
 import { displayPrice, calculateFinalPrice, PricingTier, validateTiers } from "@/lib/priceUtils";
-import { Plus, Trash2, GripVertical, Upload, Image } from "lucide-react";
+import { Plus, Trash2, GripVertical, Upload, Image, Ruler } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useContractorId } from "@/hooks/useContractorId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -32,6 +32,11 @@ const productSchema = z.object({
   photo_url: z.string().optional(),
   category: z.string().min(1, "Category is required"),
   subcategory: z.string().optional(),
+  has_fixed_dimensions: z.boolean(),
+  default_width: z.number().optional(),
+  default_length: z.number().optional(),
+  dimension_unit: z.string().optional(),
+  allow_dimension_editing: z.boolean(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -78,6 +83,11 @@ interface Product {
   product_addons?: ProductAddon[];
   product_variations?: ProductVariation[];
   pricing_tiers?: PricingTier[];
+  has_fixed_dimensions?: boolean;
+  default_width?: number | null;
+  default_length?: number | null;
+  dimension_unit?: string | null;
+  allow_dimension_editing?: boolean;
 }
 
 interface ProductFormProps {
@@ -118,6 +128,11 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       photo_url: product?.photo_url || "",
       category: product?.category || "",
       subcategory: product?.subcategory || "",
+      has_fixed_dimensions: product?.has_fixed_dimensions ?? false,
+      default_width: product?.default_width || undefined,
+      default_length: product?.default_length || undefined,
+      dimension_unit: product?.dimension_unit || "ft",
+      allow_dimension_editing: product?.allow_dimension_editing ?? false,
     },
   });
 
@@ -301,6 +316,11 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         category: data.category,
         subcategory: data.subcategory || null,
         contractor_id: contractorData.id,
+        has_fixed_dimensions: data.has_fixed_dimensions,
+        default_width: data.has_fixed_dimensions && data.default_width ? Number(data.default_width) : null,
+        default_length: data.has_fixed_dimensions && data.default_length ? Number(data.default_length) : null,
+        dimension_unit: data.has_fixed_dimensions ? (data.dimension_unit || 'ft') : null,
+        allow_dimension_editing: data.has_fixed_dimensions ? data.allow_dimension_editing : false,
       };
 
       let productId = product?.id;
@@ -840,6 +860,116 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             )}
           />
         </div>
+
+        {/* Dimensional Product Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Ruler className="h-5 w-5" />
+              Predefined Dimensions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="has_fixed_dimensions"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">This product has fixed dimensions</FormLabel>
+                    <FormDescription>
+                      Enable for products like pickleball courts, pools, sheds, etc. that have standard sizes
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {form.watch("has_fixed_dimensions") && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                  <FormField
+                    control={form.control}
+                    name="default_width"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Default Width (feet)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            step="0.1" 
+                            placeholder="e.g., 20"
+                            {...field}
+                            value={field.value || ""}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="default_length"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Default Length (feet)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            step="0.1" 
+                            placeholder="e.g., 44"
+                            {...field}
+                            value={field.value || ""}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="allow_dimension_editing"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Allow customers to adjust dimensions</FormLabel>
+                        <FormDescription>
+                          If enabled, customers can modify width and length in the widget
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
+                    Example: Standard Pickleball Court
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    Width: 20ft × Length: 44ft = 880 sq ft
+                  </p>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Product Photo */}
         <Card>

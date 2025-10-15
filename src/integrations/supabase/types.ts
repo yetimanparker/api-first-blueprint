@@ -543,12 +543,17 @@ export type Database = {
       }
       products: {
         Row: {
+          allow_dimension_editing: boolean | null
           category: string | null
           color_hex: string
           contractor_id: string
           created_at: string
+          default_length: number | null
+          default_width: number | null
           description: string | null
+          dimension_unit: string | null
           display_order: number | null
+          has_fixed_dimensions: boolean
           id: string
           is_active: boolean
           min_order_quantity: number
@@ -562,12 +567,17 @@ export type Database = {
           use_tiered_pricing: boolean
         }
         Insert: {
+          allow_dimension_editing?: boolean | null
           category?: string | null
           color_hex?: string
           contractor_id: string
           created_at?: string
+          default_length?: number | null
+          default_width?: number | null
           description?: string | null
+          dimension_unit?: string | null
           display_order?: number | null
+          has_fixed_dimensions?: boolean
           id?: string
           is_active?: boolean
           min_order_quantity?: number
@@ -581,12 +591,17 @@ export type Database = {
           use_tiered_pricing?: boolean
         }
         Update: {
+          allow_dimension_editing?: boolean | null
           category?: string | null
           color_hex?: string
           contractor_id?: string
           created_at?: string
+          default_length?: number | null
+          default_width?: number | null
           description?: string | null
+          dimension_unit?: string | null
           display_order?: number | null
+          has_fixed_dimensions?: boolean
           id?: string
           is_active?: boolean
           min_order_quantity?: number

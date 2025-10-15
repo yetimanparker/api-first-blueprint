@@ -39,6 +39,11 @@ interface Product {
   id: string;
   name: string;
   unit_type: string;
+  has_fixed_dimensions?: boolean;
+  default_width?: number;
+  default_length?: number;
+  dimension_unit?: string;
+  allow_dimension_editing?: boolean;
 }
 
 const MeasurementTools = ({ 
@@ -55,7 +60,7 @@ const MeasurementTools = ({
 }: MeasurementToolsProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [measurementType, setMeasurementType] = useState<'area' | 'linear' | 'point'>('area');
+  const [measurementType, setMeasurementType] = useState<'area' | 'linear' | 'point' | 'dimensional'>('area');
   const [mapMeasurement, setMapMeasurement] = useState<number | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentMeasurement, setCurrentMeasurement] = useState<MeasurementData | null>(null);
@@ -68,6 +73,13 @@ const MeasurementTools = ({
   const [pointLocations, setPointLocations] = useState<Array<{lat: number, lng: number}>>([]);
   const [pointMarkers, setPointMarkers] = useState<google.maps.Marker[]>([]);
   
+  // Dimensional product states
+  const [dimensionalRotation, setDimensionalRotation] = useState(0);
+  const [dimensionalCenter, setDimensionalCenter] = useState<{lat: number, lng: number} | null>(null);
+  const [rotationHandle, setRotationHandle] = useState<google.maps.Marker | null>(null);
+  const [dragHandle, setDragHandle] = useState<google.maps.Marker | null>(null);
+  const [isDimensionalPlaced, setIsDimensionalPlaced] = useState(false);
+  
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
@@ -76,7 +88,7 @@ const MeasurementTools = ({
   const headerRef = useRef<HTMLDivElement>(null);
   const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
   const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
-  const measurementTypeRef = useRef<'area' | 'linear' | 'point'>('area');
+  const measurementTypeRef = useRef<'area' | 'linear' | 'point' | 'dimensional'>('area');
   const isDrawingRef = useRef(false);
   const pointCountRef = useRef(0); // Track point count for reliable sequential numbering
   
@@ -162,6 +174,13 @@ const MeasurementTools = ({
     // Map state is now automatically preserved via listeners
   }, [measurementType]);
 
+  // Update dimensional shape when rotation or center changes
+  useEffect(() => {
+    if (isDimensionalPlaced && dimensionalCenter && product?.default_width && product?.default_length) {
+      // Update shape with new rotation/position
+    }
+  }, [dimensionalRotation, dimensionalCenter]);
+
   // Update isDrawing ref when state changes
   useEffect(() => {
     isDrawingRef.current = isDrawing;
@@ -197,12 +216,19 @@ const MeasurementTools = ({
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, unit_type')
+        .select('id, name, unit_type, has_fixed_dimensions, default_width, default_length, dimension_unit, allow_dimension_editing')
         .eq('id', productId)
         .single();
 
       if (error) throw error;
       setProduct(data);
+      
+      // Check if this is a dimensional product
+      if (data.has_fixed_dimensions && data.default_width && data.default_length) {
+        console.log('This is a DIMENSIONAL product:', data.name);
+        setMeasurementType('dimensional');
+        return;
+      }
       
       // Auto-select measurement type based on product unit type
       const unitType = data.unit_type.toLowerCase();
@@ -550,7 +576,11 @@ const MeasurementTools = ({
     // Add map click listener for point placement mode using refs
     google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
       console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current);
-      if (measurementTypeRef.current === 'point' && isDrawingRef.current && event.latLng) {
+      
+      if (measurementTypeRef.current === 'dimensional' && isDrawingRef.current && event.latLng) {
+        console.log('Placing dimensional product at:', event.latLng.lat(), event.latLng.lng());
+        placeDimensionalProduct(event.latLng);
+      } else if (measurementTypeRef.current === 'point' && isDrawingRef.current && event.latLng) {
         console.log('Adding point marker at:', event.latLng.lat(), event.latLng.lng());
         addPointMarker(event.latLng);
       }
@@ -625,6 +655,77 @@ const MeasurementTools = ({
     });
   };
 
+  const placeDimensionalProduct = (latLng: google.maps.LatLng) => {
+    if (!product || !product.default_width || !product.default_length || !mapRef.current) return;
+
+    const center = { lat: latLng.lat(), lng: latLng.lng() };
+    setDimensionalCenter(center);
+    setIsDimensionalPlaced(true);
+    setIsDrawing(false);
+
+    const width = product.default_width;
+    const length = product.default_length;
+    const area = Math.ceil(width * length);
+    
+    setMapMeasurement(area);
+    
+    // Import helper functions inline for now
+    const calculateRotatedRectangle = (
+      centerLat: number, centerLng: number, widthFeet: number, lengthFeet: number, rotationDeg: number
+    ) => {
+      const metersPerFoot = 0.3048;
+      const latPerMeter = 1 / 111320;
+      const lngPerMeter = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
+      
+      const halfWidth = (widthFeet * metersPerFoot / 2) * lngPerMeter;
+      const halfLength = (lengthFeet * metersPerFoot / 2) * latPerMeter;
+      
+      const corners = [
+        { x: -halfWidth, y: halfLength }, { x: halfWidth, y: halfLength },
+        { x: halfWidth, y: -halfLength }, { x: -halfWidth, y: -halfLength }
+      ];
+      
+      const angleRad = (rotationDeg * Math.PI) / 180;
+      return corners.map(c => ({
+        lat: centerLat + (c.x * Math.sin(angleRad) + c.y * Math.cos(angleRad)),
+        lng: centerLng + (c.x * Math.cos(angleRad) - c.y * Math.sin(angleRad))
+      }));
+    };
+
+    const updateDimensionalShape = () => {
+      if (currentShapeRef.current) currentShapeRef.current.setMap(null);
+      if (rotationHandle) rotationHandle.setMap(null);
+      if (dragHandle) dragHandle.setMap(null);
+
+      const corners = calculateRotatedRectangle(
+        dimensionalCenter?.lat || center.lat,
+        dimensionalCenter?.lng || center.lng,
+        width, length, dimensionalRotation
+      );
+
+      const color = getNextMeasurementColor();
+      const polygon = new google.maps.Polygon({
+        paths: corners, fillColor: color, fillOpacity: 0.3,
+        strokeColor: color, strokeWeight: 2, map: mapRef.current, zIndex: 1
+      });
+      currentShapeRef.current = polygon;
+
+      const drag = new google.maps.Marker({
+        position: dimensionalCenter || center, map: mapRef.current, draggable: true,
+        icon: { path: google.maps.SymbolPath.CIRCLE, fillColor: '#fff', fillOpacity: 1,
+          strokeColor: color, strokeWeight: 3, scale: 10 },
+        label: { text: '✥', color: color, fontSize: '16px', fontWeight: 'bold' }
+      });
+      setDragHandle(drag);
+
+      google.maps.event.addListener(drag, 'drag', (e: any) => {
+        setDimensionalCenter({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+      });
+    };
+
+    updateDimensionalShape();
+  };
+
   const updateMeasurementLabel = (
     shape: google.maps.Polygon | google.maps.Polyline,
     value: number,
@@ -681,6 +782,13 @@ const MeasurementTools = ({
     isDrawingRef.current = true; // Update ref immediately
 
     const nextColor = getNextMeasurementColor();
+    
+    if (measurementType === 'dimensional') {
+      // For dimensional mode, just enable map clicking for placement
+      drawingManagerRef.current.setDrawingMode(null);
+      console.log('Dimensional placement mode activated - click to place product');
+      return;
+    }
     
     if (measurementType === 'point') {
       // For point mode, just enable clicking (no drawing manager needed)
@@ -858,9 +966,9 @@ const MeasurementTools = ({
     const mapColor = MAP_COLORS[colorIndex];
 
     const measurement: MeasurementData = {
-      type: measurementType,
+      type: measurementType === 'dimensional' ? 'area' : measurementType,
       value: Math.ceil(value),
-      unit: measurementType === 'area' ? 'sq_ft' : measurementType === 'linear' ? 'linear_ft' : 'each',
+      unit: measurementType === 'area' || measurementType === 'dimensional' ? 'sq_ft' : measurementType === 'linear' ? 'linear_ft' : 'each',
       manualEntry: true,
       mapColor: mapColor
     };
@@ -925,9 +1033,9 @@ const MeasurementTools = ({
       const mapColor = MAP_COLORS[colorIndex];
 
       const measurement: MeasurementData = {
-        type: measurementType,
+        type: measurementType === 'dimensional' ? 'area' : measurementType,
         value: mapMeasurement,
-        unit: measurementType === 'area' ? 'sq_ft' : 'linear_ft',
+        unit: measurementType === 'area' || measurementType === 'dimensional' ? 'sq_ft' : 'linear_ft',
         coordinates: coordinates,
         manualEntry: false,
         mapColor: mapColor
