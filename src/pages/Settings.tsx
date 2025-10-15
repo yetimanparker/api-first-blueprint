@@ -42,7 +42,6 @@ const settingsSchema = z.object({
   price_range_display_format: z.enum(['percentage', 'dollar_amounts']),
   currency_symbol: z.string().min(1),
   decimal_precision: z.number().min(0).max(4),
-  default_product_color: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color"),
   default_unit_type: z.enum(["sq_ft", "linear_ft", "sq_m", "linear_m", "each", "hour"]),
   global_markup_percentage: z.number().min(0).max(100),
   global_tax_rate: z.number().min(0).max(100),
@@ -113,7 +112,6 @@ const Settings = () => {
       price_range_display_format: 'percentage',
       currency_symbol: "$",
       decimal_precision: 2,
-      default_product_color: "#3B82F6",
       default_unit_type: "sq_ft",
       global_markup_percentage: 0,
       global_tax_rate: 0,
@@ -188,7 +186,6 @@ const Settings = () => {
             price_range_display_format: (settings.price_range_display_format as 'percentage' | 'dollar_amounts') || 'percentage',
             currency_symbol: settings.currency_symbol || "$",
             decimal_precision: settings.decimal_precision || 2,
-            default_product_color: settings.default_product_color || "#3B82F6",
             default_unit_type: (settings.default_unit_type as "sq_ft" | "linear_ft" | "sq_m" | "linear_m" | "each" | "hour") || "sq_ft",
             global_markup_percentage: settings.global_markup_percentage || 0,
             global_tax_rate: settings.global_tax_rate || 0,
@@ -295,7 +292,6 @@ const Settings = () => {
         price_range_display_format: data.price_range_display_format,
         currency_symbol: data.currency_symbol,
         decimal_precision: data.decimal_precision,
-        default_product_color: data.default_product_color,
         default_unit_type: data.default_unit_type,
         global_markup_percentage: data.global_markup_percentage,
         global_tax_rate: data.global_tax_rate,
@@ -903,19 +899,6 @@ const Settings = () => {
                               <FormDescription>
                                 Number of decimal places for prices
                               </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={settingsForm.control}
-                          name="default_product_color"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Default Product Color</FormLabel>
-                              <FormControl>
-                                <Input type="color" {...field} />
-                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
