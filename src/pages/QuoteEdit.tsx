@@ -19,6 +19,7 @@ import MeasurementMap from "@/components/quote/MeasurementMap";
 import MeasurementDetails from "@/components/quote/MeasurementDetails";
 import type { MeasurementData } from "@/types/widget";
 import { TaskDropdown } from "@/components/crm/TaskDropdown";
+import QuoteTasksSection from "@/components/crm/QuoteTasksSection";
 
 interface Quote {
   id: string;
@@ -973,6 +974,9 @@ export default function QuoteEdit() {
             )}
           </CardContent>
         </Card>
+
+        {/* Tasks Section */}
+        <QuoteTasksSection quoteId={quote.id} />
 
         {/* Edit Item Dialog */}
         <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>

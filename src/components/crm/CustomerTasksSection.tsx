@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Calendar, Phone, Mail, Users, MapPin, Clock, CheckCircle } from "lucide-react";
+import { Plus, Calendar, Phone, Mail, Users, MapPin, Clock, CheckCircle, FileText } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -20,6 +21,10 @@ interface Task {
   due_date?: string;
   completed_at?: string;
   created_at: string;
+  quote_id?: string;
+  quote?: {
+    quote_number: string;
+  } | null;
 }
 
 interface CustomerTasksSectionProps {
@@ -61,14 +66,36 @@ export default function CustomerTasksSection({ customerId }: CustomerTasksSectio
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // First get all tasks for the customer
+      const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
         .select('*')
         .eq('customer_id', customerId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setTasks(data || []);
+      if (tasksError) throw tasksError;
+
+      // For tasks with quote_id, fetch the quote details
+      const tasksWithQuotes = await Promise.all(
+        (tasksData || []).map(async (task) => {
+          if (task.quote_id) {
+            const { data: quoteData } = await supabase
+              .from('quotes')
+              .select('quote_number')
+              .eq('id', task.quote_id)
+              .single();
+            
+            return {
+              ...task,
+              quote: quoteData
+            };
+          }
+          return task;
+        })
+      );
+
+      setTasks(tasksWithQuotes);
     } catch (error) {
       console.error('Error fetching tasks:', error);
       toast({
@@ -313,12 +340,21 @@ export default function CustomerTasksSection({ customerId }: CustomerTasksSectio
                     )}
                     
                     <div className="flex items-center justify-between text-sm text-muted-foreground ml-8">
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 flex-wrap">
                         <span>Created: {new Date(task.created_at).toLocaleDateString()}</span>
                         {task.due_date && (
                           <span className={isOverdue ? 'text-red-600' : ''}>
                             Due: {new Date(task.due_date).toLocaleDateString()}
                           </span>
+                        )}
+                        {task.quote_id && task.quote && (
+                          <Link 
+                            to={`/quote/edit/${task.quote_id}`}
+                            className="flex items-center gap-1 text-primary hover:underline"
+                          >
+                            <FileText className="h-3 w-3" />
+                            Quote: {task.quote.quote_number}
+                          </Link>
                         )}
                       </div>
                       {task.completed_at && (
