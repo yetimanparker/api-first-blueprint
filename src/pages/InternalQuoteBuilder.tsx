@@ -201,10 +201,8 @@ export default function InternalQuoteBuilder() {
         description: "Quote item has been added successfully",
       });
 
-      // Reset to product selection for next item
-      setCurrentProductId(undefined);
-      setCurrentMeasurement(undefined);
-      setCurrentStep('product-selection');
+      // Navigate back to quote edit page
+      navigate(`/quote/edit/${quoteId}`);
 
     } catch (error) {
       console.error('Error adding quote item:', error);
