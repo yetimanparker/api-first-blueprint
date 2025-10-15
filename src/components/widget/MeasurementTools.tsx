@@ -585,14 +585,21 @@ const MeasurementTools = ({
       activeDrawingModeRef.current = null;
     });
 
-    // Add map click listener for point placement mode using refs
+    // Add map click listener for point and dimensional placement modes using refs
     google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
-      console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current);
+      console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current, 'drawingMode:', drawingManager.getDrawingMode());
       
-      if (measurementTypeRef.current === 'dimensional' && isDrawingRef.current && event.latLng) {
+      // Only handle clicks if we're in drawing mode
+      if (!isDrawingRef.current || !event.latLng) {
+        return;
+      }
+      
+      if (measurementTypeRef.current === 'dimensional') {
         console.log('Placing dimensional product at:', event.latLng.lat(), event.latLng.lng());
+        // Prevent any drawing manager interaction
+        event.stop?.();
         placeDimensionalProduct(event.latLng);
-      } else if (measurementTypeRef.current === 'point' && isDrawingRef.current && event.latLng) {
+      } else if (measurementTypeRef.current === 'point') {
         console.log('Adding point marker at:', event.latLng.lat(), event.latLng.lng());
         addPointMarker(event.latLng);
       }
@@ -878,8 +885,12 @@ const MeasurementTools = ({
     const nextColor = getNextMeasurementColor();
     
     if (measurementType === 'dimensional') {
-      // For dimensional mode, just enable map clicking for placement
+      // For dimensional mode, explicitly disable ALL drawing modes
       drawingManagerRef.current.setDrawingMode(null);
+      drawingManagerRef.current.setOptions({
+        drawingControl: false,
+        drawingMode: null,
+      });
       console.log('Dimensional placement mode activated - click to place product');
       return;
     }
