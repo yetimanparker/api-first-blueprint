@@ -149,10 +149,22 @@ const MeasurementTools = ({
     fetchProduct();
   }, [productId]);
 
+  // Initialize map when container is ready
   useEffect(() => {
-    if (apiKey && !mapRef.current) {
-      initializeMap();
-    }
+    if (!apiKey || mapRef.current) return;
+    
+    // Check if container exists, if not, retry after a short delay
+    const checkAndInitialize = () => {
+      if (mapContainerRef.current) {
+        console.log('✅ Map container found, initializing map');
+        initializeMap();
+      } else {
+        console.log('⏳ Map container not ready, retrying...');
+        setTimeout(checkAndInitialize, 100);
+      }
+    };
+    
+    checkAndInitialize();
   }, [apiKey]);
 
   // Auto-start drawing when map and drawing manager are ready
