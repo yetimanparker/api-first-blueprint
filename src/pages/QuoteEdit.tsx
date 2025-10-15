@@ -379,14 +379,6 @@ export default function QuoteEdit() {
               <span className="sm:hidden">Back</span>
             </Button>
             <div className="flex items-center gap-2">
-              <TaskDropdown 
-                customerId={quote.customer_id}
-                quoteId={quote.id}
-                onTaskCreated={fetchQuoteData}
-                variant="outline"
-                size="sm"
-                className="hidden sm:flex"
-              />
               {quote.access_token && (
                 <Button variant="outline" size="sm" onClick={copyQuoteLink} className="hidden sm:flex">
                   <Copy className="h-4 w-4 mr-2" />
@@ -469,18 +461,28 @@ export default function QuoteEdit() {
         {/* Tasks Section - Collapsible */}
         <Collapsible open={tasksOpen} onOpenChange={setTasksOpen} className="mb-6">
           <Card>
-            <CollapsibleTrigger className="w-full">
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                <div className="flex items-center justify-between">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
                   <CardTitle className="text-base">Tasks for this Quote</CardTitle>
                   <ChevronDown 
                     className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${
                       tasksOpen ? 'transform rotate-180' : ''
                     }`} 
                   />
-                </div>
-              </CardHeader>
-            </CollapsibleTrigger>
+                </CollapsibleTrigger>
+                <TaskDropdown 
+                  customerId={quote.customer_id}
+                  quoteId={quote.id}
+                  onTaskCreated={() => {
+                    fetchQuoteData();
+                    setTasksOpen(true);
+                  }}
+                  variant="outline"
+                  size="sm"
+                />
+              </div>
+            </CardHeader>
             <CollapsibleContent>
               <CardContent className="pt-0">
                 <QuoteTasksSection quoteId={quote.id} />
