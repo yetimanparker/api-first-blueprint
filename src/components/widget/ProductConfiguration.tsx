@@ -262,6 +262,13 @@ const ProductConfiguration = ({
 
     // Create measurement with variations and addons nested inside
     const depthValue = parseFloat(depth);
+    
+    // Calculate the actual quantity (convert to cubic yards if depth is provided)
+    let actualQuantity = measurement.value;
+    if (depthValue && !isNaN(depthValue) && isVolumeBased && measurement.type === 'area') {
+      actualQuantity = (measurement.value * depthValue) / 324;
+    }
+    
     const measurementWithOptions: MeasurementData = {
       ...measurement,
       depth: (depthValue && !isNaN(depthValue) && isVolumeBased) ? depthValue : undefined,
@@ -275,7 +282,7 @@ const ProductConfiguration = ({
       productName: product.name,
       measurement: measurementWithOptions,
       unitPrice: product.unit_price,
-      quantity: measurement.value,
+      quantity: actualQuantity,
       lineTotal: calculateItemPrice(),
       notes: notes || undefined
     };

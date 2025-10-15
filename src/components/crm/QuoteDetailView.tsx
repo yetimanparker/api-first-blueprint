@@ -278,7 +278,8 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
         </CardHeader>
         <CardContent className="space-y-4">
           {quoteItems.map((item) => {
-            const basePrice = item.measurement_data?.value * item.unit_price || item.line_total;
+            // Use actual quantity from database (already converted for cubic yards etc.)
+            const basePrice = item.quantity * item.unit_price;
             const variations = item.measurement_data?.variations || [];
             const addons = item.measurement_data?.addons || [];
             
@@ -291,11 +292,14 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <p className="font-semibold">{item.products.name}</p>
-                    {item.measurement_data?.value && (
-                      <p className="text-sm text-muted-foreground">
-                        {item.measurement_data.value.toLocaleString()} {item.products.unit_type?.replace('_', ' ')}
-                      </p>
-                    )}
+                    <p className="text-sm text-muted-foreground">
+                      {item.quantity.toLocaleString()} {item.products.unit_type?.replace('_', ' ')}
+                      {item.measurement_data?.depth && item.products.unit_type === 'cubic_yard' && (
+                        <span className="text-xs ml-1">
+                          ({item.measurement_data.value.toLocaleString()} sq ft × {item.measurement_data.depth}" depth)
+                        </span>
+                      )}
+                    </p>
                   </div>
                   <div className="text-right">
                     {shouldShowPriceRanges ? (
@@ -353,7 +357,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                       {v.name}: +{formatExactPrice(
                         v.adjustmentType === 'percentage' 
                           ? basePrice * (v.priceAdjustment / 100)
-                          : v.priceAdjustment * (item.measurement_data?.value || 1),
+                          : v.priceAdjustment * item.quantity,
                         { currency_symbol: settings.currency_symbol, decimal_precision: settings.decimal_precision }
                       )}
                     </div>
@@ -362,7 +366,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                   {addons.filter((a: any) => a.quantity > 0).map((a: any) => (
                     <div key={a.id}>
                       {a.name}: +{formatExactPrice(
-                        (a.calculationType === 'per_unit' ? a.priceValue * (item.measurement_data?.value || 1) : a.priceValue) * a.quantity,
+                        (a.calculationType === 'per_unit' ? a.priceValue * item.quantity : a.priceValue) * a.quantity,
                         { currency_symbol: settings.currency_symbol, decimal_precision: settings.decimal_precision }
                       )}
                     </div>
