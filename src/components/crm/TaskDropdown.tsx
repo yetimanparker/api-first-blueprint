@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -117,121 +119,114 @@ export function TaskDropdown({
   };
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
         <Button variant={variant} size={size} className={className}>
           <Plus className="h-4 w-4 mr-2" />
           Add Task
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="w-80 max-h-[80vh] overflow-y-auto p-4 bg-background border border-border shadow-lg z-[100]"
-        align="end"
-        sideOffset={5}
-      >
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create New Task</DialogTitle>
+        </DialogHeader>
+
         <div className="space-y-4">
-          <div>
-            <h4 className="font-semibold text-sm mb-3">Create New Task</h4>
+          {/* Title */}
+          <div className="space-y-2">
+            <Label htmlFor="task-title" className="text-sm font-medium">
+              Title <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="task-title"
+              placeholder="Task title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
           </div>
 
-          <div className="space-y-3">
-            {/* Title */}
-            <div className="space-y-1.5">
-              <Label htmlFor="task-title" className="text-xs font-medium">
-                Title <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="task-title"
-                placeholder="Task title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="h-9"
-              />
-            </div>
+          {/* Task Type */}
+          <div className="space-y-2">
+            <Label htmlFor="task-type" className="text-sm font-medium">
+              Type
+            </Label>
+            <Select value={taskType} onValueChange={setTaskType}>
+              <SelectTrigger id="task-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="follow_up">Follow Up</SelectItem>
+                <SelectItem value="meeting">Meeting</SelectItem>
+                <SelectItem value="call">Call</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="site_visit">Site Visit</SelectItem>
+                <SelectItem value="quote_review">Quote Review</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Task Type */}
-            <div className="space-y-1.5">
-              <Label htmlFor="task-type" className="text-xs font-medium">
-                Type
-              </Label>
-              <Select value={taskType} onValueChange={setTaskType}>
-                <SelectTrigger id="task-type" className="h-9 bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-background border border-border shadow-lg z-[100]">
-                  <SelectItem value="follow_up">Follow Up</SelectItem>
-                  <SelectItem value="meeting">Meeting</SelectItem>
-                  <SelectItem value="call">Call</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                  <SelectItem value="site_visit">Site Visit</SelectItem>
-                  <SelectItem value="quote_review">Quote Review</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Priority */}
+          <div className="space-y-2">
+            <Label htmlFor="task-priority" className="text-sm font-medium">
+              Priority
+            </Label>
+            <Select value={priority} onValueChange={setPriority}>
+              <SelectTrigger id="task-priority">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Priority */}
-            <div className="space-y-1.5">
-              <Label htmlFor="task-priority" className="text-xs font-medium">
-                Priority
-              </Label>
-              <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger id="task-priority" className="h-9 bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-background border border-border shadow-lg z-[100]">
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Due Date */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Due Date</Label>
+            <Popover open={showCalendar} onOpenChange={setShowCalendar}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'w-full justify-start text-left font-normal',
+                    !dueDate && 'text-muted-foreground'
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dueDate ? format(dueDate, 'PPP') : 'Pick a date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dueDate}
+                  onSelect={(date) => {
+                    setDueDate(date);
+                    setShowCalendar(false);
+                  }}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
 
-            {/* Due Date */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Due Date</Label>
-              <Popover open={showCalendar} onOpenChange={setShowCalendar}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full h-9 justify-start text-left font-normal bg-background',
-                      !dueDate && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, 'PPP') : 'Pick a date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-background border border-border shadow-lg z-[100]" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={(date) => {
-                      setDueDate(date);
-                      setShowCalendar(false);
-                    }}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-1.5">
-              <Label htmlFor="task-description" className="text-xs font-medium">
-                Description
-              </Label>
-              <Textarea
-                id="task-description"
-                placeholder="Add details..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="resize-none text-sm"
-              />
-            </div>
+          {/* Description */}
+          <div className="space-y-2">
+            <Label htmlFor="task-description" className="text-sm font-medium">
+              Description
+            </Label>
+            <Textarea
+              id="task-description"
+              placeholder="Add details..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="resize-none"
+            />
           </div>
 
           {/* Actions */}
@@ -240,11 +235,10 @@ export function TaskDropdown({
               onClick={handleCreateTask}
               disabled={loading}
               className="flex-1"
-              size="sm"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Creating...
                 </>
               ) : (
@@ -257,13 +251,12 @@ export function TaskDropdown({
                 setOpen(false);
               }}
               variant="outline"
-              size="sm"
             >
               Cancel
             </Button>
           </div>
         </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </DialogContent>
+    </Dialog>
   );
 }
