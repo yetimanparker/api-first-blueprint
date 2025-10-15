@@ -728,6 +728,7 @@ export type Database = {
           created_at: string
           customer_id: string
           expires_at: string | null
+          first_viewed_at: string | null
           id: string
           notes: string | null
           parent_quote_id: string | null
@@ -748,6 +749,7 @@ export type Database = {
           created_at?: string
           customer_id: string
           expires_at?: string | null
+          first_viewed_at?: string | null
           id?: string
           notes?: string | null
           parent_quote_id?: string | null
@@ -768,6 +770,7 @@ export type Database = {
           created_at?: string
           customer_id?: string
           expires_at?: string | null
+          first_viewed_at?: string | null
           id?: string
           notes?: string | null
           parent_quote_id?: string | null

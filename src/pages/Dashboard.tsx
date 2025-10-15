@@ -12,6 +12,12 @@ const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    quotesNotViewed: 0,
+    totalCustomers: 0,
+    totalRevenue: 0,
+  });
   const navigate = useNavigate();
   const { toast } = useToast();
   const { contractorId } = useContractorId();
@@ -42,6 +48,54 @@ const Dashboard = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate, isLoading]);
+
+  // Fetch dashboard statistics
+  useEffect(() => {
+    if (!contractorId) return;
+
+    const fetchStats = async () => {
+      try {
+        // Fetch products count
+        const { count: productsCount } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('contractor_id', contractorId);
+
+        // Fetch unviewed quotes count
+        const { count: unviewedQuotesCount } = await supabase
+          .from('quotes')
+          .select('*', { count: 'exact', head: true })
+          .eq('contractor_id', contractorId)
+          .is('first_viewed_at', null);
+
+        // Fetch customers count
+        const { count: customersCount } = await supabase
+          .from('customers')
+          .select('*', { count: 'exact', head: true })
+          .eq('contractor_id', contractorId);
+
+        // Fetch total revenue from accepted quotes
+        const { data: acceptedQuotes } = await supabase
+          .from('quotes')
+          .select('total_amount')
+          .eq('contractor_id', contractorId)
+          .eq('status', 'accepted');
+
+        const totalRevenue = acceptedQuotes?.reduce((sum, quote) => sum + Number(quote.total_amount || 0), 0) || 0;
+
+        setStats({
+          totalProducts: productsCount || 0,
+          quotesNotViewed: unviewedQuotesCount || 0,
+          totalCustomers: customersCount || 0,
+          totalRevenue,
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, [contractorId]);
 
   const handleSignOut = async () => {
     try {
@@ -134,18 +188,20 @@ const Dashboard = () => {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">+0% from last month</p>
+              <div className="text-2xl font-bold">{stats.totalProducts}</div>
+              <p className="text-xs text-muted-foreground">Active products</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={stats.quotesNotViewed > 0 ? "border-orange-500/50 bg-orange-50/50 dark:bg-orange-950/20" : ""}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Quotes Not Viewed</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <FileText className={`h-4 w-4 ${stats.quotesNotViewed > 0 ? 'text-orange-500' : 'text-muted-foreground'}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className={`text-2xl font-bold ${stats.quotesNotViewed > 0 ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                {stats.quotesNotViewed}
+              </div>
               <p className="text-xs text-muted-foreground">Pending review</p>
             </CardContent>
           </Card>
@@ -156,8 +212,8 @@ const Dashboard = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">+0% from last month</p>
+              <div className="text-2xl font-bold">{stats.totalCustomers}</div>
+              <p className="text-xs text-muted-foreground">Total customers</p>
             </CardContent>
           </Card>
 
@@ -167,8 +223,8 @@ const Dashboard = () => {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$0</div>
-              <p className="text-xs text-muted-foreground">+0% from last month</p>
+              <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">From accepted quotes</p>
             </CardContent>
           </Card>
         </div>

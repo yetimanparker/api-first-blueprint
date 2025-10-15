@@ -72,10 +72,10 @@ export default function CustomerDetail() {
       if (customerError) throw customerError;
       setCustomer(customerData);
 
-      // Fetch customer quotes
+      // Fetch customer quotes (include first_viewed_at)
       const { data: quotesData, error: quotesError } = await supabase
         .from('quotes')
-        .select('*')
+        .select('*, first_viewed_at')
         .eq('customer_id', customerId)
         .order('created_at', { ascending: false });
 
@@ -92,6 +92,36 @@ export default function CustomerDetail() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const markQuoteAsViewed = async (quoteId: string) => {
+    try {
+      // Check if quote has already been viewed
+      const quote = quotes.find(q => q.id === quoteId);
+      if (quote && (quote as any).first_viewed_at) {
+        // Already viewed, no need to update
+        return;
+      }
+
+      const { error } = await supabase
+        .from('quotes')
+        .update({ first_viewed_at: new Date().toISOString() })
+        .eq('id', quoteId)
+        .is('first_viewed_at', null); // Only update if not already viewed
+
+      if (error) {
+        console.error('Error marking quote as viewed:', error);
+      }
+    } catch (error) {
+      console.error('Error marking quote as viewed:', error);
+    }
+  };
+
+  const handleQuickView = async (quoteId: string) => {
+    setQuickViewQuoteId(quoteId);
+    await markQuoteAsViewed(quoteId);
+    // Refresh to get updated view status
+    await fetchCustomerData();
   };
 
   const handleStatusChange = async (quoteId: string, newStatus: string) => {
@@ -293,11 +323,14 @@ export default function CustomerDetail() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="z-50 bg-background">
-                                <DropdownMenuItem onClick={() => setQuickViewQuoteId(quote.id)}>
+                                <DropdownMenuItem onClick={() => handleQuickView(quote.id)}>
                                   <Eye className="h-4 w-4 mr-2" />
                                   Quick View
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => navigate(`/quote/edit/${quote.id}`)}>
+                                <DropdownMenuItem onClick={() => {
+                                  markQuoteAsViewed(quote.id);
+                                  navigate(`/quote/edit/${quote.id}`);
+                                }}>
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit Quote
                                 </DropdownMenuItem>
@@ -310,14 +343,17 @@ export default function CustomerDetail() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setQuickViewQuoteId(quote.id)}
+                              onClick={() => handleQuickView(quote.id)}
                             >
                               <Eye className="h-4 w-4 mr-2" />
                               Quick View
                             </Button>
                             <Button
                               size="sm"
-                              onClick={() => navigate(`/quote/edit/${quote.id}`)}
+                              onClick={() => {
+                                markQuoteAsViewed(quote.id);
+                                navigate(`/quote/edit/${quote.id}`);
+                              }}
                             >
                               <Edit className="h-4 w-4 mr-2" />
                               Edit Quote
