@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Search, Users, FileText, Phone, Mail, MapPin, MoreHorizontal, Edit, Plus, ArrowUpDown, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { CustomerQuoteDialog } from "@/components/CustomerQuoteDialog";
+import { NewQuoteDialog } from "@/components/NewQuoteDialog";
 import { CustomerDialog } from "@/components/CustomerDialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -387,7 +387,7 @@ const CRM = () => {
         {/* Action Buttons */}
         <div className="flex gap-3 mb-6">
           <CustomerDialog />
-          <CustomerQuoteDialog onQuoteCreated={handleQuoteCreated} />
+          <NewQuoteDialog onQuoteCreated={handleQuoteCreated} />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
