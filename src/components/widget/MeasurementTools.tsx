@@ -190,7 +190,17 @@ const MeasurementTools = ({
 
   // Update dimensional shape when rotation or center changes
   useEffect(() => {
+    console.log('Dimensional shape update effect triggered:', {
+      isDimensionalPlaced,
+      hasDimensionalCenter: !!dimensionalCenter,
+      hasProduct: !!product,
+      width: product?.default_width,
+      length: product?.default_length,
+      hasMap: !!mapRef.current
+    });
+    
     if (isDimensionalPlaced && dimensionalCenter && product?.default_width && product?.default_length && mapRef.current) {
+      console.log('Calling updateDimensionalShape...');
       updateDimensionalShape();
     }
   }, [dimensionalRotation, dimensionalCenter, isDimensionalPlaced]);
@@ -809,9 +819,20 @@ const MeasurementTools = ({
   };
 
   const placeDimensionalProduct = (latLng: google.maps.LatLng) => {
-    if (!product || !product.default_width || !product.default_length || !mapRef.current) return;
+    console.log('placeDimensionalProduct called with:', {
+      hasProduct: !!product,
+      width: product?.default_width,
+      length: product?.default_length,
+      hasMap: !!mapRef.current
+    });
+    
+    if (!product || !product.default_width || !product.default_length || !mapRef.current) {
+      console.error('Cannot place dimensional product - missing required data');
+      return;
+    }
 
     const center = { lat: latLng.lat(), lng: latLng.lng() };
+    console.log('Placing dimensional product at center:', center);
     setDimensionalCenter(center);
     setDimensionalRotation(0); // Reset rotation
     setIsDimensionalPlaced(true);
@@ -821,6 +842,7 @@ const MeasurementTools = ({
     const length = product.default_length;
     const area = Math.ceil(width * length);
     
+    console.log('Set dimensional product with area:', area);
     setMapMeasurement(area);
   };
 
