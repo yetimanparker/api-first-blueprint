@@ -58,6 +58,7 @@ const MeasurementTools = ({
   onAddressSelect,
   onResetToMeasurement
 }: MeasurementToolsProps) => {
+  console.log('🟢 MeasurementTools: Component mounted/updated with productId:', productId);
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [measurementType, setMeasurementType] = useState<'area' | 'linear' | 'point' | 'dimensional'>('area');
@@ -231,6 +232,8 @@ const MeasurementTools = ({
   };
 
   const fetchProduct = async () => {
+    console.log('🟢 MeasurementTools: fetchProduct called with productId:', productId);
+    
     try {
       const { data, error } = await supabase
         .from('products')
@@ -239,6 +242,8 @@ const MeasurementTools = ({
         .single();
 
       if (error) throw error;
+      
+      console.log('🟢 MeasurementTools: Fetched product data:', data);
       setProduct(data);
       
       // Check if this is a dimensional product
