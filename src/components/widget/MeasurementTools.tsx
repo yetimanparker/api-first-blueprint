@@ -177,10 +177,10 @@ const MeasurementTools = ({
 
   // Update dimensional shape when rotation or center changes
   useEffect(() => {
-    if (isDimensionalPlaced && dimensionalCenter && product?.default_width && product?.default_length) {
-      // Update shape with new rotation/position
+    if (isDimensionalPlaced && dimensionalCenter && product?.default_width && product?.default_length && mapRef.current) {
+      updateDimensionalShape();
     }
-  }, [dimensionalRotation, dimensionalCenter]);
+  }, [dimensionalRotation, dimensionalCenter, isDimensionalPlaced]);
 
   // Update isDrawing ref when state changes
   useEffect(() => {
@@ -655,11 +655,149 @@ const MeasurementTools = ({
     });
   };
 
+  // Helper function to calculate rotated rectangle corners
+  const calculateRotatedRectangle = (
+    centerLat: number, centerLng: number, widthFeet: number, lengthFeet: number, rotationDeg: number
+  ) => {
+    const metersPerFoot = 0.3048;
+    const latPerMeter = 1 / 111320;
+    const lngPerMeter = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
+    
+    const halfWidth = (widthFeet * metersPerFoot / 2) * lngPerMeter;
+    const halfLength = (lengthFeet * metersPerFoot / 2) * latPerMeter;
+    
+    const corners = [
+      { x: -halfWidth, y: halfLength }, { x: halfWidth, y: halfLength },
+      { x: halfWidth, y: -halfLength }, { x: -halfWidth, y: -halfLength }
+    ];
+    
+    const angleRad = (rotationDeg * Math.PI) / 180;
+    return corners.map(c => ({
+      lat: centerLat + (c.x * Math.sin(angleRad) + c.y * Math.cos(angleRad)),
+      lng: centerLng + (c.x * Math.cos(angleRad) - c.y * Math.sin(angleRad))
+    }));
+  };
+
+  // Update the dimensional shape with current rotation and center
+  const updateDimensionalShape = () => {
+    if (!product || !product.default_width || !product.default_length || !mapRef.current || !dimensionalCenter) return;
+
+    // Clean up old shapes and handles
+    if (currentShapeRef.current) {
+      currentShapeRef.current.setMap(null);
+      currentShapeRef.current = null;
+    }
+    if (rotationHandle) {
+      rotationHandle.setMap(null);
+    }
+    if (dragHandle) {
+      dragHandle.setMap(null);
+    }
+
+    const width = product.default_width;
+    const length = product.default_length;
+
+    const corners = calculateRotatedRectangle(
+      dimensionalCenter.lat,
+      dimensionalCenter.lng,
+      width,
+      length,
+      dimensionalRotation
+    );
+
+    const color = getNextMeasurementColor();
+    
+    // Create the polygon
+    const polygon = new google.maps.Polygon({
+      paths: corners,
+      fillColor: color,
+      fillOpacity: 0.3,
+      strokeColor: color,
+      strokeWeight: 2,
+      map: mapRef.current,
+      zIndex: 1
+    });
+    currentShapeRef.current = polygon;
+
+    // Create drag handle (center)
+    const drag = new google.maps.Marker({
+      position: dimensionalCenter,
+      map: mapRef.current,
+      draggable: true,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        fillColor: '#fff',
+        fillOpacity: 1,
+        strokeColor: color,
+        strokeWeight: 3,
+        scale: 10
+      },
+      label: {
+        text: '✥',
+        color: color,
+        fontSize: '16px',
+        fontWeight: 'bold'
+      },
+      zIndex: 2
+    });
+    setDragHandle(drag);
+
+    // Add drag listener to move the entire shape
+    google.maps.event.addListener(drag, 'drag', (e: any) => {
+      const newCenter = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+      setDimensionalCenter(newCenter);
+    });
+
+    // Create rotation handle (top-right corner)
+    const metersPerFoot = 0.3048;
+    const latPerMeter = 1 / 111320;
+    const lngPerMeter = 1 / (111320 * Math.cos(dimensionalCenter.lat * Math.PI / 180));
+    const halfLength = (length * metersPerFoot / 2) * latPerMeter;
+    const halfWidth = (width * metersPerFoot / 2) * lngPerMeter;
+    
+    const angleRad = (dimensionalRotation * Math.PI) / 180;
+    const rotHandleLat = dimensionalCenter.lat + (halfWidth * Math.sin(angleRad) + halfLength * Math.cos(angleRad));
+    const rotHandleLng = dimensionalCenter.lng + (halfWidth * Math.cos(angleRad) - halfLength * Math.sin(angleRad));
+
+    const rotation = new google.maps.Marker({
+      position: { lat: rotHandleLat, lng: rotHandleLng },
+      map: mapRef.current,
+      draggable: true,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        fillColor: color,
+        fillOpacity: 1,
+        strokeColor: '#fff',
+        strokeWeight: 2,
+        scale: 8
+      },
+      zIndex: 2
+    });
+    setRotationHandle(rotation);
+
+    // Add rotation listener
+    google.maps.event.addListener(rotation, 'drag', (e: any) => {
+      const handleLat = e.latLng.lat();
+      const handleLng = e.latLng.lng();
+      const centerLat = dimensionalCenter.lat;
+      const centerLng = dimensionalCenter.lng;
+      
+      // Calculate angle from center to handle
+      const angle = Math.atan2(
+        handleLat - centerLat,
+        handleLng - centerLng
+      ) * (180 / Math.PI);
+      
+      setDimensionalRotation(angle);
+    });
+  };
+
   const placeDimensionalProduct = (latLng: google.maps.LatLng) => {
     if (!product || !product.default_width || !product.default_length || !mapRef.current) return;
 
     const center = { lat: latLng.lat(), lng: latLng.lng() };
     setDimensionalCenter(center);
+    setDimensionalRotation(0); // Reset rotation
     setIsDimensionalPlaced(true);
     setIsDrawing(false);
 
@@ -668,62 +806,6 @@ const MeasurementTools = ({
     const area = Math.ceil(width * length);
     
     setMapMeasurement(area);
-    
-    // Import helper functions inline for now
-    const calculateRotatedRectangle = (
-      centerLat: number, centerLng: number, widthFeet: number, lengthFeet: number, rotationDeg: number
-    ) => {
-      const metersPerFoot = 0.3048;
-      const latPerMeter = 1 / 111320;
-      const lngPerMeter = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
-      
-      const halfWidth = (widthFeet * metersPerFoot / 2) * lngPerMeter;
-      const halfLength = (lengthFeet * metersPerFoot / 2) * latPerMeter;
-      
-      const corners = [
-        { x: -halfWidth, y: halfLength }, { x: halfWidth, y: halfLength },
-        { x: halfWidth, y: -halfLength }, { x: -halfWidth, y: -halfLength }
-      ];
-      
-      const angleRad = (rotationDeg * Math.PI) / 180;
-      return corners.map(c => ({
-        lat: centerLat + (c.x * Math.sin(angleRad) + c.y * Math.cos(angleRad)),
-        lng: centerLng + (c.x * Math.cos(angleRad) - c.y * Math.sin(angleRad))
-      }));
-    };
-
-    const updateDimensionalShape = () => {
-      if (currentShapeRef.current) currentShapeRef.current.setMap(null);
-      if (rotationHandle) rotationHandle.setMap(null);
-      if (dragHandle) dragHandle.setMap(null);
-
-      const corners = calculateRotatedRectangle(
-        dimensionalCenter?.lat || center.lat,
-        dimensionalCenter?.lng || center.lng,
-        width, length, dimensionalRotation
-      );
-
-      const color = getNextMeasurementColor();
-      const polygon = new google.maps.Polygon({
-        paths: corners, fillColor: color, fillOpacity: 0.3,
-        strokeColor: color, strokeWeight: 2, map: mapRef.current, zIndex: 1
-      });
-      currentShapeRef.current = polygon;
-
-      const drag = new google.maps.Marker({
-        position: dimensionalCenter || center, map: mapRef.current, draggable: true,
-        icon: { path: google.maps.SymbolPath.CIRCLE, fillColor: '#fff', fillOpacity: 1,
-          strokeColor: color, strokeWeight: 3, scale: 10 },
-        label: { text: '✥', color: color, fontSize: '16px', fontWeight: 'bold' }
-      });
-      setDragHandle(drag);
-
-      google.maps.event.addListener(drag, 'drag', (e: any) => {
-        setDimensionalCenter({ lat: e.latLng.lat(), lng: e.latLng.lng() });
-      });
-    };
-
-    updateDimensionalShape();
   };
 
   const updateMeasurementLabel = (
@@ -840,6 +922,21 @@ const MeasurementTools = ({
       setPointMarkers([]);
       setPointLocations([]);
       pointCountRef.current = 0; // Reset counter
+    }
+    
+    // Clear dimensional handles and state
+    if (rotationHandle) {
+      rotationHandle.setMap(null);
+      setRotationHandle(null);
+    }
+    if (dragHandle) {
+      dragHandle.setMap(null);
+      setDragHandle(null);
+    }
+    if (isDimensionalPlaced) {
+      setDimensionalCenter(null);
+      setDimensionalRotation(0);
+      setIsDimensionalPlaced(false);
     }
     
     if (drawingManagerRef.current) {
