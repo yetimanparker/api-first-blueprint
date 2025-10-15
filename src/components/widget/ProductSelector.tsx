@@ -315,13 +315,7 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
             <Card 
               key={product.id}
               className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 hover:scale-[1.02] rounded-xl overflow-hidden"
-              onClick={() => {
-                console.log('🎯 ProductSelector: Product clicked:', {
-                  productId: product.id,
-                  productName: product.name
-                });
-                onProductSelect(product.id);
-              }}
+              onClick={() => onProductSelect(product.id)}
             >
               {product.photo_url && (
                 <div className="relative overflow-hidden bg-muted h-48">

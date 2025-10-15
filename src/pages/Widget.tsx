@@ -231,22 +231,18 @@ const Widget = () => {
   };
 
   const setCurrentProduct = async (productId: string) => {
-    console.log('🔵 Widget: setCurrentProduct called with ID:', productId);
-    
     // Fetch product details to display in UI
     const { data: productData } = await supabase
       .from('products')
-      .select('id, name, description, unit_type, unit_price, min_order_quantity, photo_url, has_fixed_dimensions, default_width, default_length, dimension_unit, allow_dimension_editing')
+      .select('id, name, description, unit_type, unit_price, min_order_quantity, photo_url')
       .eq('id', productId)
       .single();
     
-    console.log('🔵 Widget: Fetched product data:', productData);
     setSelectedProduct(productData);
     
     // All products now go directly to measurement step
     const nextStep = 'measurement';
     
-    console.log('🔵 Widget: Setting widgetState with productId:', productId);
     setWidgetState(prev => ({
       ...prev,
       currentProductId: productId,

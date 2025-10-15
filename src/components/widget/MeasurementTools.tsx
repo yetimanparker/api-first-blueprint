@@ -58,7 +58,6 @@ const MeasurementTools = ({
   onAddressSelect,
   onResetToMeasurement
 }: MeasurementToolsProps) => {
-  console.log('🟢 MeasurementTools: Component mounted/updated with productId:', productId);
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [measurementType, setMeasurementType] = useState<'area' | 'linear' | 'point' | 'dimensional'>('area');
@@ -150,32 +149,19 @@ const MeasurementTools = ({
     fetchProduct();
   }, [productId]);
 
-  // Initialize map when container is ready
   useEffect(() => {
-    if (!apiKey || mapRef.current) return;
-    
-    // Check if container exists, if not, retry after a short delay
-    const checkAndInitialize = () => {
-      if (mapContainerRef.current) {
-        console.log('✅ Map container found, initializing map');
-        initializeMap();
-      } else {
-        console.log('⏳ Map container not ready, retrying...');
-        setTimeout(checkAndInitialize, 100);
-      }
-    };
-    
-    checkAndInitialize();
+    if (apiKey && !mapRef.current) {
+      initializeMap();
+    }
   }, [apiKey]);
 
   // Auto-start drawing when map and drawing manager are ready
   useEffect(() => {
-    // Don't auto-start until product is loaded to avoid starting with wrong type
-    if (mapRef.current && drawingManagerRef.current && !showManualEntry && !mapLoading && product) {
+    if (mapRef.current && drawingManagerRef.current && !showManualEntry && !mapLoading) {
       console.log('Map ready, auto-starting drawing for type:', measurementType);
       setTimeout(() => startDrawing(), 300);
     }
-  }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, mapLoading, product]);
+  }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, mapLoading]);
 
   useEffect(() => {
     // Update ref when measurement type changes
@@ -191,20 +177,10 @@ const MeasurementTools = ({
 
   // Update dimensional shape when rotation or center changes
   useEffect(() => {
-    console.log('Dimensional shape update effect triggered:', {
-      isDimensionalPlaced,
-      hasDimensionalCenter: !!dimensionalCenter,
-      hasProduct: !!product,
-      width: product?.default_width,
-      length: product?.default_length,
-      hasMap: !!mapRef.current
-    });
-    
-    if (isDimensionalPlaced && dimensionalCenter && product?.default_width && product?.default_length && mapRef.current) {
-      console.log('Calling updateDimensionalShape...');
-      updateDimensionalShape();
+    if (isDimensionalPlaced && dimensionalCenter && product?.default_width && product?.default_length) {
+      // Update shape with new rotation/position
     }
-  }, [dimensionalRotation, dimensionalCenter, isDimensionalPlaced, product]);
+  }, [dimensionalRotation, dimensionalCenter]);
 
   // Update isDrawing ref when state changes
   useEffect(() => {
@@ -232,8 +208,6 @@ const MeasurementTools = ({
   };
 
   const fetchProduct = async () => {
-    console.log('🟢 MeasurementTools: fetchProduct called with productId:', productId);
-    
     try {
       const { data, error } = await supabase
         .from('products')
@@ -242,8 +216,6 @@ const MeasurementTools = ({
         .single();
 
       if (error) throw error;
-      
-      console.log('🟢 MeasurementTools: Fetched product data:', data);
       setProduct(data);
       
       // Check if this is a dimensional product
@@ -382,9 +354,13 @@ const MeasurementTools = ({
       // Render existing measurements from quote items
       renderExistingMeasurements(map);
       
-      // Note: Auto-start is now handled by the useEffect that waits for product to load
-      console.log('Map initialized, auto-start will be handled by useEffect');
-      
+      // Auto-start drawing after a brief delay to ensure everything is ready
+      console.log('Map initialized, preparing to auto-start drawing');
+      setTimeout(() => {
+        if (!showManualEntry) {
+          startDrawing();
+        }
+      }, 500);
       
     } catch (error) {
       console.error('Map initialization failed:', error);
@@ -597,21 +573,14 @@ const MeasurementTools = ({
       activeDrawingModeRef.current = null;
     });
 
-    // Add map click listener for point and dimensional placement modes using refs
+    // Add map click listener for point placement mode using refs
     google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
-      console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current, 'drawingMode:', drawingManager.getDrawingMode());
+      console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current);
       
-      // Only handle clicks if we're in drawing mode
-      if (!isDrawingRef.current || !event.latLng) {
-        return;
-      }
-      
-      if (measurementTypeRef.current === 'dimensional') {
+      if (measurementTypeRef.current === 'dimensional' && isDrawingRef.current && event.latLng) {
         console.log('Placing dimensional product at:', event.latLng.lat(), event.latLng.lng());
-        // Prevent any drawing manager interaction
-        event.stop?.();
         placeDimensionalProduct(event.latLng);
-      } else if (measurementTypeRef.current === 'point') {
+      } else if (measurementTypeRef.current === 'point' && isDrawingRef.current && event.latLng) {
         console.log('Adding point marker at:', event.latLng.lat(), event.latLng.lng());
         addPointMarker(event.latLng);
       }
@@ -686,160 +655,11 @@ const MeasurementTools = ({
     });
   };
 
-  // Helper function to calculate rotated rectangle corners
-  const calculateRotatedRectangle = (
-    centerLat: number, centerLng: number, widthFeet: number, lengthFeet: number, rotationDeg: number
-  ) => {
-    const metersPerFoot = 0.3048;
-    const latPerMeter = 1 / 111320;
-    const lngPerMeter = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
-    
-    const halfWidth = (widthFeet * metersPerFoot / 2) * lngPerMeter;
-    const halfLength = (lengthFeet * metersPerFoot / 2) * latPerMeter;
-    
-    const corners = [
-      { x: -halfWidth, y: halfLength }, { x: halfWidth, y: halfLength },
-      { x: halfWidth, y: -halfLength }, { x: -halfWidth, y: -halfLength }
-    ];
-    
-    const angleRad = (rotationDeg * Math.PI) / 180;
-    return corners.map(c => ({
-      lat: centerLat + (c.x * Math.sin(angleRad) + c.y * Math.cos(angleRad)),
-      lng: centerLng + (c.x * Math.cos(angleRad) - c.y * Math.sin(angleRad))
-    }));
-  };
-
-  // Update the dimensional shape with current rotation and center
-  const updateDimensionalShape = () => {
-    if (!product || !product.default_width || !product.default_length || !mapRef.current || !dimensionalCenter) return;
-
-    // Clean up old shapes and handles
-    if (currentShapeRef.current) {
-      currentShapeRef.current.setMap(null);
-      currentShapeRef.current = null;
-    }
-    if (rotationHandle) {
-      rotationHandle.setMap(null);
-    }
-    if (dragHandle) {
-      dragHandle.setMap(null);
-    }
-
-    const width = product.default_width;
-    const length = product.default_length;
-
-    const corners = calculateRotatedRectangle(
-      dimensionalCenter.lat,
-      dimensionalCenter.lng,
-      width,
-      length,
-      dimensionalRotation
-    );
-
-    const color = getNextMeasurementColor();
-    
-    // Create the polygon
-    const polygon = new google.maps.Polygon({
-      paths: corners,
-      fillColor: color,
-      fillOpacity: 0.3,
-      strokeColor: color,
-      strokeWeight: 2,
-      map: mapRef.current,
-      zIndex: 1
-    });
-    currentShapeRef.current = polygon;
-
-    // Create drag handle (center)
-    const drag = new google.maps.Marker({
-      position: dimensionalCenter,
-      map: mapRef.current,
-      draggable: true,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        fillColor: '#fff',
-        fillOpacity: 1,
-        strokeColor: color,
-        strokeWeight: 3,
-        scale: 10
-      },
-      label: {
-        text: '✥',
-        color: color,
-        fontSize: '16px',
-        fontWeight: 'bold'
-      },
-      zIndex: 2
-    });
-    setDragHandle(drag);
-
-    // Add drag listener to move the entire shape
-    google.maps.event.addListener(drag, 'drag', (e: any) => {
-      const newCenter = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-      setDimensionalCenter(newCenter);
-    });
-
-    // Create rotation handle (top-right corner)
-    const metersPerFoot = 0.3048;
-    const latPerMeter = 1 / 111320;
-    const lngPerMeter = 1 / (111320 * Math.cos(dimensionalCenter.lat * Math.PI / 180));
-    const halfLength = (length * metersPerFoot / 2) * latPerMeter;
-    const halfWidth = (width * metersPerFoot / 2) * lngPerMeter;
-    
-    const angleRad = (dimensionalRotation * Math.PI) / 180;
-    const rotHandleLat = dimensionalCenter.lat + (halfWidth * Math.sin(angleRad) + halfLength * Math.cos(angleRad));
-    const rotHandleLng = dimensionalCenter.lng + (halfWidth * Math.cos(angleRad) - halfLength * Math.sin(angleRad));
-
-    const rotation = new google.maps.Marker({
-      position: { lat: rotHandleLat, lng: rotHandleLng },
-      map: mapRef.current,
-      draggable: true,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        fillColor: color,
-        fillOpacity: 1,
-        strokeColor: '#fff',
-        strokeWeight: 2,
-        scale: 8
-      },
-      zIndex: 2
-    });
-    setRotationHandle(rotation);
-
-    // Add rotation listener
-    google.maps.event.addListener(rotation, 'drag', (e: any) => {
-      const handleLat = e.latLng.lat();
-      const handleLng = e.latLng.lng();
-      const centerLat = dimensionalCenter.lat;
-      const centerLng = dimensionalCenter.lng;
-      
-      // Calculate angle from center to handle
-      const angle = Math.atan2(
-        handleLat - centerLat,
-        handleLng - centerLng
-      ) * (180 / Math.PI);
-      
-      setDimensionalRotation(angle);
-    });
-  };
-
   const placeDimensionalProduct = (latLng: google.maps.LatLng) => {
-    console.log('placeDimensionalProduct called with:', {
-      hasProduct: !!product,
-      width: product?.default_width,
-      length: product?.default_length,
-      hasMap: !!mapRef.current
-    });
-    
-    if (!product || !product.default_width || !product.default_length || !mapRef.current) {
-      console.error('Cannot place dimensional product - missing required data');
-      return;
-    }
+    if (!product || !product.default_width || !product.default_length || !mapRef.current) return;
 
     const center = { lat: latLng.lat(), lng: latLng.lng() };
-    console.log('Placing dimensional product at center:', center);
     setDimensionalCenter(center);
-    setDimensionalRotation(0); // Reset rotation
     setIsDimensionalPlaced(true);
     setIsDrawing(false);
 
@@ -847,8 +667,63 @@ const MeasurementTools = ({
     const length = product.default_length;
     const area = Math.ceil(width * length);
     
-    console.log('Set dimensional product with area:', area);
     setMapMeasurement(area);
+    
+    // Import helper functions inline for now
+    const calculateRotatedRectangle = (
+      centerLat: number, centerLng: number, widthFeet: number, lengthFeet: number, rotationDeg: number
+    ) => {
+      const metersPerFoot = 0.3048;
+      const latPerMeter = 1 / 111320;
+      const lngPerMeter = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
+      
+      const halfWidth = (widthFeet * metersPerFoot / 2) * lngPerMeter;
+      const halfLength = (lengthFeet * metersPerFoot / 2) * latPerMeter;
+      
+      const corners = [
+        { x: -halfWidth, y: halfLength }, { x: halfWidth, y: halfLength },
+        { x: halfWidth, y: -halfLength }, { x: -halfWidth, y: -halfLength }
+      ];
+      
+      const angleRad = (rotationDeg * Math.PI) / 180;
+      return corners.map(c => ({
+        lat: centerLat + (c.x * Math.sin(angleRad) + c.y * Math.cos(angleRad)),
+        lng: centerLng + (c.x * Math.cos(angleRad) - c.y * Math.sin(angleRad))
+      }));
+    };
+
+    const updateDimensionalShape = () => {
+      if (currentShapeRef.current) currentShapeRef.current.setMap(null);
+      if (rotationHandle) rotationHandle.setMap(null);
+      if (dragHandle) dragHandle.setMap(null);
+
+      const corners = calculateRotatedRectangle(
+        dimensionalCenter?.lat || center.lat,
+        dimensionalCenter?.lng || center.lng,
+        width, length, dimensionalRotation
+      );
+
+      const color = getNextMeasurementColor();
+      const polygon = new google.maps.Polygon({
+        paths: corners, fillColor: color, fillOpacity: 0.3,
+        strokeColor: color, strokeWeight: 2, map: mapRef.current, zIndex: 1
+      });
+      currentShapeRef.current = polygon;
+
+      const drag = new google.maps.Marker({
+        position: dimensionalCenter || center, map: mapRef.current, draggable: true,
+        icon: { path: google.maps.SymbolPath.CIRCLE, fillColor: '#fff', fillOpacity: 1,
+          strokeColor: color, strokeWeight: 3, scale: 10 },
+        label: { text: '✥', color: color, fontSize: '16px', fontWeight: 'bold' }
+      });
+      setDragHandle(drag);
+
+      google.maps.event.addListener(drag, 'drag', (e: any) => {
+        setDimensionalCenter({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+      });
+    };
+
+    updateDimensionalShape();
   };
 
   const updateMeasurementLabel = (
@@ -909,12 +784,8 @@ const MeasurementTools = ({
     const nextColor = getNextMeasurementColor();
     
     if (measurementType === 'dimensional') {
-      // For dimensional mode, explicitly disable ALL drawing modes
+      // For dimensional mode, just enable map clicking for placement
       drawingManagerRef.current.setDrawingMode(null);
-      drawingManagerRef.current.setOptions({
-        drawingControl: false,
-        drawingMode: null,
-      });
       console.log('Dimensional placement mode activated - click to place product');
       return;
     }
@@ -969,21 +840,6 @@ const MeasurementTools = ({
       setPointMarkers([]);
       setPointLocations([]);
       pointCountRef.current = 0; // Reset counter
-    }
-    
-    // Clear dimensional handles and state
-    if (rotationHandle) {
-      rotationHandle.setMap(null);
-      setRotationHandle(null);
-    }
-    if (dragHandle) {
-      dragHandle.setMap(null);
-      setDragHandle(null);
-    }
-    if (isDimensionalPlaced) {
-      setDimensionalCenter(null);
-      setDimensionalRotation(0);
-      setIsDimensionalPlaced(false);
     }
     
     if (drawingManagerRef.current) {
