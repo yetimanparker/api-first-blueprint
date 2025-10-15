@@ -204,7 +204,7 @@ const MeasurementTools = ({
       console.log('Calling updateDimensionalShape...');
       updateDimensionalShape();
     }
-  }, [dimensionalRotation, dimensionalCenter, isDimensionalPlaced]);
+  }, [dimensionalRotation, dimensionalCenter, isDimensionalPlaced, product]);
 
   // Update isDrawing ref when state changes
   useEffect(() => {
