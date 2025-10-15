@@ -91,6 +91,7 @@ const MeasurementTools = ({
   const measurementTypeRef = useRef<'area' | 'linear' | 'point' | 'dimensional'>('area');
   const isDrawingRef = useRef(false);
   const pointCountRef = useRef(0); // Track point count for reliable sequential numbering
+  const activeDrawingModeRef = useRef<google.maps.drawing.OverlayType | null>(null); // Track active drawing mode for mobile pan fix
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -555,6 +556,22 @@ const MeasurementTools = ({
 
     drawingManager.setMap(map);
     drawingManagerRef.current = drawingManager;
+
+    // Fix for mobile: Disable drawing mode during map panning to prevent temporary lines
+    google.maps.event.addListener(map, 'dragstart', () => {
+      if (drawingManager.getDrawingMode() !== null) {
+        activeDrawingModeRef.current = drawingManager.getDrawingMode();
+        drawingManager.setDrawingMode(null);
+      }
+    });
+
+    google.maps.event.addListener(map, 'dragend', () => {
+      // Only restore drawing mode if we're still in drawing state
+      if (activeDrawingModeRef.current !== null && isDrawingRef.current) {
+        drawingManager.setDrawingMode(activeDrawingModeRef.current);
+      }
+      activeDrawingModeRef.current = null;
+    });
 
     // Add map click listener for point placement mode using refs
     google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
