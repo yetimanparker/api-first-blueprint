@@ -14,6 +14,7 @@ import CustomerTasksSection from "@/components/crm/CustomerTasksSection";
 import QuoteDetailView from "@/components/crm/QuoteDetailView";
 import { useGlobalSettings } from "@/hooks/useGlobalSettings";
 import { PhoneQuoteDialog } from "@/components/PhoneQuoteDialog";
+import { TaskDropdown } from "@/components/crm/TaskDropdown";
 
 interface Customer {
   id: string;
@@ -214,6 +215,13 @@ export default function CustomerDetail() {
               <h1 className="text-3xl font-bold">{customer.first_name} {customer.last_name}</h1>
               <p className="text-muted-foreground">Customer since {new Date(customer.created_at).toLocaleDateString()}</p>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <TaskDropdown 
+              customerId={customer.id}
+              onTaskCreated={fetchCustomerData}
+              variant="outline"
+            />
           </div>
         </div>
 

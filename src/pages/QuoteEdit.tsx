@@ -18,6 +18,7 @@ import { displayQuoteTotal, displayLineItemPrice } from "@/lib/priceUtils";
 import MeasurementMap from "@/components/quote/MeasurementMap";
 import MeasurementDetails from "@/components/quote/MeasurementDetails";
 import type { MeasurementData } from "@/types/widget";
+import { TaskDropdown } from "@/components/crm/TaskDropdown";
 
 interface Quote {
   id: string;
@@ -375,6 +376,14 @@ export default function QuoteEdit() {
               <span className="sm:hidden">Back</span>
             </Button>
             <div className="flex items-center gap-2">
+              <TaskDropdown 
+                customerId={quote.customer_id}
+                quoteId={quote.id}
+                onTaskCreated={fetchQuoteData}
+                variant="outline"
+                size="sm"
+                className="hidden sm:flex"
+              />
               {quote.access_token && (
                 <Button variant="outline" size="sm" onClick={copyQuoteLink} className="hidden sm:flex">
                   <Copy className="h-4 w-4 mr-2" />
