@@ -98,6 +98,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const [showNewCategoryDialog, setShowNewCategoryDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryColor, setNewCategoryColor] = useState("#3B82F6");
+  const [showNewSubcategoryDialog, setShowNewSubcategoryDialog] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const { toast } = useToast();
   const { settings: globalSettings } = useGlobalSettings();
   const { contractorId } = useContractorId();
@@ -495,6 +497,66 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
     }
   };
 
+  const handleCreateSubcategory = async () => {
+    const selectedCategory = form.watch("category");
+    
+    if (!selectedCategory) {
+      toast({
+        title: "Error",
+        description: "Please select a category first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newSubcategoryName.trim()) {
+      toast({
+        title: "Error",
+        description: "Subcategory name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Find the category ID
+      const category = categories.find(c => c.name === selectedCategory);
+      if (!category) throw new Error("Category not found");
+
+      const currentSubcategories = getSubcategoriesForCategory(selectedCategory);
+
+      const { error } = await supabase
+        .from("product_subcategories")
+        .insert({
+          category_id: category.id,
+          name: newSubcategoryName.trim(),
+          display_order: currentSubcategories.length,
+          is_active: true,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Subcategory created successfully",
+      });
+
+      // Refresh categories and select the new subcategory
+      await refetchCategories();
+      form.setValue("subcategory", newSubcategoryName.trim());
+      
+      // Reset and close dialog
+      setNewSubcategoryName("");
+      setShowNewSubcategoryDialog(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const unitTypeOptions = [
     { value: "sq_ft", label: "Square Feet" },
     { value: "linear_ft", label: "Linear Feet" },
@@ -616,6 +678,19 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                           {subcategory.name}
                         </SelectItem>
                       ))}
+                      {selectedCategory && (
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start text-primary"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setShowNewSubcategoryDialog(true);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add New Subcategory
+                        </Button>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -1247,6 +1322,43 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             </Button>
             <Button onClick={handleCreateCategory}>
               Create Category
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Subcategory Dialog */}
+      <Dialog open={showNewSubcategoryDialog} onOpenChange={setShowNewSubcategoryDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Subcategory</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="new-subcategory-name">Subcategory Name</Label>
+              <Input
+                id="new-subcategory-name"
+                value={newSubcategoryName}
+                onChange={(e) => setNewSubcategoryName(e.target.value)}
+                placeholder="e.g., Residential"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCreateSubcategory();
+                  }
+                }}
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              This subcategory will be added to: <strong>{form.watch("category")}</strong>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewSubcategoryDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateSubcategory}>
+              Create Subcategory
             </Button>
           </DialogFooter>
         </DialogContent>
