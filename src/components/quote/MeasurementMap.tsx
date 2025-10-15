@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
-import { supabase } from "@/integrations/supabase/client";
+import { loadGoogleMapsAPI } from "@/lib/googleMapsLoader";
 
 interface MeasurementMapProps {
   measurements: Array<{
@@ -24,20 +23,11 @@ export default function MeasurementMap({ measurements, center, className = "" }:
   useEffect(() => {
     const initMap = async () => {
       try {
-        // Get Google Maps API key from edge function
-        const { data, error: keyError } = await supabase.functions.invoke('get-google-maps-key');
+        console.log('MeasurementMap: Starting map initialization');
         
-        if (keyError || !data?.apiKey) {
-          throw new Error('Failed to load Google Maps API key');
-        }
-
-        const loader = new Loader({
-          apiKey: data.apiKey,
-          version: "weekly",
-          libraries: ["places", "drawing"]
-        });
-
-        await loader.load();
+        // Load Google Maps API using shared loader
+        console.log('MeasurementMap: Loading Google Maps API');
+        await loadGoogleMapsAPI();
 
         if (!mapRef.current) return;
 

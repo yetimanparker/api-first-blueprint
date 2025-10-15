@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft } from 'lucide-react';
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader } from '@googlemaps/js-api-loader';
+import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 
 interface MeasurementToolsProps {
   productId: string;
@@ -196,18 +196,12 @@ const MeasurementTools = ({
 
   const fetchApiKey = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('get-google-maps-key');
-      
-      if (error) throw error;
-      
-      if (data?.apiKey) {
-        setApiKey(data.apiKey);
-      } else {
-        throw new Error('No API key returned');
-      }
+      // API key is now handled by the shared loader
+      // Just set a placeholder to indicate it's ready
+      setApiKey('shared-loader');
     } catch (error) {
-      console.error('Error fetching API key:', error);
-      setMapError('Unable to load map: API key not available');
+      console.error('Error with shared loader:', error);
+      setMapError('Unable to load map: API initialization failed');
       setMapLoading(false);
     }
   };
@@ -283,21 +277,10 @@ const MeasurementTools = ({
       setMapLoading(true);
       setMapError(null);
       
-      // Check if Google Maps API is already loaded
-      if (typeof google === 'undefined' || !google.maps) {
-        console.log('Creating Loader with API key');
-        const loader = new Loader({
-          apiKey: apiKey,
-          version: 'weekly',
-          libraries: ['drawing', 'geometry'],
-        });
-
-        console.log('Loading Google Maps API...');
-        await loader.load();
-        console.log('Google Maps API loaded successfully');
-      } else {
-        console.log('Google Maps API already loaded, reusing existing instance');
-      }
+      // Use shared loader to load Google Maps API
+      console.log('Loading Google Maps API via shared loader...');
+      await loadGoogleMapsAPI();
+      console.log('Google Maps API loaded successfully');
 
       let center = { lat: 39.8283, lng: -98.5795 };
       let zoom = 4;
