@@ -88,6 +88,9 @@ export default function QuoteEdit() {
     project_zip_code: "",
     notes: ""
   });
+  const [editingPriceItemId, setEditingPriceItemId] = useState<string | null>(null);
+  const [tempPrice, setTempPrice] = useState<string>("");
+  const [tempQuantity, setTempQuantity] = useState<string>("");
 
   useEffect(() => {
     if (quoteId) {
@@ -332,6 +335,92 @@ export default function QuoteEdit() {
         project_zip_code: quote.project_zip_code || "",
         notes: quote.notes || ""
       });
+    }
+  };
+
+  const startInlineEdit = (item: QuoteItem) => {
+    setEditingPriceItemId(item.id);
+    setTempPrice(item.unit_price.toString());
+    setTempQuantity(item.quantity.toString());
+  };
+
+  const cancelInlineEdit = () => {
+    setEditingPriceItemId(null);
+    setTempPrice("");
+    setTempQuantity("");
+  };
+
+  const saveInlineEdit = async (itemId: string) => {
+    try {
+      const price = parseFloat(tempPrice);
+      const quantity = parseFloat(tempQuantity);
+
+      if (isNaN(price) || price <= 0) {
+        toast({
+          title: "Invalid Price",
+          description: "Please enter a valid price greater than 0",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (isNaN(quantity) || quantity <= 0) {
+        toast({
+          title: "Invalid Quantity",
+          description: "Please enter a valid quantity greater than 0",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSaving(true);
+      const lineTotal = price * quantity;
+
+      // Update the quote item
+      const { error: itemError } = await supabase
+        .from('quote_items')
+        .update({
+          unit_price: price,
+          quantity: quantity,
+          line_total: lineTotal
+        })
+        .eq('id', itemId);
+
+      if (itemError) throw itemError;
+
+      // Recalculate and update quote total
+      const { data: allItems, error: fetchError } = await supabase
+        .from('quote_items')
+        .select('line_total')
+        .eq('quote_id', quoteId);
+
+      if (fetchError) throw fetchError;
+
+      const newTotal = allItems.reduce((sum, item) => sum + item.line_total, 0);
+
+      const { error: quoteError } = await supabase
+        .from('quotes')
+        .update({ total_amount: newTotal })
+        .eq('id', quoteId);
+
+      if (quoteError) throw quoteError;
+
+      toast({
+        title: "Price Updated",
+        description: "Item price has been updated successfully",
+      });
+
+      cancelInlineEdit();
+      fetchQuoteData(); // Refresh to show updated values
+    } catch (error) {
+      console.error('Error updating price:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update item price",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -636,6 +725,7 @@ export default function QuoteEdit() {
               <div className="space-y-4 mb-6">
                 {quoteItems.map((item) => {
                   const basePrice = item.quantity * item.unit_price;
+                  const isEditing = editingPriceItemId === item.id;
                   
                   return (
                     <div key={item.id} className="bg-background rounded-lg p-3 sm:p-4 border border-green-200 dark:border-green-800">
@@ -645,74 +735,146 @@ export default function QuoteEdit() {
                             className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
                             style={{ backgroundColor: item.measurement_data?.mapColor || '#3B82F6' }}
                           />
-                          <div>
+                          <div className="flex-1">
                             <p className="font-semibold text-base sm:text-lg">{item.product.name}</p>
-                            <p className="text-xs sm:text-sm text-muted-foreground">
-                              {item.quantity.toLocaleString()} {item.product.unit_type.replace('_', ' ')}
-                            </p>
+                            
+                            {isEditing ? (
+                              <div className="space-y-2 mt-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                  <div className="flex-1">
+                                    <Label className="text-xs">Quantity</Label>
+                                    <Input
+                                      type="number"
+                                      value={tempQuantity}
+                                      onChange={(e) => setTempQuantity(e.target.value)}
+                                      step="0.01"
+                                      min="0"
+                                      className="h-8"
+                                    />
+                                    <span className="text-xs text-muted-foreground">{item.product.unit_type.replace('_', ' ')}</span>
+                                  </div>
+                                  <div className="flex-1">
+                                    <Label className="text-xs">Unit Price</Label>
+                                    <Input
+                                      type="number"
+                                      value={tempPrice}
+                                      onChange={(e) => setTempPrice(e.target.value)}
+                                      step="0.01"
+                                      min="0"
+                                      className="h-8"
+                                    />
+                                    <span className="text-xs text-muted-foreground">per {item.product.unit_type.replace('_', ' ')}</span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between pt-2 border-t">
+                                  <span className="text-sm font-semibold">
+                                    Line Total: {settings ? `${settings.currency_symbol}${(parseFloat(tempPrice || "0") * parseFloat(tempQuantity || "0")).toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${(parseFloat(tempPrice || "0") * parseFloat(tempQuantity || "0")).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                  </span>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      onClick={() => saveInlineEdit(item.id)}
+                                      disabled={saving}
+                                    >
+                                      <Check className="h-4 w-4 mr-1" />
+                                      Save
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={cancelInlineEdit}
+                                      disabled={saving}
+                                    >
+                                      <X className="h-4 w-4 mr-1" />
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-xs sm:text-sm text-muted-foreground">
+                                {item.quantity.toLocaleString()} {item.product.unit_type.replace('_', ' ')}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
-                          <p className="font-bold text-lg sm:text-xl text-green-600">
-                            {settings ? `${settings.currency_symbol}${item.line_total.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${item.line_total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                          </p>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => setDeletingItemId(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {!isEditing && (
+                            <>
+                              <p className="font-bold text-lg sm:text-xl text-green-600">
+                                {settings ? `${settings.currency_symbol}${item.line_total.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${item.line_total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                              </p>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-primary hover:text-primary"
+                                onClick={() => startInlineEdit(item)}
+                                title="Edit price"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => setDeletingItemId(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                       
-                      {/* Itemized Breakdown */}
-                      <div className="ml-0 sm:ml-6 space-y-2 text-xs sm:text-sm">
-                        {/* Base Product */}
-                        <div className="text-muted-foreground break-words">
-                          Base {item.product.name}: {item.quantity.toLocaleString()} {item.product.unit_type.replace('_', ' ')} × {settings ? `${settings.currency_symbol}${item.unit_price.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} = {settings ? `${settings.currency_symbol}${basePrice.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${basePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                      {/* Itemized Breakdown - Only show when not editing */}
+                      {!isEditing && (
+                        <div className="ml-0 sm:ml-6 space-y-2 text-xs sm:text-sm">
+                          {/* Base Product */}
+                          <div className="text-muted-foreground break-words">
+                            Base {item.product.name}: {item.quantity.toLocaleString()} {item.product.unit_type.replace('_', ' ')} × {settings ? `${settings.currency_symbol}${item.unit_price.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} = {settings ? `${settings.currency_symbol}${basePrice.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${basePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                          </div>
+
+                          {/* Variations */}
+                          {item.measurement_data?.variations && item.measurement_data.variations.length > 0 && item.measurement_data.variations.map((variation, idx) => {
+                            const variationPrice = variation.adjustmentType === 'percentage'
+                              ? basePrice * (variation.priceAdjustment / 100)
+                              : variation.priceAdjustment * item.quantity;
+                            
+                            return (
+                              <div key={idx} className="text-muted-foreground break-words">
+                                {variation.name}: {variation.adjustmentType === 'percentage' 
+                                  ? `${variation.priceAdjustment}%` 
+                                  : `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ${settings ? `${settings.currency_symbol}${variation.priceAdjustment.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${variation.priceAdjustment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}`
+                                } = {settings ? `${settings.currency_symbol}${variationPrice.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${variationPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                              </div>
+                            );
+                          })}
+
+                          {/* Add-ons */}
+                          {item.measurement_data?.addons && item.measurement_data.addons.length > 0 && item.measurement_data.addons.filter(addon => addon.quantity > 0).map((addon, idx) => {
+                            let addonPrice = addon.priceValue;
+                            
+                            if (addon.calculationType === 'per_unit') {
+                              addonPrice = addon.priceValue * item.quantity;
+                            } else if (addon.calculationType === 'area_calculation') {
+                              // For area calculation, we need height × linear feet
+                              // This is already calculated in the priceValue from the widget
+                              addonPrice = addon.priceValue;
+                            }
+                            
+                            return (
+                              <div key={idx} className="text-muted-foreground break-words">
+                                {addon.name}: {addon.calculationType === 'per_unit' 
+                                  ? `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ` 
+                                  : addon.calculationType === 'area_calculation'
+                                  ? 'area × '
+                                  : ''}{settings ? `${settings.currency_symbol}${addon.priceValue.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${addon.priceValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} = {settings ? `${settings.currency_symbol}${addonPrice.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${addonPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                              </div>
+                            );
+                          })}
                         </div>
-
-                        {/* Variations */}
-                        {item.measurement_data?.variations && item.measurement_data.variations.length > 0 && item.measurement_data.variations.map((variation, idx) => {
-                          const variationPrice = variation.adjustmentType === 'percentage'
-                            ? basePrice * (variation.priceAdjustment / 100)
-                            : variation.priceAdjustment * item.quantity;
-                          
-                          return (
-                            <div key={idx} className="text-muted-foreground break-words">
-                              {variation.name}: {variation.adjustmentType === 'percentage' 
-                                ? `${variation.priceAdjustment}%` 
-                                : `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ${settings ? `${settings.currency_symbol}${variation.priceAdjustment.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${variation.priceAdjustment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}`
-                              } = {settings ? `${settings.currency_symbol}${variationPrice.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${variationPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            </div>
-                          );
-                        })}
-
-                        {/* Add-ons */}
-                        {item.measurement_data?.addons && item.measurement_data.addons.length > 0 && item.measurement_data.addons.filter(addon => addon.quantity > 0).map((addon, idx) => {
-                          let addonPrice = addon.priceValue;
-                          
-                          if (addon.calculationType === 'per_unit') {
-                            addonPrice = addon.priceValue * item.quantity;
-                          } else if (addon.calculationType === 'area_calculation') {
-                            // For area calculation, we need height × linear feet
-                            // This is already calculated in the priceValue from the widget
-                            addonPrice = addon.priceValue;
-                          }
-                          
-                          return (
-                            <div key={idx} className="text-muted-foreground break-words">
-                              {addon.name}: {addon.calculationType === 'per_unit' 
-                                ? `${item.quantity.toLocaleString()} ${item.product.unit_type.replace('_', ' ')} × ` 
-                                : addon.calculationType === 'area_calculation'
-                                ? 'area × '
-                                : ''}{settings ? `${settings.currency_symbol}${addon.priceValue.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${addon.priceValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} = {settings ? `${settings.currency_symbol}${addonPrice.toLocaleString('en-US', { minimumFractionDigits: settings.decimal_precision, maximumFractionDigits: settings.decimal_precision })}` : `$${addonPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            </div>
-                          );
-                        })}
-                      </div>
+                      )}
                     </div>
                   );
                 })}
