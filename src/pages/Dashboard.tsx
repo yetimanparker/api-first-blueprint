@@ -13,7 +13,6 @@ const Dashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
-    totalProducts: 0,
     quotesNotViewed: 0,
     totalCustomers: 0,
     totalRevenue: 0,
@@ -55,12 +54,6 @@ const Dashboard = () => {
 
     const fetchStats = async () => {
       try {
-        // Fetch products count
-        const { count: productsCount } = await supabase
-          .from('products')
-          .select('*', { count: 'exact', head: true })
-          .eq('contractor_id', contractorId);
-
         // Fetch unviewed quotes count
         const { count: unviewedQuotesCount } = await supabase
           .from('quotes')
@@ -84,7 +77,6 @@ const Dashboard = () => {
         const totalRevenue = acceptedQuotes?.reduce((sum, quote) => sum + Number(quote.total_amount || 0), 0) || 0;
 
         setStats({
-          totalProducts: productsCount || 0,
           quotesNotViewed: unviewedQuotesCount || 0,
           totalCustomers: customersCount || 0,
           totalRevenue,
@@ -181,19 +173,11 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalProducts}</div>
-              <p className="text-xs text-muted-foreground">Active products</p>
-            </CardContent>
-          </Card>
-
-          <Card className={stats.quotesNotViewed > 0 ? "border-orange-500/50 bg-orange-50/50 dark:bg-orange-950/20" : ""}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-8">
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-lg ${stats.quotesNotViewed > 0 ? "border-orange-500/50 bg-orange-50/50 dark:bg-orange-950/20" : ""}`}
+            onClick={() => navigate('/crm?filter=unviewed')}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Quotes Not Viewed</CardTitle>
               <FileText className={`h-4 w-4 ${stats.quotesNotViewed > 0 ? 'text-orange-500' : 'text-muted-foreground'}`} />
@@ -202,7 +186,7 @@ const Dashboard = () => {
               <div className={`text-2xl font-bold ${stats.quotesNotViewed > 0 ? 'text-orange-600 dark:text-orange-400' : ''}`}>
                 {stats.quotesNotViewed}
               </div>
-              <p className="text-xs text-muted-foreground">Pending review</p>
+              <p className="text-xs text-muted-foreground">Click to view</p>
             </CardContent>
           </Card>
 

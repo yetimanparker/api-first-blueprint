@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ArrowLeft, Search, Users, FileText, Phone, Mail, MapPin, MoreHorizontal, Edit, Plus, ArrowUpDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CustomerQuoteDialog } from "@/components/CustomerQuoteDialog";
 import { CustomerDialog } from "@/components/CustomerDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,7 @@ interface Quote {
   status: string;
   total_amount: number;
   created_at: string;
+  first_viewed_at: string | null;
 }
 
 const CRM = () => {
@@ -47,10 +48,16 @@ const CRM = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+    // Check for URL filter parameter
+    const filterParam = searchParams.get('filter');
+    if (filterParam === 'unviewed') {
+      setStatusFilter('unviewed');
+    }
+  }, [searchParams]);
 
   // Filter and sort customers
   useEffect(() => {
@@ -75,6 +82,9 @@ const CRM = () => {
           const hasActiveQuotes = customerQuoteList.some(q => ['pending', 'draft'].includes(q.status));
           return matchesSearch && hasActiveQuotes;
         case "no_quotes": return matchesSearch && customerQuoteList.length === 0;
+        case "unviewed":
+          const hasUnviewedQuotes = customerQuoteList.some(q => q.first_viewed_at === null);
+          return matchesSearch && hasUnviewedQuotes;
         default: return matchesSearch;
       }
     });
@@ -125,7 +135,7 @@ const CRM = () => {
       if (customersData && customersData.length > 0) {
         const { data: quotesData, error: quotesError } = await supabase
           .from("quotes")
-          .select("id, quote_number, status, total_amount, created_at, customer_id")
+          .select("id, quote_number, status, total_amount, created_at, customer_id, first_viewed_at")
           .in("customer_id", customersData.map(c => c.id));
 
         if (quotesError) throw quotesError;
@@ -297,6 +307,7 @@ const CRM = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Customers</SelectItem>
+                  <SelectItem value="unviewed">Unviewed Quotes</SelectItem>
                   <SelectItem value="lead">Leads</SelectItem>
                   <SelectItem value="contacted">Contacted</SelectItem>
                   <SelectItem value="quoted">Quoted</SelectItem>
