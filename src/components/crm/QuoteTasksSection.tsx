@@ -124,16 +124,15 @@ export default function QuoteTasksSection({ quoteId }: QuoteTasksSectionProps) {
   }
 
   if (tasks.length === 0) {
-    return null; // Don't show empty section
+    return (
+      <div className="text-center py-4 text-muted-foreground text-sm">
+        No tasks for this quote yet
+      </div>
+    );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Tasks for this Quote ({tasks.length})</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+    <div className="space-y-4">
           {tasks.map((task) => {
             const IconComponent = getTaskTypeIcon(task.task_type);
             const isCompleted = task.status === 'completed';
@@ -193,7 +192,5 @@ export default function QuoteTasksSection({ quoteId }: QuoteTasksSectionProps) {
             );
           })}
         </div>
-      </CardContent>
-    </Card>
   );
 }

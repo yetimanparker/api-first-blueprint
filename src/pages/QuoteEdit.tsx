@@ -9,7 +9,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin, Ruler, Plus } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin, Ruler, Plus, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { QuoteItemForm } from "@/components/QuoteItemForm";
@@ -79,6 +80,7 @@ export default function QuoteEdit() {
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [editingAddress, setEditingAddress] = useState(false);
   const [showAddItemForm, setShowAddItemForm] = useState(false);
+  const [tasksOpen, setTasksOpen] = useState(false);
   const [addressForm, setAddressForm] = useState({
     project_address: "",
     project_city: "", 
@@ -463,6 +465,29 @@ export default function QuoteEdit() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Tasks Section - Collapsible */}
+        <Collapsible open={tasksOpen} onOpenChange={setTasksOpen} className="mb-6">
+          <Card>
+            <CollapsibleTrigger className="w-full">
+              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Tasks for this Quote</CardTitle>
+                  <ChevronDown 
+                    className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${
+                      tasksOpen ? 'transform rotate-180' : ''
+                    }`} 
+                  />
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <QuoteTasksSection quoteId={quote.id} />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Action Buttons */}
         <div className="mb-6 flex flex-col sm:flex-row gap-3">
@@ -974,9 +999,6 @@ export default function QuoteEdit() {
             )}
           </CardContent>
         </Card>
-
-        {/* Tasks Section */}
-        <QuoteTasksSection quoteId={quote.id} />
 
         {/* Edit Item Dialog */}
         <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
