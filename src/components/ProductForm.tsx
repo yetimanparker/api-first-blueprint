@@ -25,7 +25,6 @@ const productSchema = z.object({
   unit_price: z.number().min(0, "Price must be positive"),
   min_order_quantity: z.number().min(0.01, "Minimum order quantity must be greater than 0"),
   unit_type: z.enum(["sq_ft", "linear_ft", "each", "hour", "cubic_yard", "pound", "ton", "pallet"]),
-  color_hex: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color"),
   is_active: z.boolean(),
   show_pricing_before_submit: z.boolean(),
   use_tiered_pricing: z.boolean(),
@@ -69,7 +68,6 @@ interface Product {
   unit_price: number;
   min_order_quantity: number;
   unit_type: string;
-  color_hex: string;
   is_active: boolean;
   show_pricing_before_submit: boolean;
   use_tiered_pricing?: boolean;
@@ -113,7 +111,6 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       unit_price: product?.unit_price || 0,
       min_order_quantity: product?.min_order_quantity || 1,
       unit_type: (product?.unit_type as any) || globalSettings?.default_unit_type || "sq_ft",
-      color_hex: product?.color_hex || globalSettings?.default_product_color || "#3B82F6",
       is_active: product?.is_active ?? (globalSettings?.auto_activate_products ?? true),
       show_pricing_before_submit: product?.show_pricing_before_submit ?? true,
       use_tiered_pricing: product?.use_tiered_pricing ?? false,
@@ -296,7 +293,6 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         unit_price: Number(data.unit_price),
         min_order_quantity: Number(data.min_order_quantity),
         unit_type: data.unit_type,
-        color_hex: data.color_hex,
         is_active: data.is_active,
         show_pricing_before_submit: data.show_pricing_before_submit,
         use_tiered_pricing: data.use_tiered_pricing,
@@ -759,22 +755,6 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="color_hex"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Color</FormLabel>
-                <FormControl>
-                  <div className="flex gap-2">
-                    <Input type="color" {...field} className="w-16 h-10 p-1" />
-                    <Input {...field} placeholder="#3B82F6" className="flex-1" />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
           <FormField
             control={form.control}

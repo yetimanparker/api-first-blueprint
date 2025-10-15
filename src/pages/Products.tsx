@@ -52,7 +52,6 @@ interface Product {
   unit_price: number;
   min_order_quantity: number;
   unit_type: string;
-  color_hex: string;
   is_active: boolean;
   show_pricing_before_submit: boolean;
   display_order: number | null;
@@ -533,17 +532,8 @@ export default function Products() {
                                     className="h-12 w-12 rounded-lg object-cover"
                                   />
                                 ) : (
-                                  <div
-                                    className="h-12 w-12 rounded-lg flex items-center justify-center text-white text-sm font-semibold"
-                                    style={{ backgroundColor: product.color_hex }}
-                                  >
-                                    {product.name
-                                      .split(' ')
-                                      .map(word => word[0])
-                                      .join('')
-                                      .toUpperCase()
-                                      .slice(0, 2)
-                                    }
+                                  <div className="h-12 w-12 rounded-lg flex items-center justify-center bg-muted text-muted-foreground text-sm font-semibold">
+                                    <Package className="h-6 w-6" />
                                   </div>
                                 )}
                                 <div>

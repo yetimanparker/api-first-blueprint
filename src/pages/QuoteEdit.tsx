@@ -60,7 +60,6 @@ interface QuoteItem {
   product: {
     name: string;
     unit_type: string;
-    color_hex: string;
   };
 }
 
@@ -133,7 +132,7 @@ export default function QuoteEdit() {
         .from('quote_items')
         .select(`
           *,
-          product:products(name, unit_type, color_hex)
+          product:products(name, unit_type)
         `)
         .eq('quote_id', quoteId)
         .order('created_at');
@@ -607,7 +606,7 @@ export default function QuoteEdit() {
                         <div className="flex items-start gap-3 flex-1">
                           <div 
                             className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5"
-                            style={{ backgroundColor: item.product.color_hex }}
+                            style={{ backgroundColor: item.measurement_data?.mapColor || '#3B82F6' }}
                           />
                           <div>
                             <p className="font-semibold text-base sm:text-lg">{item.product.name}</p>
@@ -762,7 +761,7 @@ export default function QuoteEdit() {
                         type: item.measurement_data!.type,
                         coordinates: item.measurement_data!.coordinates,
                         productName: item.product.name,
-                        productColor: item.product.color_hex,
+                        productColor: item.measurement_data!.mapColor || '#3B82F6',
                         value: item.measurement_data!.value,
                         unit: item.measurement_data!.unit,
                       }))}
@@ -775,7 +774,7 @@ export default function QuoteEdit() {
                         <div key={item.id} className="flex items-center gap-2">
                           <div 
                             className="w-4 h-4 rounded" 
-                            style={{ backgroundColor: item.product.color_hex }}
+                            style={{ backgroundColor: item.measurement_data?.mapColor || '#3B82F6' }}
                           />
                           <span className="text-sm">{item.product.name}</span>
                         </div>
@@ -947,7 +946,7 @@ export default function QuoteEdit() {
                             type: item.measurement_data.type,
                             coordinates: item.measurement_data.coordinates,
                             productName: item.product.name,
-                            productColor: item.product.color_hex,
+                            productColor: item.measurement_data.mapColor || '#3B82F6',
                             value: item.measurement_data.value,
                             unit: item.measurement_data.unit,
                           }]}

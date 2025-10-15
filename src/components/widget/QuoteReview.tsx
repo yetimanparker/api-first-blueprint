@@ -261,6 +261,7 @@ const QuoteReview = ({
           coordinates: item.measurement.coordinates || [],
           manualEntry: item.measurement.manualEntry || false,
           customName: item.customName || '',
+          mapColor: item.measurement.mapColor,
           depth: item.measurement.depth,
           variations: (item.variations || []).map(v => ({
             id: v.id,

@@ -26,7 +26,6 @@ interface Product {
   unit_price: number;
   use_tiered_pricing: boolean;
   min_order_quantity: number;
-  color_hex: string;
 }
 
 interface Variation {
