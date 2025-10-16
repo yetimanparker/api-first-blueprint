@@ -149,11 +149,28 @@ export function calculateAddonWithAreaData(
     height?: number | null;
     unit?: string;
     affects_area_calculation?: boolean;
+  },
+  productData?: {
+    base_height?: number | null;
+    base_height_unit?: string;
+    use_height_in_calculation?: boolean;
   }
 ): number {
-  if (calculationType === "area_calculation" && variationData?.affects_area_calculation && variationData.height) {
-    const totalArea = calculateAreaWithHeight(baseQuantity, variationData.height, variationData.unit);
-    return addonPrice * totalArea;
+  if (calculationType === "area_calculation") {
+    // Priority 1: Use variation height if available
+    if (variationData?.affects_area_calculation && variationData.height) {
+      const totalArea = calculateAreaWithHeight(baseQuantity, variationData.height, variationData.unit);
+      return addonPrice * totalArea;
+    }
+    
+    // Priority 2: Use base product height if enabled
+    if (productData?.use_height_in_calculation && productData.base_height) {
+      const totalArea = calculateAreaWithHeight(baseQuantity, productData.base_height, productData.base_height_unit || 'ft');
+      return addonPrice * totalArea;
+    }
+    
+    // Priority 3: No height calculation, use base quantity
+    return addonPrice * baseQuantity;
   }
   
   // Default calculation for non-area based add-ons

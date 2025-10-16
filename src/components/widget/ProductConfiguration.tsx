@@ -225,7 +225,12 @@ const ProductConfiguration = ({
             addon.price_value,
             addonBaseQuantity,
             addon.calculation_type,
-            variationData
+            variationData,
+            {
+              base_height: product.base_height,
+              base_height_unit: product.base_height_unit,
+              use_height_in_calculation: product.use_height_in_calculation
+            }
           );
           subtotal += addonPrice * addonQuantity;
         }
@@ -576,7 +581,12 @@ const ProductConfiguration = ({
                       addon.price_value,
                       quantity,
                       addon.calculation_type,
-                      variationData
+                      variationData,
+                      {
+                        base_height: product.base_height,
+                        base_height_unit: product.base_height_unit,
+                        use_height_in_calculation: product.use_height_in_calculation
+                      }
                     );
                     const addonTotal = addonPrice * addonQuantity;
 
