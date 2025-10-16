@@ -80,8 +80,9 @@ const MeasurementTools = ({
   const [dragHandle, setDragHandle] = useState<google.maps.Marker | null>(null);
   const [isDimensionalPlaced, setIsDimensionalPlaced] = useState(false);
   
-  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
+  const initializationAttemptedRef = useRef(false);
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const currentShapeRef = useRef<google.maps.Polygon | google.maps.Polyline | null>(null);
   const measurementLabelRef = useRef<google.maps.Marker | null>(null);
@@ -148,113 +149,125 @@ const MeasurementTools = ({
     fetchProduct();
   }, [productId]);
 
-  useEffect(() => {
-    if (!apiKey || mapRef.current) return;
+  // Initialize map when container ref is available and we have an API key
+  const initializeMapIfReady = async (container: HTMLDivElement) => {
+    if (!apiKey || mapRef.current || initializationAttemptedRef.current) return;
+    
+    initializationAttemptedRef.current = true;
+    
+    try {
+      console.log('Starting map initialization...');
+      setMapLoading(true);
+      setMapError(null);
+      
+      // Use shared loader to load Google Maps API
+      console.log('Loading Google Maps API via shared loader...');
+      await loadGoogleMapsAPI();
+      console.log('Google Maps API loaded successfully');
 
-    const initMap = async () => {
-      if (!mapContainerRef.current) {
-        console.error('Map container ref not available');
-        return;
-      }
+      let center = { lat: 39.8283, lng: -98.5795 };
+      let zoom = 4;
 
-      try {
-        console.log('Starting map initialization...');
-        setMapLoading(true);
-        setMapError(null);
-        
-        // Use shared loader to load Google Maps API
-        console.log('Loading Google Maps API via shared loader...');
-        await loadGoogleMapsAPI();
-        console.log('Google Maps API loaded successfully');
-
-        let center = { lat: 39.8283, lng: -98.5795 };
-        let zoom = 4;
-
-        // Try to restore saved map state first
-        const savedState = sessionStorage.getItem(STORAGE_KEY);
-        if (savedState) {
-          try {
-            const parsed = JSON.parse(savedState);
-            center = parsed.center;
-            zoom = parsed.zoom;
-            console.log('📍 Restored map state from storage:', { center, zoom });
-          } catch (e) {
-            console.error('Failed to parse saved map state:', e);
-          }
-        } else if (customerAddress) {
-          // Only geocode if no saved state
-          console.log('Geocoding address:', customerAddress);
-          const geocodedCenter = await geocodeAddress(customerAddress);
-          if (geocodedCenter) {
-            center = geocodedCenter;
-            zoom = 21;
-            console.log('Geocoded to:', center);
-          }
+      // Try to restore saved map state first
+      const savedState = sessionStorage.getItem(STORAGE_KEY);
+      if (savedState) {
+        try {
+          const parsed = JSON.parse(savedState);
+          center = parsed.center;
+          zoom = parsed.zoom;
+          console.log('📍 Restored map state from storage:', { center, zoom });
+        } catch (e) {
+          console.error('Failed to parse saved map state:', e);
         }
-
-        console.log('Creating map instance with center:', center);
-        const map = new google.maps.Map(mapContainerRef.current, {
-          center: center,
-          zoom: zoom,
-          mapTypeId: google.maps.MapTypeId.HYBRID,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-          zoomControl: true,
-          zoomControlOptions: {
-            position: google.maps.ControlPosition.RIGHT_CENTER
-          },
-          tilt: 0,
-          rotateControl: false,
-          gestureHandling: 'greedy',
-          disableDefaultUI: true,
-          styles: [
-            {
-              featureType: 'poi',
-              elementType: 'labels',
-              stylers: [{ visibility: 'off' }]
-            },
-            {
-              featureType: 'poi.business',
-              stylers: [{ visibility: 'off' }]
-            },
-            {
-              featureType: 'transit',
-              elementType: 'labels',
-              stylers: [{ visibility: 'off' }]
-            }
-          ]
-        });
-
-        console.log('Map instance created successfully');
-        mapRef.current = map;
-        
-        console.log('Setting up drawing manager');
-        setupDrawingManager(map);
-        
-        console.log('Map initialization complete');
-        setMapLoading(false);
-        
-        // Render existing measurements from quote items
-        renderExistingMeasurements(map);
-        
-        // Auto-start drawing after a brief delay to ensure everything is ready
-        console.log('Map initialized, preparing to auto-start drawing');
-        setTimeout(() => {
-          if (!showManualEntry) {
-            startDrawing();
-          }
-        }, 500);
-        
-      } catch (error) {
-        console.error('Map initialization failed:', error);
-        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-        setMapError(`Unable to load map: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setMapLoading(false);
+      } else if (customerAddress) {
+        // Only geocode if no saved state
+        console.log('Geocoding address:', customerAddress);
+        const geocodedCenter = await geocodeAddress(customerAddress);
+        if (geocodedCenter) {
+          center = geocodedCenter;
+          zoom = 21;
+          console.log('Geocoded to:', center);
+        }
       }
-    };
 
-    initMap();
+      console.log('Creating map instance with center:', center);
+      const map = new google.maps.Map(container, {
+        center: center,
+        zoom: zoom,
+        mapTypeId: google.maps.MapTypeId.HYBRID,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        zoomControl: true,
+        zoomControlOptions: {
+          position: google.maps.ControlPosition.RIGHT_CENTER
+        },
+        tilt: 0,
+        rotateControl: false,
+        gestureHandling: 'greedy',
+        disableDefaultUI: true,
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'poi.business',
+            stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'transit',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          }
+        ]
+      });
+
+      console.log('Map instance created successfully');
+      mapRef.current = map;
+      
+      console.log('Setting up drawing manager');
+      setupDrawingManager(map);
+      
+      console.log('Map initialization complete');
+      setMapLoading(false);
+      
+      // Render existing measurements from quote items
+      renderExistingMeasurements(map);
+      
+      // Auto-start drawing after a brief delay to ensure everything is ready
+      console.log('Map initialized, preparing to auto-start drawing');
+      setTimeout(() => {
+        if (!showManualEntry) {
+          startDrawing();
+        }
+      }, 500);
+      
+    } catch (error) {
+      console.error('Map initialization failed:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      setMapError(`Unable to load map: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setMapLoading(false);
+      initializationAttemptedRef.current = false; // Allow retry on error
+    }
+  };
+
+  // Callback ref that initializes map when DOM element is ready
+  const mapContainerCallbackRef = (node: HTMLDivElement | null) => {
+    mapContainerRef.current = node;
+    if (node && apiKey && !mapRef.current) {
+      console.log('Map container ref callback triggered, initializing...');
+      initializeMapIfReady(node);
+    }
+  };
+
+  // Also try to initialize when apiKey becomes available (if container already exists)
+  useEffect(() => {
+    if (apiKey && mapContainerRef.current && !mapRef.current) {
+      console.log('API key became available, initializing map...');
+      initializeMapIfReady(mapContainerRef.current);
+    }
   }, [apiKey]);
 
   // Auto-start drawing when map and drawing manager are ready
@@ -1081,7 +1094,7 @@ const MeasurementTools = ({
       {/* Map Section */}
       <div className="relative flex-1 w-full overflow-hidden min-h-[500px]">
         <div 
-          ref={mapContainerRef}
+          ref={mapContainerCallbackRef}
           className="w-full h-full absolute inset-0"
         />
         
