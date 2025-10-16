@@ -162,19 +162,9 @@ const ProductConfiguration = ({
       // Convert: sq ft × depth (inches) / 324 = cubic yards
       // 324 = 12 inches/foot × 27 cubic feet/cubic yard
       quantity = (measurement.value * depthValue) / 324;
-    } else if (!depthValue && measurement.type !== 'point') {
-      // Apply height calculation if not volume-based (variation takes priority over base product)
-      const variation = selectedVariation ? variations.find(v => v.id === selectedVariation) : null;
-      quantity = calculateQuantityWithBaseHeight(
-        measurement.value,
-        {
-          base_height: product.base_height,
-          base_height_unit: product.base_height_unit,
-          use_height_in_calculation: product.use_height_in_calculation
-        },
-        variation
-      );
     }
+    // Base product uses raw measurement value (linear feet, square feet, etc.)
+    // Height calculation is only applied to add-ons with 'area_calculation' type
 
     if (product.use_tiered_pricing && pricingTiers.length > 0) {
       const simplifiedTiers: any[] = pricingTiers.map(tier => ({
