@@ -149,29 +149,112 @@ const MeasurementTools = ({
   }, [productId]);
 
   useEffect(() => {
-    if (apiKey && !mapRef.current) {
-      let retryCount = 0;
-      const maxRetries = 10;
-      const retryDelay = 100; // ms
+    if (!apiKey || mapRef.current) return;
 
-      const tryInitializeMap = () => {
-        if (mapContainerRef.current) {
-          console.log('✅ Map container ready, initializing map');
-          initializeMap();
-        } else if (retryCount < maxRetries) {
-          retryCount++;
-          console.log(`⏳ Map container not ready, retry ${retryCount}/${maxRetries}`);
-          setTimeout(tryInitializeMap, retryDelay);
-        } else {
-          console.error('❌ Map container failed to load after all retries');
-          setMapError('Map container failed to load');
-          setMapLoading(false);
+    const initMap = async () => {
+      if (!mapContainerRef.current) {
+        console.error('Map container ref not available');
+        return;
+      }
+
+      try {
+        console.log('Starting map initialization...');
+        setMapLoading(true);
+        setMapError(null);
+        
+        // Use shared loader to load Google Maps API
+        console.log('Loading Google Maps API via shared loader...');
+        await loadGoogleMapsAPI();
+        console.log('Google Maps API loaded successfully');
+
+        let center = { lat: 39.8283, lng: -98.5795 };
+        let zoom = 4;
+
+        // Try to restore saved map state first
+        const savedState = sessionStorage.getItem(STORAGE_KEY);
+        if (savedState) {
+          try {
+            const parsed = JSON.parse(savedState);
+            center = parsed.center;
+            zoom = parsed.zoom;
+            console.log('📍 Restored map state from storage:', { center, zoom });
+          } catch (e) {
+            console.error('Failed to parse saved map state:', e);
+          }
+        } else if (customerAddress) {
+          // Only geocode if no saved state
+          console.log('Geocoding address:', customerAddress);
+          const geocodedCenter = await geocodeAddress(customerAddress);
+          if (geocodedCenter) {
+            center = geocodedCenter;
+            zoom = 21;
+            console.log('Geocoded to:', center);
+          }
         }
-      };
 
-      // Start with a small delay to allow React to render
-      setTimeout(tryInitializeMap, 50);
-    }
+        console.log('Creating map instance with center:', center);
+        const map = new google.maps.Map(mapContainerRef.current, {
+          center: center,
+          zoom: zoom,
+          mapTypeId: google.maps.MapTypeId.HYBRID,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          zoomControl: true,
+          zoomControlOptions: {
+            position: google.maps.ControlPosition.RIGHT_CENTER
+          },
+          tilt: 0,
+          rotateControl: false,
+          gestureHandling: 'greedy',
+          disableDefaultUI: true,
+          styles: [
+            {
+              featureType: 'poi',
+              elementType: 'labels',
+              stylers: [{ visibility: 'off' }]
+            },
+            {
+              featureType: 'poi.business',
+              stylers: [{ visibility: 'off' }]
+            },
+            {
+              featureType: 'transit',
+              elementType: 'labels',
+              stylers: [{ visibility: 'off' }]
+            }
+          ]
+        });
+
+        console.log('Map instance created successfully');
+        mapRef.current = map;
+        
+        console.log('Setting up drawing manager');
+        setupDrawingManager(map);
+        
+        console.log('Map initialization complete');
+        setMapLoading(false);
+        
+        // Render existing measurements from quote items
+        renderExistingMeasurements(map);
+        
+        // Auto-start drawing after a brief delay to ensure everything is ready
+        console.log('Map initialized, preparing to auto-start drawing');
+        setTimeout(() => {
+          if (!showManualEntry) {
+            startDrawing();
+          }
+        }, 500);
+        
+      } catch (error) {
+        console.error('Map initialization failed:', error);
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+        setMapError(`Unable to load map: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setMapLoading(false);
+      }
+    };
+
+    initMap();
   }, [apiKey]);
 
   // Auto-start drawing when map and drawing manager are ready
@@ -279,115 +362,6 @@ const MeasurementTools = ({
     }
   };
 
-  const initializeMap = async () => {
-    if (!mapContainerRef.current || !apiKey) {
-      console.error('Cannot initialize map:', { 
-        hasContainer: !!mapContainerRef.current, 
-        hasApiKey: !!apiKey 
-      });
-      return;
-    }
-    if (mapRef.current) {
-      console.log('Map already initialized');
-      return;
-    }
-
-    try {
-      console.log('Starting map initialization...');
-      setMapLoading(true);
-      setMapError(null);
-      
-      // Use shared loader to load Google Maps API
-      console.log('Loading Google Maps API via shared loader...');
-      await loadGoogleMapsAPI();
-      console.log('Google Maps API loaded successfully');
-
-      let center = { lat: 39.8283, lng: -98.5795 };
-      let zoom = 4;
-
-      // Try to restore saved map state first
-      const savedState = sessionStorage.getItem(STORAGE_KEY);
-      if (savedState) {
-        try {
-          const parsed = JSON.parse(savedState);
-          center = parsed.center;
-          zoom = parsed.zoom;
-          console.log('📍 Restored map state from storage:', { center, zoom });
-        } catch (e) {
-          console.error('Failed to parse saved map state:', e);
-        }
-      } else if (customerAddress) {
-        // Only geocode if no saved state
-        console.log('Geocoding address:', customerAddress);
-        const geocodedCenter = await geocodeAddress(customerAddress);
-        if (geocodedCenter) {
-          center = geocodedCenter;
-          zoom = 21;
-          console.log('Geocoded to:', center);
-        }
-      }
-
-      console.log('Creating map instance with center:', center);
-      const map = new google.maps.Map(mapContainerRef.current, {
-        center: center,
-        zoom: zoom,
-        mapTypeId: google.maps.MapTypeId.HYBRID,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
-        zoomControl: true,
-        zoomControlOptions: {
-          position: google.maps.ControlPosition.RIGHT_CENTER
-        },
-        tilt: 0,
-        rotateControl: false,
-        gestureHandling: 'greedy',
-        disableDefaultUI: true, // Disable all default UI to hide map/satellite selector
-        styles: [
-          {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          },
-          {
-            featureType: 'poi.business',
-            stylers: [{ visibility: 'off' }]
-          },
-          {
-            featureType: 'transit',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-          }
-        ]
-      });
-
-      console.log('Map instance created successfully');
-      mapRef.current = map;
-      
-      console.log('Setting up drawing manager');
-      setupDrawingManager(map);
-      
-      console.log('Map initialization complete');
-      setMapLoading(false);
-      
-      // Render existing measurements from quote items
-      renderExistingMeasurements(map);
-      
-      // Auto-start drawing after a brief delay to ensure everything is ready
-      console.log('Map initialized, preparing to auto-start drawing');
-      setTimeout(() => {
-        if (!showManualEntry) {
-          startDrawing();
-        }
-      }, 500);
-      
-    } catch (error) {
-      console.error('Map initialization failed:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-      setMapError(`Unable to load map: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setMapLoading(false);
-    }
-  };
 
   const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
     try {
