@@ -150,20 +150,27 @@ const MeasurementTools = ({
 
   useEffect(() => {
     if (apiKey && !mapRef.current) {
-      // Use requestAnimationFrame to ensure DOM is fully rendered
-      requestAnimationFrame(() => {
-        // Double RAF for extra safety on slower devices
-        requestAnimationFrame(() => {
-          if (mapContainerRef.current) {
-            console.log('✅ Map container ready, initializing map');
-            initializeMap();
-          } else {
-            console.error('❌ Map container still not ready after RAF');
-            setMapError('Map container failed to load');
-            setMapLoading(false);
-          }
-        });
-      });
+      let retryCount = 0;
+      const maxRetries = 10;
+      const retryDelay = 100; // ms
+
+      const tryInitializeMap = () => {
+        if (mapContainerRef.current) {
+          console.log('✅ Map container ready, initializing map');
+          initializeMap();
+        } else if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`⏳ Map container not ready, retry ${retryCount}/${maxRetries}`);
+          setTimeout(tryInitializeMap, retryDelay);
+        } else {
+          console.error('❌ Map container failed to load after all retries');
+          setMapError('Map container failed to load');
+          setMapLoading(false);
+        }
+      };
+
+      // Start with a small delay to allow React to render
+      setTimeout(tryInitializeMap, 50);
     }
   }, [apiKey]);
 
