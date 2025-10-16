@@ -259,6 +259,7 @@ const QuoteReview = ({
           value: item.measurement.value,
           unit: item.measurement.unit,
           coordinates: item.measurement.coordinates || [],
+          pointLocations: item.measurement.pointLocations || [],
           manualEntry: item.measurement.manualEntry || false,
           customName: item.customName || '',
           mapColor: item.measurement.mapColor,
