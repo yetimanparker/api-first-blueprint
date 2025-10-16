@@ -95,6 +95,19 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
   const initializeMap = async () => {
     if (!mapContainerRef.current || !apiKey || quoteItems.length === 0) return;
 
+    console.log('=== MAP INITIALIZATION DEBUG ===');
+    console.log('Quote Items:', quoteItems.length);
+    quoteItems.forEach((item, idx) => {
+      console.log(`Item ${idx}:`, {
+        name: item.products?.name,
+        type: item.measurement_data?.type,
+        hasCoordinates: item.measurement_data?.coordinates?.length > 0,
+        hasPointLocations: item.measurement_data?.pointLocations?.length > 0,
+        manualEntry: item.measurement_data?.manualEntry,
+        pointLocations: item.measurement_data?.pointLocations
+      });
+    });
+
     try {
       const loader = new Loader({
         apiKey: apiKey,
@@ -112,8 +125,10 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
         if (firstItem.measurement_data.coordinates?.[0]) {
           const firstCoord = firstItem.measurement_data.coordinates[0];
           center = { lat: firstCoord[0], lng: firstCoord[1] };
+          console.log('Centering map on coordinates:', center);
         } else if (firstItem.measurement_data.pointLocations?.[0]) {
           center = firstItem.measurement_data.pointLocations[0];
+          console.log('Centering map on point location:', center);
         }
       }
 
@@ -135,11 +150,21 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
         const hasCoordinates = item.measurement_data?.coordinates?.length > 0;
         const hasPointLocations = item.measurement_data?.pointLocations?.length > 0;
         
-        if (!hasCoordinates && !hasPointLocations) return;
+        console.log(`Processing item ${index}:`, item.products?.name, {
+          hasCoordinates,
+          hasPointLocations,
+          type: item.measurement_data?.type
+        });
+        
+        if (!hasCoordinates && !hasPointLocations) {
+          console.log(`Skipping item ${index}: no location data`);
+          return;
+        }
 
         const color = item.measurement_data?.mapColor || colors[index % colors.length];
 
         if (item.measurement_data.type === 'point' && hasPointLocations) {
+          console.log(`Rendering ${hasPointLocations} point markers for:`, item.products.name);
           // Handle point measurements (each)
           item.measurement_data.pointLocations.forEach((point: { lat: number; lng: number }, pointIndex: number) => {
             bounds.extend(point);
@@ -227,7 +252,11 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
 
       if (bounds.isEmpty() === false) {
         map.fitBounds(bounds);
+        console.log('Map bounds set successfully');
+      } else {
+        console.log('No bounds to set - all items may be missing location data');
       }
+      console.log('=== MAP INITIALIZATION COMPLETE ===');
     } catch (error) {
       console.error('Map initialization failed:', error);
     }
@@ -290,16 +319,29 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                 style={{ borderLeftColor: item.measurement_data?.mapColor || '#3B82F6' }}
               >
                 <div className="flex justify-between items-start mb-2">
-                  <div>
+                  <div className="space-y-1">
                     <p className="font-semibold">{item.products.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {item.quantity.toLocaleString()} {item.products.unit_type?.replace('_', ' ')}
-                      {item.measurement_data?.depth && item.products.unit_type === 'cubic_yard' && (
-                        <span className="text-xs ml-1">
-                          ({item.measurement_data.value.toLocaleString()} sq ft × {item.measurement_data.depth}" depth)
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm text-muted-foreground">
+                        {item.quantity.toLocaleString()} {item.products.unit_type?.replace('_', ' ')}
+                        {item.measurement_data?.depth && item.products.unit_type === 'cubic_yard' && (
+                          <span className="text-xs ml-1">
+                            ({item.measurement_data.value.toLocaleString()} sq ft × {item.measurement_data.depth}" depth)
+                          </span>
+                        )}
+                      </p>
+                      {/* Show badge for point measurements */}
+                      {item.measurement_data?.type === 'point' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                          <MapPin className="h-3 w-3" />
+                          {item.measurement_data?.pointLocations?.length > 0 
+                            ? `${item.measurement_data.pointLocations.length} locations mapped`
+                            : item.measurement_data?.manualEntry 
+                              ? 'Manual entry'
+                              : 'Mapped'}
                         </span>
                       )}
-                    </p>
+                    </div>
                   </div>
                   <div className="text-right">
                     {shouldShowPriceRanges ? (
