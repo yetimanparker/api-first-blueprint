@@ -5,6 +5,7 @@ interface MeasurementMapProps {
   measurements: Array<{
     type: 'area' | 'linear' | 'point';
     coordinates?: number[][];
+    pointLocations?: Array<{lat: number; lng: number}>;
     productName: string;
     productColor: string;
     value: number;
@@ -36,8 +37,16 @@ export default function MeasurementMap({ measurements, center, className = "" }:
         let hasCoordinates = false;
 
         measurements.forEach(measurement => {
+          // Process coordinates (for area/linear)
           if (measurement.coordinates && measurement.coordinates.length > 0) {
             measurement.coordinates.forEach(([lat, lng]) => {
+              bounds.extend({ lat, lng });
+              hasCoordinates = true;
+            });
+          }
+          // Process pointLocations (for point/each)
+          if (measurement.pointLocations && measurement.pointLocations.length > 0) {
+            measurement.pointLocations.forEach(({lat, lng}) => {
               bounds.extend({ lat, lng });
               hasCoordinates = true;
             });
@@ -65,9 +74,17 @@ export default function MeasurementMap({ measurements, center, className = "" }:
 
         // Draw measurements
         measurements.forEach((measurement, index) => {
-          if (!measurement.coordinates || measurement.coordinates.length === 0) return;
+          // Skip if no location data
+          if ((!measurement.coordinates || measurement.coordinates.length === 0) && 
+              (!measurement.pointLocations || measurement.pointLocations.length === 0)) {
+            return;
+          }
 
-          const path = measurement.coordinates.map(([lat, lng]) => ({ lat, lng }));
+          // Convert coordinates or use pointLocations
+          const path = measurement.pointLocations && measurement.pointLocations.length > 0
+            ? measurement.pointLocations  // Already in {lat, lng} format
+            : measurement.coordinates!.map(([lat, lng]) => ({ lat, lng }));
+          
           const color = measurement.productColor || '#3B82F6';
 
           if (measurement.type === 'area') {

@@ -951,14 +951,21 @@ export default function QuoteEdit() {
               <CardTitle>Project Site Overview</CardTitle>
             </CardHeader>
             <CardContent>
-              {quoteItems.some(item => item.measurement_data?.coordinates?.length) ? (
+              {quoteItems.some(item => 
+                item.measurement_data?.coordinates?.length || 
+                item.measurement_data?.pointLocations?.length
+              ) ? (
                 <>
                   <MeasurementMap
                     measurements={quoteItems
-                      .filter(item => item.measurement_data?.coordinates?.length)
+                      .filter(item => 
+                        item.measurement_data?.coordinates?.length || 
+                        item.measurement_data?.pointLocations?.length
+                      )
                       .map(item => ({
                         type: item.measurement_data!.type,
                         coordinates: item.measurement_data!.coordinates,
+                        pointLocations: item.measurement_data!.pointLocations,
                         productName: item.product.name,
                         productColor: item.measurement_data!.mapColor || '#3B82F6',
                         value: item.measurement_data!.value,
@@ -968,7 +975,10 @@ export default function QuoteEdit() {
                   />
                   <div className="mt-4 flex flex-wrap gap-3">
                     {quoteItems
-                      .filter(item => item.measurement_data?.coordinates?.length)
+                      .filter(item => 
+                        item.measurement_data?.coordinates?.length || 
+                        item.measurement_data?.pointLocations?.length
+                      )
                       .map((item) => (
                         <div key={item.id} className="flex items-center gap-2">
                           <div 
@@ -1137,13 +1147,17 @@ export default function QuoteEdit() {
                     </div>
 
                     {/* Individual Item Map */}
-                    {item.measurement_data?.coordinates && item.measurement_data.coordinates.length > 0 ? (
+                    {item.measurement_data && (
+                      (item.measurement_data.coordinates && item.measurement_data.coordinates.length > 0) ||
+                      (item.measurement_data.pointLocations && item.measurement_data.pointLocations.length > 0)
+                    ) ? (
                       <div className="mt-4">
                         <p className="text-sm font-medium mb-2">Measurement Location</p>
                         <MeasurementMap
                           measurements={[{
                             type: item.measurement_data.type,
                             coordinates: item.measurement_data.coordinates,
+                            pointLocations: item.measurement_data.pointLocations,
                             productName: item.product.name,
                             productColor: item.measurement_data.mapColor || '#3B82F6',
                             value: item.measurement_data.value,
