@@ -66,6 +66,9 @@ interface Product {
   product_variations?: ProductVariation[];
   pricing_tiers?: PricingTier[];
   product_addons?: ProductAddon[];
+  base_height?: number | null;
+  base_height_unit?: string;
+  use_height_in_calculation?: boolean;
 }
 
 interface QuoteItem {

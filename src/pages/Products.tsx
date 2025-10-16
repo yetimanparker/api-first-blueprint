@@ -62,6 +62,9 @@ interface Product {
   subcategoryName?: string;
   product_addons?: ProductAddon[];
   product_variations?: ProductVariation[];
+  base_height?: number | null;
+  base_height_unit?: string | null;
+  use_height_in_calculation?: boolean;
 }
 
 type SortField = 'name' | 'category' | 'price' | 'status';

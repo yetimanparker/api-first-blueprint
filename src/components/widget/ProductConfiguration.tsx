@@ -15,7 +15,8 @@ import {
   calculateTieredPrice, 
   calculateAddonWithAreaData, 
   applyGlobalMarkup, 
-  formatExactPrice 
+  formatExactPrice,
+  calculateQuantityWithBaseHeight
 } from '@/lib/priceUtils';
 
 interface Product {
@@ -26,6 +27,9 @@ interface Product {
   unit_price: number;
   use_tiered_pricing: boolean;
   min_order_quantity: number;
+  base_height?: number | null;
+  base_height_unit?: string;
+  use_height_in_calculation?: boolean;
 }
 
 interface Variation {
@@ -158,6 +162,18 @@ const ProductConfiguration = ({
       // Convert: sq ft × depth (inches) / 324 = cubic yards
       // 324 = 12 inches/foot × 27 cubic feet/cubic yard
       quantity = (measurement.value * depthValue) / 324;
+    } else if (!depthValue && measurement.type !== 'point') {
+      // Apply height calculation if not volume-based (variation takes priority over base product)
+      const variation = selectedVariation ? variations.find(v => v.id === selectedVariation) : null;
+      quantity = calculateQuantityWithBaseHeight(
+        measurement.value,
+        {
+          base_height: product.base_height,
+          base_height_unit: product.base_height_unit,
+          use_height_in_calculation: product.use_height_in_calculation
+        },
+        variation
+      );
     }
 
     if (product.use_tiered_pricing && pricingTiers.length > 0) {
@@ -176,14 +192,6 @@ const ProductConfiguration = ({
           basePrice += basePrice * (variation.price_adjustment / 100);
         } else {
           basePrice += variation.price_adjustment;
-        }
-        
-        // Only apply area multiplication if no depth is provided
-        // (depth already accounts for volume)
-        if (variation.affects_area_calculation && variation.height_value && !depthValue) {
-          if (measurement.type === 'area') {
-            quantity = quantity * variation.height_value;
-          }
         }
       }
     }
@@ -453,6 +461,23 @@ const ProductConfiguration = ({
                     const depthValue = parseFloat(depth);
                     if (depthValue && !isNaN(depthValue) && isVolumeBased) {
                       return `${((measurement.value * depthValue) / 324).toFixed(2)} cubic yards (${measurement.value.toLocaleString()} sq ft × ${depthValue}" depth)`;
+                    }
+                    // Show height calculation if applied
+                    const variation = selectedVariation ? variations.find(v => v.id === selectedVariation) : null;
+                    const effectiveHeight = variation?.affects_area_calculation && variation?.height_value 
+                      ? variation.height_value 
+                      : (product.use_height_in_calculation && product.base_height ? product.base_height : null);
+                    const effectiveUnit = variation?.affects_area_calculation && variation?.height_value
+                      ? variation.unit_of_measurement
+                      : product.base_height_unit;
+                    
+                    if (effectiveHeight && measurement.type !== 'point') {
+                      const calculatedArea = calculateQuantityWithBaseHeight(
+                        measurement.value,
+                        { base_height: product.base_height, base_height_unit: product.base_height_unit, use_height_in_calculation: product.use_height_in_calculation },
+                        variation
+                      );
+                      return `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')} × ${effectiveHeight} ${effectiveUnit} height = ${calculatedArea.toFixed(2)} sq ft`;
                     }
                   return `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`;
                 })()}

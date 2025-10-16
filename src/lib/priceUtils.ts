@@ -165,6 +165,45 @@ export function calculateAddonWithAreaData(
   return addonPrice;
 }
 
+/**
+ * Calculate quantity considering base product height or variation height
+ * Priority: Variation height > Base product height > Original measurement
+ */
+export function calculateQuantityWithBaseHeight(
+  baseQuantity: number,
+  product: { 
+    base_height?: number | null;
+    base_height_unit?: string;
+    use_height_in_calculation?: boolean;
+  },
+  selectedVariation?: {
+    height_value?: number | null;
+    unit_of_measurement?: string;
+    affects_area_calculation?: boolean;
+  }
+): number {
+  // Priority 1: Variation height (if selected and affects calculation)
+  if (selectedVariation?.affects_area_calculation && selectedVariation?.height_value) {
+    return calculateAreaWithHeight(
+      baseQuantity, 
+      selectedVariation.height_value, 
+      selectedVariation.unit_of_measurement || 'ft'
+    );
+  }
+  
+  // Priority 2: Base product height (if enabled)
+  if (product.use_height_in_calculation && product.base_height) {
+    return calculateAreaWithHeight(
+      baseQuantity,
+      product.base_height,
+      product.base_height_unit || 'ft'
+    );
+  }
+  
+  // Priority 3: Original measurement (no height applied)
+  return baseQuantity;
+}
+
 export function calculateTieredPrice(
   quantity: number,
   tiers: PricingTier[],

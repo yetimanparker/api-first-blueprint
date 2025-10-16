@@ -37,6 +37,9 @@ const productSchema = z.object({
   default_length: z.number().optional(),
   dimension_unit: z.string().optional(),
   allow_dimension_editing: z.boolean(),
+  base_height: z.number().optional(),
+  base_height_unit: z.string().optional(),
+  use_height_in_calculation: z.boolean(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -88,6 +91,9 @@ interface Product {
   default_length?: number | null;
   dimension_unit?: string | null;
   allow_dimension_editing?: boolean;
+  base_height?: number | null;
+  base_height_unit?: string | null;
+  use_height_in_calculation?: boolean;
 }
 
 interface ProductFormProps {
@@ -133,6 +139,9 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       default_length: product?.default_length || undefined,
       dimension_unit: product?.dimension_unit || "ft",
       allow_dimension_editing: product?.allow_dimension_editing ?? false,
+      base_height: product?.base_height || undefined,
+      base_height_unit: product?.base_height_unit || "ft",
+      use_height_in_calculation: product?.use_height_in_calculation ?? false,
     },
   });
 
@@ -321,6 +330,9 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         default_length: data.has_fixed_dimensions && data.default_length ? Number(data.default_length) : null,
         dimension_unit: data.has_fixed_dimensions ? (data.dimension_unit || 'ft') : null,
         allow_dimension_editing: data.has_fixed_dimensions ? data.allow_dimension_editing : false,
+        base_height: data.use_height_in_calculation && data.base_height ? Number(data.base_height) : null,
+        base_height_unit: data.use_height_in_calculation ? (data.base_height_unit || 'ft') : null,
+        use_height_in_calculation: data.use_height_in_calculation,
       };
 
       let productId = product?.id;
@@ -968,6 +980,102 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                 </div>
               </>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Base Product Height - For Area Calculation */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Ruler className="h-5 w-5" />
+              Height Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="use_height_in_calculation"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Use height in area calculations</FormLabel>
+                    <FormDescription>
+                      Enable for products like fences where linear measurements need to be converted to area (linear ft × height = sq ft)
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {form.watch("use_height_in_calculation") && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-muted/50 rounded-lg">
+                <FormField
+                  control={form.control}
+                  name="base_height"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Height Value (Optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="e.g., 6, 8"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Base height for this product
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="base_height_unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit of Measurement</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="ft">Feet</SelectItem>
+                          <SelectItem value="inches">Inches</SelectItem>
+                          <SelectItem value="m">Meters</SelectItem>
+                          <SelectItem value="cm">Centimeters</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
+            <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
+                Example: Standard Chain Link Fence
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                Customer measures 100 linear ft × 6 ft height = 600 sq ft for pricing
+              </p>
+            </div>
           </CardContent>
         </Card>
 

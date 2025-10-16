@@ -544,6 +544,8 @@ export type Database = {
       products: {
         Row: {
           allow_dimension_editing: boolean | null
+          base_height: number | null
+          base_height_unit: string | null
           category: string | null
           color_hex: string
           contractor_id: string
@@ -564,10 +566,13 @@ export type Database = {
           unit_price: number
           unit_type: string
           updated_at: string
+          use_height_in_calculation: boolean | null
           use_tiered_pricing: boolean
         }
         Insert: {
           allow_dimension_editing?: boolean | null
+          base_height?: number | null
+          base_height_unit?: string | null
           category?: string | null
           color_hex?: string
           contractor_id: string
@@ -588,10 +593,13 @@ export type Database = {
           unit_price: number
           unit_type?: string
           updated_at?: string
+          use_height_in_calculation?: boolean | null
           use_tiered_pricing?: boolean
         }
         Update: {
           allow_dimension_editing?: boolean | null
+          base_height?: number | null
+          base_height_unit?: string | null
           category?: string | null
           color_hex?: string
           contractor_id?: string
@@ -612,6 +620,7 @@ export type Database = {
           unit_price?: number
           unit_type?: string
           updated_at?: string
+          use_height_in_calculation?: boolean | null
           use_tiered_pricing?: boolean
         }
         Relationships: [
