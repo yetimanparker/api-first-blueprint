@@ -476,52 +476,31 @@ const ProductConfiguration = ({
             {/* Product Header - No color dot */}
             <div className="flex-1">
               <h3 className="font-semibold text-lg">{product.name}</h3>
-              <p className="text-sm text-muted-foreground">
-                  {(() => {
-                    // For 'each' type products, show quantity
-                    if (isEachType) {
-                      return `Quantity: ${measurement.value} ${measurement.value === 1 ? 'item' : 'items'}`;
-                    }
-                    // For volume-based products with depth
-                    const depthValue = parseFloat(depth);
-                    if (depthValue && !isNaN(depthValue) && isVolumeBased) {
-                      return `${((measurement.value * depthValue) / 324).toFixed(2)} cubic yards (${measurement.value.toLocaleString()} sq ft × ${depthValue}" depth)`;
-                    }
-                    // Show height calculation if applied
-                    const variation = selectedVariationId ? variations.find(v => v.id === selectedVariationId) : null;
-                    const effectiveHeight = variation?.affects_area_calculation && variation?.height_value 
-                      ? variation.height_value 
-                      : (product.use_height_in_calculation && product.base_height ? product.base_height : null);
-                    const effectiveUnit = variation?.affects_area_calculation && variation?.height_value
-                      ? variation.unit_of_measurement
-                      : product.base_height_unit;
-                    
-                    if (effectiveHeight && measurement.type !== 'point') {
-                      const calculatedArea = calculateQuantityWithBaseHeight(
-                        measurement.value,
-                        { base_height: product.base_height, base_height_unit: product.base_height_unit, use_height_in_calculation: product.use_height_in_calculation },
-                        variation
-                      );
-                      return `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')} × ${effectiveHeight} ${effectiveUnit} height = ${calculatedArea.toFixed(2)} sq ft`;
-                    }
-                  return `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`;
-                })()}
-              </p>
             </div>
 
             {/* Itemized Pricing Breakdown */}
-            {settings.pricing_visibility === 'before_submit' && !settings.use_price_ranges && 
+            {settings.pricing_visibility === 'before_submit' && !settings.use_price_ranges &&
              (!isVolumeBased || (isVolumeBased && depth && parseFloat(depth) > 0)) && (
               <div className="space-y-3">
+                {/* Selection Header */}
+                {selectedVariationObj && (
+                  <div className="text-sm font-medium text-muted-foreground">
+                    Selection:
+                  </div>
+                )}
+
                 {/* Product Line with integrated variation */}
                 <div className="text-base">
-                  <span>
-                    {selectedVariationObj ? `${selectedVariationObj.name} ` : ''}{product.name}: {(() => {
+                  <div>
+                    {selectedVariationObj ? `${selectedVariationObj.name} ` : ''}{product.name}:
+                  </div>
+                  <div className="text-muted-foreground">
+                    {(() => {
                       const depthValue = parseFloat(depth);
                       if (depthValue && !isNaN(depthValue) && isVolumeBased) {
-                        return `${((measurement.value * depthValue) / 324).toFixed(2)} cu yd`;
+                        return `${((measurement.value * depthValue) / 324).toFixed(0)} cu yd`;
                       }
-                      return `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`;
+                      return `${measurement.value.toFixed(0)} LF`;
                     })()} × {(() => {
                       // Calculate unit price with variation included
                       let unitPrice = product.unit_price;
@@ -556,13 +535,13 @@ const ProductConfiguration = ({
                         decimal_precision: settings.decimal_precision
                       });
                     })()}
-                  </span>
+                  </div>
                 </div>
 
                 {/* Add-ons Section */}
                 {Object.entries(selectedAddons).filter(([_, quantity]) => quantity > 0).length > 0 && (
                   <div className="space-y-2">
-                    <div className="text-base font-semibold">Add-ons:</div>
+                    <div className="text-sm font-medium text-muted-foreground">Add-ons:</div>
                     {Object.entries(selectedAddons)
                       .filter(([_, quantity]) => quantity > 0)
                       .map(([addonId, addonQuantity]) => {
@@ -614,14 +593,17 @@ const ProductConfiguration = ({
                         }
 
                         return (
-                          <div key={addonId} className="text-base pl-4">
-                            {addon.name}: {displayQuantity} {displayUnit} × {formatExactPrice(addonPrice, {
-                              currency_symbol: settings.currency_symbol,
-                              decimal_precision: settings.decimal_precision
-                            })}/{displayUnit} = {formatExactPrice(addonTotal, {
-                              currency_symbol: settings.currency_symbol,
-                              decimal_precision: settings.decimal_precision
-                            })}
+                          <div key={addonId} className="text-base">
+                            <div>{addon.name}:</div>
+                            <div className="text-muted-foreground">
+                              {displayQuantity} {displayUnit} × {formatExactPrice(addon.price_value, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })}/{displayUnit} = {formatExactPrice(addonTotal, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })}
+                            </div>
                           </div>
                         );
                       })}
