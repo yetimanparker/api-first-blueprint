@@ -307,114 +307,173 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
         </CardHeader>
         <CardContent className="space-y-4">
           {quoteItems.map((item) => {
-            // Use actual quantity from database (already converted for cubic yards etc.)
-            const basePrice = item.quantity * item.unit_price;
             const variations = item.measurement_data?.variations || [];
             const addons = item.measurement_data?.addons || [];
+            
+            // Calculate unit abbreviation
+            const getUnitAbbreviation = (unitType: string) => {
+              switch (unitType) {
+                case 'sq_ft': return 'SF';
+                case 'linear_ft': return 'LF';
+                case 'cubic_yard': return 'cu yd';
+                case 'each': return 'ea';
+                default: return unitType?.replace('_', ' ') || 'unit';
+              }
+            };
+
+            // Calculate base price with variation adjustment
+            const getVariationAdjustedPrice = () => {
+              let adjustedPrice = item.unit_price;
+              variations.forEach((v: any) => {
+                if (v.adjustmentType === 'percentage') {
+                  adjustedPrice += item.unit_price * (v.priceAdjustment / 100);
+                } else {
+                  adjustedPrice += v.priceAdjustment;
+                }
+              });
+              return adjustedPrice;
+            };
+
+            const baseUnitPrice = getVariationAdjustedPrice();
+            const baseTotal = baseUnitPrice * item.quantity;
+
+            // Calculate addon totals
+            const addonTotal = addons
+              .filter((a: any) => a.quantity > 0)
+              .reduce((sum: number, a: any) => {
+                if (a.calculationType === 'per_unit') {
+                  return sum + (a.priceValue * item.quantity * a.quantity);
+                } else if (a.calculationType === 'area_calculation') {
+                  // Area calculation addons
+                  return sum + (a.priceValue * a.quantity);
+                } else {
+                  // Total calculation
+                  return sum + (a.priceValue * a.quantity);
+                }
+              }, 0);
+
+            const unitAbbr = getUnitAbbreviation(item.products.unit_type);
             
             return (
               <div 
                 key={item.id} 
-                className="border-l-4 pl-4 py-2"
+                className="border-l-4 pl-4 py-2 space-y-3"
                 style={{ borderLeftColor: item.measurement_data?.mapColor || '#3B82F6' }}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <div className="space-y-1">
-                    <p className="font-semibold">{item.products.name}</p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm text-muted-foreground">
-                        {item.quantity.toLocaleString()} {item.products.unit_type?.replace('_', ' ')}
-                        {item.measurement_data?.depth && item.products.unit_type === 'cubic_yard' && (
-                          <span className="text-xs ml-1">
-                            ({item.measurement_data.value.toLocaleString()} sq ft × {item.measurement_data.depth}" depth)
-                          </span>
-                        )}
-                      </p>
-                      {/* Show badge for point measurements */}
-                      {item.measurement_data?.type === 'point' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                          <MapPin className="h-3 w-3" />
-                          {item.measurement_data?.pointLocations?.length > 0 
-                            ? `${item.measurement_data.pointLocations.length} locations mapped`
-                            : item.measurement_data?.manualEntry 
-                              ? 'Manual entry'
-                              : 'Mapped'}
-                        </span>
-                      )}
-                    </div>
+                {/* Header: Product name with color indicator and quantity */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: item.measurement_data?.mapColor || '#3B82F6' }}
+                    />
+                    <span className="font-semibold">{item.products.name}</span>
+                    {/* Show badge for point measurements */}
+                    {item.measurement_data?.type === 'point' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        <MapPin className="h-3 w-3" />
+                        {item.measurement_data?.pointLocations?.length > 0 
+                          ? `${item.measurement_data.pointLocations.length} locations mapped`
+                          : item.measurement_data?.manualEntry 
+                            ? 'Manual entry'
+                            : 'Mapped'}
+                      </span>
+                    )}
                   </div>
-                  <div className="text-right">
-                    {shouldShowPriceRanges ? (
-                      <div className="space-y-1">
-                        <p className="font-bold text-lg">
-                          {formatPriceRange(
-                            calculatePriceRange(item.line_total, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
-                            settings
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Exact: {formatExactPrice(item.line_total, {
-                            currency_symbol: settings.currency_symbol,
-                            decimal_precision: settings.decimal_precision
-                          })}
-                        </p>
+                  
+                  <p className="text-sm text-muted-foreground">
+                    {item.quantity.toLocaleString()} {unitAbbr}
+                  </p>
+                </div>
+                
+                {/* Pricing Breakdown - only show if pricing should be visible */}
+                {settings.pricing_visibility === 'before_submit' && (
+                  <div className="space-y-3">
+                    {/* Selection Header - only show if variations exist */}
+                    {variations.length > 0 && (
+                      <div className="text-sm font-bold text-muted-foreground">
+                        Selection:
                       </div>
-                    ) : (
-                      <p className="font-bold text-lg">
-                        {formatExactPrice(item.line_total, {
+                    )}
+                    
+                    {/* Base Product Line with Variation */}
+                    <div className="space-y-1">
+                      <div className="text-base">
+                        {variations.map((v: any, idx: number) => (
+                          <span key={v.id}>{v.name} </span>
+                        ))}
+                        {item.products.name}:
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {item.quantity.toLocaleString()} {unitAbbr} × {formatExactPrice(baseUnitPrice, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}/{unitAbbr} = {formatExactPrice(baseTotal, {
                           currency_symbol: settings.currency_symbol,
                           decimal_precision: settings.decimal_precision
                         })}
-                      </p>
+                      </div>
+                    </div>
+                    
+                    {/* Add-ons Section */}
+                    {addons.filter((a: any) => a.quantity > 0).length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
+                        {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
+                          let addonCalc = '';
+                          let addonPrice = 0;
+                          
+                          if (addon.calculationType === 'per_unit') {
+                            addonPrice = addon.priceValue * item.quantity * addon.quantity;
+                            addonCalc = `${item.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addon.priceValue, {
+                              currency_symbol: settings.currency_symbol,
+                              decimal_precision: settings.decimal_precision
+                            })}/${unitAbbr}`;
+                          } else if (addon.calculationType === 'area_calculation') {
+                            addonPrice = addon.priceValue * addon.quantity;
+                            addonCalc = `${addon.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addon.priceValue, {
+                              currency_symbol: settings.currency_symbol,
+                              decimal_precision: settings.decimal_precision
+                            })}/${unitAbbr}`;
+                          } else {
+                            // Total calculation
+                            addonPrice = addon.priceValue * addon.quantity;
+                            addonCalc = `${addon.quantity} × ${formatExactPrice(addon.priceValue, {
+                              currency_symbol: settings.currency_symbol,
+                              decimal_precision: settings.decimal_precision
+                            })}`;
+                          }
+                          
+                          return (
+                            <div key={addon.id} className="space-y-1">
+                              <div className="text-base">{addon.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {addonCalc} = {formatExactPrice(addonPrice, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
-                  </div>
-                </div>
-
-                {/* Itemized breakdown */}
-                <div className="space-y-1 text-sm text-muted-foreground">
-                  <div>
-                    Base: {shouldShowPriceRanges ? (
-                      <>
-                        {formatPriceRange(
-                          calculatePriceRange(basePrice, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
-                          settings
-                        )}
-                        <span className="text-xs ml-2">
-                          (Exact: {formatExactPrice(basePrice, {
+                    
+                    {/* Item Total */}
+                    <div className="border-t-2 border-border pt-3">
+                      <div className="flex justify-end">
+                        <span className="text-lg font-bold text-green-600">
+                          Total: {formatExactPrice(item.line_total, {
                             currency_symbol: settings.currency_symbol,
                             decimal_precision: settings.decimal_precision
-                          })})
+                          })}
                         </span>
-                      </>
-                    ) : (
-                      formatExactPrice(basePrice, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })
-                    )}
+                      </div>
+                    </div>
                   </div>
-                  
-                  {variations.map((v: any) => (
-                    <div key={v.id}>
-                      {v.name}: +{formatExactPrice(
-                        v.adjustmentType === 'percentage' 
-                          ? basePrice * (v.priceAdjustment / 100)
-                          : v.priceAdjustment * item.quantity,
-                        { currency_symbol: settings.currency_symbol, decimal_precision: settings.decimal_precision }
-                      )}
-                    </div>
-                  ))}
-                  
-                  {addons.filter((a: any) => a.quantity > 0).map((a: any) => (
-                    <div key={a.id}>
-                      {a.name}: +{formatExactPrice(
-                        (a.calculationType === 'per_unit' ? a.priceValue * item.quantity : a.priceValue) * a.quantity,
-                        { currency_symbol: settings.currency_symbol, decimal_precision: settings.decimal_precision }
-                      )}
-                    </div>
-                  ))}
-                </div>
-
+                )}
+                
+                {/* Notes */}
                 {item.notes && (
                   <p className="text-sm text-muted-foreground mt-2 italic">{item.notes}</p>
                 )}
