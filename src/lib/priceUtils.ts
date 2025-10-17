@@ -332,3 +332,46 @@ export function calculateFinalPrice(
   
   return Math.round(finalPrice * 100) / 100; // Round to 2 decimal places
 }
+
+/**
+ * Calculate price with required variation applied
+ */
+export function calculatePriceWithVariation(
+  basePrice: number,
+  variation: {
+    price_adjustment: number;
+    adjustment_type: 'fixed' | 'percentage';
+  }
+): number {
+  if (variation.adjustment_type === 'percentage') {
+    return basePrice * (1 + variation.price_adjustment / 100);
+  } else {
+    return basePrice + variation.price_adjustment;
+  }
+}
+
+/**
+ * Get minimum price for product with required variations
+ */
+export function getMinimumProductPrice(
+  basePrice: number,
+  variations: Array<{
+    is_required?: boolean;
+    price_adjustment: number;
+    adjustment_type: 'fixed' | 'percentage';
+  }>
+): number {
+  const requiredVariations = variations.filter(v => v.is_required);
+  
+  if (requiredVariations.length === 0) {
+    return basePrice;
+  }
+  
+  // Find the lowest-priced required variation
+  const lowestPrice = requiredVariations.reduce((min, variation) => {
+    const price = calculatePriceWithVariation(basePrice, variation);
+    return Math.min(min, price);
+  }, Infinity);
+  
+  return lowestPrice;
+}

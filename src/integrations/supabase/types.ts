@@ -495,6 +495,8 @@ export type Database = {
           height_value: number | null
           id: string
           is_active: boolean
+          is_default: boolean | null
+          is_required: boolean | null
           name: string
           price_adjustment: number
           product_id: string
@@ -510,6 +512,8 @@ export type Database = {
           height_value?: number | null
           id?: string
           is_active?: boolean
+          is_default?: boolean | null
+          is_required?: boolean | null
           name: string
           price_adjustment?: number
           product_id: string
@@ -525,6 +529,8 @@ export type Database = {
           height_value?: number | null
           id?: string
           is_active?: boolean
+          is_default?: boolean | null
+          is_required?: boolean | null
           name?: string
           price_adjustment?: number
           product_id?: string

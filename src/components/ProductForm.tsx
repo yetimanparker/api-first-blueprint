@@ -67,6 +67,8 @@ interface ProductVariation {
   height_value?: number;
   unit_of_measurement: string;
   affects_area_calculation: boolean;
+  is_required: boolean;
+  is_default: boolean;
 }
 
 interface Product {
@@ -200,6 +202,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       height_value: undefined,
       unit_of_measurement: "ft",
       affects_area_calculation: false,
+      is_required: false,
+      is_default: false,
     };
     setVariations([...variations, newVariation]);
   };
@@ -411,6 +415,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             height_value: variation.height_value || null,
             unit_of_measurement: variation.unit_of_measurement || "ft",
             affects_area_calculation: variation.affects_area_calculation || false,
+            is_required: variation.is_required || false,
+            is_default: variation.is_default || false,
           }));
 
           const { error: variationError } = await supabase
@@ -1246,13 +1252,47 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                        <Label>Use in area calculations</Label>
                      </div>
                    </div>
-                  <div className="mt-3 flex items-center gap-2">
-                    <Switch
-                      checked={variation.is_active}
-                      onCheckedChange={(checked) => updateVariation(index, "is_active", checked)}
-                    />
-                    <Label>Active</Label>
-                  </div>
+                   <div className="mt-3 flex items-center gap-4">
+                     <div className="flex items-center gap-2">
+                       <Switch
+                         checked={variation.is_active}
+                         onCheckedChange={(checked) => updateVariation(index, "is_active", checked)}
+                       />
+                       <Label>Active</Label>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       <Switch
+                         checked={variation.is_required}
+                         onCheckedChange={(checked) => updateVariation(index, "is_required", checked)}
+                       />
+                       <Label>Required</Label>
+                     </div>
+                     {variation.is_required && (
+                       <div className="flex items-center gap-2">
+                         <Switch
+                           checked={variation.is_default}
+                           onCheckedChange={(checked) => {
+                             if (checked) {
+                               // Unset default on all other variations
+                               variations.forEach((v, i) => {
+                                 if (i !== index) {
+                                   updateVariation(i, "is_default", false);
+                                 }
+                               });
+                             }
+                             updateVariation(index, "is_default", checked);
+                           }}
+                         />
+                         <Label>Set as Default</Label>
+                       </div>
+                     )}
+                   </div>
+                   {variation.is_required && (
+                     <p className="text-xs text-muted-foreground mt-2">
+                       Required variations must be selected before adding to quote.
+                       {variation.is_default && " This variation will be pre-selected."}
+                     </p>
+                   )}
                 </Card>
               ))
             )}

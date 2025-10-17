@@ -20,6 +20,13 @@ interface Product {
   subcategory?: string;
   is_active: boolean;
   show_pricing_before_submit: boolean;
+  product_variations?: Array<{
+    id: string;
+    is_required?: boolean;
+    is_default?: boolean;
+    price_adjustment: number;
+    adjustment_type: 'fixed' | 'percentage';
+  }>;
 }
 
 interface ProductCategory {
@@ -77,7 +84,7 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
       
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, product_variations(*)')
         .eq('contractor_id', contractorId)
         .eq('is_active', true)
         .order('display_order', { ascending: true });
@@ -89,7 +96,7 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
       
       console.log(`Successfully fetched ${data?.length || 0} products for contractor ${contractorId}`);
       console.log('Products data:', data);
-      setProducts(data || []);
+      setProducts(data as Product[] || []);
       
       if (!data || data.length === 0) {
         console.warn('No active products found for contractor:', contractorId);
@@ -152,10 +159,19 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
     : [];
 
   const shouldShowPricing = (product: Product) => {
-    // Check global setting first - if pricing visibility is 'after_submit' or using price ranges, never show pricing
+    // Check if product has required variations
+    const hasRequiredVariations = product.product_variations?.some(v => v.is_required);
+    
+    // If has required variations, don't show exact price (will show "From $X" instead)
+    if (hasRequiredVariations) {
+      return false;
+    }
+    
+    // Check global setting - if pricing visibility is 'after_submit' or using price ranges, never show pricing
     if (settings.pricing_visibility === 'after_submit' || settings.use_price_ranges) {
       return false;
     }
+    
     // Otherwise, respect the individual product's setting
     return product.show_pricing_before_submit;
   };
@@ -343,19 +359,34 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
                   </p>
                 )}
 
-                <div className="flex items-center justify-between mb-3">
-                  {shouldShowPricing(product) && (
-                    <span className="text-lg font-bold text-primary">
-                      {formatExactPrice(product.unit_price, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })}
-                      <span className="text-sm font-normal text-muted-foreground ml-1">
-                        / {product.unit_type}
-                      </span>
-                    </span>
-                  )}
-                </div>
+                 <div className="flex items-center justify-between mb-3">
+                   {shouldShowPricing(product) && (
+                     <span className="text-lg font-bold text-primary">
+                       {formatExactPrice(product.unit_price, {
+                         currency_symbol: settings.currency_symbol,
+                         decimal_precision: settings.decimal_precision
+                       })}
+                       <span className="text-sm font-normal text-muted-foreground ml-1">
+                         / {product.unit_type}
+                       </span>
+                     </span>
+                   )}
+                   
+                   {/* Show "From $X" for products with required variations */}
+                   {!shouldShowPricing(product) && 
+                     settings.pricing_visibility !== 'after_submit' && 
+                     product.product_variations?.some(v => v.is_required) && (
+                     <span className="text-lg font-bold text-primary">
+                       From {formatExactPrice(product.unit_price, {
+                         currency_symbol: settings.currency_symbol,
+                         decimal_precision: settings.decimal_precision
+                       })}
+                       <span className="text-sm font-normal text-muted-foreground ml-1">
+                         / {product.unit_type}
+                       </span>
+                     </span>
+                   )}
+                 </div>
 
                 {/* Badges at bottom */}
                 <div className="flex flex-wrap gap-1.5">

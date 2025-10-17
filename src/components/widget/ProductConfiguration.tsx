@@ -41,6 +41,8 @@ interface Variation {
   height_value?: number;
   unit_of_measurement?: string;
   affects_area_calculation?: boolean;
+  is_required?: boolean;
+  is_default?: boolean;
 }
 
 interface Addon {
@@ -81,7 +83,8 @@ const ProductConfiguration = ({
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [selectedVariation, setSelectedVariation] = useState<string>('');
+  const [selectedVariationId, setSelectedVariationId] = useState<string>('');
+  const [variationError, setVariationError] = useState<string>('');
   const [selectedAddons, setSelectedAddons] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState('');
   const [depth, setDepth] = useState<string>(measurement.depth?.toString() || '');
@@ -121,7 +124,20 @@ const ProductConfiguration = ({
         .eq('is_active', true)
         .order('display_order');
 
+      const hasRequiredVariations = variationsData?.some(v => v.is_required);
+      const defaultVariation = variationsData?.find(v => v.is_default);
+      
       setVariations((variationsData || []) as Variation[]);
+      
+      // Auto-select default variation if exists
+      if (defaultVariation) {
+        setSelectedVariationId(defaultVariation.id);
+      }
+      
+      // Show error if required but no default and has variations
+      if (hasRequiredVariations && !defaultVariation && variationsData?.length > 0) {
+        setVariationError("Please select a variation");
+      }
 
       const { data: addonsData } = await supabase
         .from('product_addons')
@@ -156,15 +172,19 @@ const ProductConfiguration = ({
     let basePrice = product.unit_price;
     let quantity = measurement.value;
 
+    // Check if required variation is selected
+    const hasRequiredVariations = variations.some(v => v.is_required);
+    const selectedVariation = variations.find(v => v.id === selectedVariationId);
+    
+    if (hasRequiredVariations && !selectedVariation) {
+      return 0; // Don't calculate price if required variation not selected
+    }
+
     // If depth is provided for volume-based products, calculate cubic yards
     const depthValue = parseFloat(depth);
     if (depthValue && !isNaN(depthValue) && isVolumeBased && measurement.type === 'area') {
-      // Convert: sq ft × depth (inches) / 324 = cubic yards
-      // 324 = 12 inches/foot × 27 cubic feet/cubic yard
       quantity = (measurement.value * depthValue) / 324;
     }
-    // Base product uses raw measurement value (linear feet, square feet, etc.)
-    // Height calculation is only applied to add-ons with 'area_calculation' type
 
     if (product.use_tiered_pricing && pricingTiers.length > 0) {
       const simplifiedTiers: any[] = pricingTiers.map(tier => ({
@@ -176,13 +196,10 @@ const ProductConfiguration = ({
     }
 
     if (selectedVariation) {
-      const variation = variations.find(v => v.id === selectedVariation);
-      if (variation) {
-        if (variation.adjustment_type === 'percentage') {
-          basePrice += basePrice * (variation.price_adjustment / 100);
-        } else {
-          basePrice += variation.price_adjustment;
-        }
+      if (selectedVariation.adjustment_type === 'percentage') {
+        basePrice += basePrice * (selectedVariation.price_adjustment / 100);
+      } else {
+        basePrice += selectedVariation.price_adjustment;
       }
     }
 
@@ -192,8 +209,6 @@ const ProductConfiguration = ({
       if (addonQuantity > 0) {
         const addon = addons.find(a => a.id === addonId);
         if (addon) {
-          // For area-based addons, use the original measurement value (linear feet)
-          // For per-unit addons on volume products, use the calculated cubic yards
           let addonBaseQuantity = measurement.value;
           
           if (addon.calculation_type !== 'area_calculation') {
@@ -203,8 +218,7 @@ const ProductConfiguration = ({
             }
           }
           
-          // Get variation data directly from the selected variation
-          const variation = selectedVariation ? variations.find(v => v.id === selectedVariation) : null;
+          const variation = selectedVariation;
           const variationData = variation ? {
             height: variation.height_value || null,
             unit: variation.unit_of_measurement || 'ft',
@@ -233,9 +247,16 @@ const ProductConfiguration = ({
   const handleAddToQuote = () => {
     if (!product) return;
 
+    // Validate required variation
+    const hasRequiredVariations = variations.some(v => v.is_required);
+    if (hasRequiredVariations && !selectedVariationId) {
+      setVariationError("Please select a variation");
+      return;
+    }
+
     const selectedVariationObjects: ProductVariation[] = [];
-    if (selectedVariation) {
-      const variation = variations.find(v => v.id === selectedVariation);
+    if (selectedVariationId) {
+      const variation = variations.find(v => v.id === selectedVariationId);
       if (variation) {
         selectedVariationObjects.push({
           id: variation.id,
@@ -319,7 +340,7 @@ const ProductConfiguration = ({
   }
 
   const lineTotal = calculateItemPrice();
-  const selectedVariationObj = selectedVariation ? variations.find(v => v.id === selectedVariation) : null;
+  const selectedVariationObj = selectedVariationId ? variations.find(v => v.id === selectedVariationId) : null;
 
   if (isAdded) {
     return null;
@@ -364,10 +385,16 @@ const ProductConfiguration = ({
           {/* Variations Dropdown */}
           {variations.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="variation-select" className="text-base font-semibold">
+              <Label htmlFor="variation-select" className="text-base font-semibold flex items-center gap-2">
                 Select Option
+                {variations.some(v => v.is_required) && (
+                  <Badge variant="destructive" className="text-xs">Required</Badge>
+                )}
               </Label>
-              <Select value={selectedVariation} onValueChange={setSelectedVariation}>
+              <Select value={selectedVariationId} onValueChange={(value) => {
+                setSelectedVariationId(value);
+                setVariationError("");
+              }}>
                 <SelectTrigger id="variation-select" className="w-full">
                   <SelectValue placeholder="Choose an option" />
                 </SelectTrigger>
@@ -390,6 +417,9 @@ const ProductConfiguration = ({
                   ))}
                 </SelectContent>
               </Select>
+              {variationError && (
+                <p className="text-sm text-destructive">{variationError}</p>
+              )}
             </div>
           )}
 
@@ -458,7 +488,7 @@ const ProductConfiguration = ({
                       return `${((measurement.value * depthValue) / 324).toFixed(2)} cubic yards (${measurement.value.toLocaleString()} sq ft × ${depthValue}" depth)`;
                     }
                     // Show height calculation if applied
-                    const variation = selectedVariation ? variations.find(v => v.id === selectedVariation) : null;
+                    const variation = selectedVariationId ? variations.find(v => v.id === selectedVariationId) : null;
                     const effectiveHeight = variation?.affects_area_calculation && variation?.height_value 
                       ? variation.height_value 
                       : (product.use_height_in_calculation && product.base_height ? product.base_height : null);
@@ -629,7 +659,10 @@ const ProductConfiguration = ({
                 variant="success" 
                 size="lg" 
                 className="flex-1 w-full"
-                disabled={isVolumeBased && (!depth || parseFloat(depth) <= 0)}
+                disabled={
+                  (isVolumeBased && (!depth || parseFloat(depth) <= 0)) ||
+                  (variations.some(v => v.is_required) && !selectedVariationId)
+                }
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add to Quote

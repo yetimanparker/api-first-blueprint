@@ -31,6 +31,8 @@ interface ProductVariation {
   height_value?: number | null;
   unit_of_measurement: string;
   affects_area_calculation: boolean;
+  is_required: boolean;
+  is_default: boolean;
 }
 
 interface ProductAddon {
