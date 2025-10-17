@@ -451,7 +451,7 @@ const Widget = () => {
               customerAddress={widgetState.customerInfo.address}
               selectedProduct={selectedProduct}
               onChangeProduct={goToProductSelection}
-              isConfigurationMode={widgetState.currentStep === 'product-configuration'}
+              isConfigurationMode={['quote-review', 'project-comments', 'confirmation'].includes(widgetState.currentStep)}
               existingQuoteItems={widgetState.quoteItems}
               onResetToMeasurement={resetToMeasurement}
               onAddressSelect={(address) => {

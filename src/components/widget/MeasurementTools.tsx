@@ -1237,7 +1237,7 @@ const MeasurementTools = ({
       </div>
 
       {/* Action Buttons Row */}
-      {!mapLoading && !mapError && (
+      {!mapLoading && !mapError && !isConfigurationMode && (
         <div id="action-buttons-row" className="bg-background border-t px-3 sm:px-6 py-2">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-row justify-center gap-2 sm:gap-3">
@@ -1268,7 +1268,7 @@ const MeasurementTools = ({
       )}
 
       {/* Bottom Control Bar and Measurement Display */}
-      {!mapLoading && !mapError && (
+      {!mapLoading && !mapError && !isConfigurationMode && (
         <div className="bg-background border-t px-3 sm:px-6 py-2 measurement-controls">
           <div className="max-w-7xl mx-auto">
             {/* Show Next Button when measurement is complete */}
