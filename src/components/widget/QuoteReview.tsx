@@ -587,7 +587,7 @@ const QuoteReview = ({
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <Switch
                               checked={addon.quantity > 0}
-                              onCheckedChange={(checked) => toggleAddon(item.id, addon.id, checked)}
+                              onCheckedChange={() => toggleAddon(item.id, addon.id)}
                             />
                             <span className="text-sm text-muted-foreground">
                               {addon.name}
