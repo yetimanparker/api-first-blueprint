@@ -17,7 +17,7 @@ import { GlobalSettings } from '@/hooks/useGlobalSettings';
 import { formatExactPrice, calculatePriceRange, formatPriceRange } from '@/lib/priceUtils';
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader } from '@googlemaps/js-api-loader';
+import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 
 interface QuoteSuccessProps {
   quoteNumber: string;
@@ -49,21 +49,14 @@ const QuoteSuccess = ({
   projectComments
 }: QuoteSuccessProps) => {
   const [contractorInfo, setContractorInfo] = useState<ContractorInfo | null>(null);
-  const [apiKey, setApiKey] = useState<string | null>(null);
   const [items, setItems] = useState<QuoteItem[]>(quoteItems);
   const mapRef = useRef<google.maps.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchContractorInfo();
-    fetchApiKey();
+    initializeMap();
   }, []);
-
-  useEffect(() => {
-    if (apiKey && !mapRef.current) {
-      initializeMap();
-    }
-  }, [apiKey]);
 
   const fetchContractorInfo = async () => {
     const { data } = await supabase
@@ -77,30 +70,14 @@ const QuoteSuccess = ({
     }
   };
 
-  const fetchApiKey = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('get-google-maps-key');
-      if (data?.apiKey) {
-        setApiKey(data.apiKey);
-      }
-    } catch (error) {
-      console.error('Error fetching API key:', error);
-    }
-  };
-
   const initializeMap = async () => {
-    if (!mapContainerRef.current || !apiKey) return;
+    if (!mapContainerRef.current) return;
 
     try {
       console.log('🗺️ QuoteSuccess - Initializing map with items:', quoteItems.length);
       
-      const loader = new Loader({
-        apiKey: apiKey,
-        version: 'weekly',
-        libraries: ['drawing', 'geometry'],
-      });
-
-      await loader.load();
+      // Use shared loader to prevent conflicts
+      await loadGoogleMapsAPI();
 
       // Calculate bounds from all measurements
       const bounds = new google.maps.LatLngBounds();
