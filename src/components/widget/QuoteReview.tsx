@@ -567,15 +567,6 @@ const QuoteReview = ({
                       }
                     </p>
                     
-                    {/* Row 3: Price (if visible) */}
-                    {settings.pricing_visibility === 'before_submit' && (
-                      <p className="font-bold text-lg text-green-600">
-                        {formatExactPrice(item.lineTotal, {
-                          currency_symbol: settings.currency_symbol,
-                          decimal_precision: settings.decimal_precision
-                        })}
-                      </p>
-                    )}
                   </div>
                   
                   {/* Itemized Breakdown - Show variations and add-ons always, prices conditionally */}
@@ -747,7 +738,7 @@ const QuoteReview = ({
                     {settings.pricing_visibility === 'before_submit' && (
                       <div className="border-t-2 border-border pt-3 mt-4">
                         <div className="flex justify-end">
-                          <span className="text-2xl font-bold">
+                          <span className="text-lg font-bold text-green-600">
                             Total: {formatExactPrice(item.lineTotal, {
                               currency_symbol: settings.currency_symbol,
                               decimal_precision: settings.decimal_precision
