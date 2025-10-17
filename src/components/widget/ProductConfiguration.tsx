@@ -515,7 +515,7 @@ const ProductConfiguration = ({
                         currency_symbol: settings.currency_symbol,
                         decimal_precision: settings.decimal_precision
                       });
-                    })()} = {(() => {
+                    })()} = <span className="font-bold">{(() => {
                       // Calculate line total (product + variation)
                       const depthValue = parseFloat(depth);
                       const qty = (depthValue && !isNaN(depthValue) && isVolumeBased) 
@@ -534,7 +534,7 @@ const ProductConfiguration = ({
                         currency_symbol: settings.currency_symbol,
                         decimal_precision: settings.decimal_precision
                       });
-                    })()}
+                    })()}</span>
                   </div>
                 </div>
 
@@ -599,10 +599,10 @@ const ProductConfiguration = ({
                               {displayQuantity} {displayUnit} × {formatExactPrice(addon.price_value, {
                                 currency_symbol: settings.currency_symbol,
                                 decimal_precision: settings.decimal_precision
-                              })}/{displayUnit} = {formatExactPrice(addonTotal, {
+                              })}/{displayUnit} = <span className="font-bold">{formatExactPrice(addonTotal, {
                                 currency_symbol: settings.currency_symbol,
                                 decimal_precision: settings.decimal_precision
-                              })}
+                              })}</span>
                             </div>
                           </div>
                         );
