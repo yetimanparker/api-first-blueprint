@@ -721,7 +721,7 @@ const QuoteReview = ({
           <Separator className="my-4 bg-green-300 dark:bg-green-700" />
 
           {settings.pricing_visibility === 'before_submit' && (
-            <div className="space-y-2">
+            <div id="quote-summary-total" className="space-y-2">
               <div className="flex justify-between text-base">
                 <span>Subtotal:</span>
                 <span className="font-semibold">
@@ -759,7 +759,7 @@ const QuoteReview = ({
           )}
           
           {settings.pricing_visibility === 'after_submit' && (
-            <div className="text-center py-4">
+            <div id="quote-summary-total" className="text-center py-4">
               <p className="text-muted-foreground">
                 Complete pricing details will be shown after you submit your quote request
               </p>

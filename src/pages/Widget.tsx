@@ -181,6 +181,38 @@ const Widget = () => {
             }
           }
         }, 300);
+      } else if (widgetState.currentStep === 'quote-review') {
+        // For quote-review, scroll to show the Total and buttons
+        setTimeout(() => {
+          const totalSection = document.getElementById('quote-summary-total');
+          if (totalSection) {
+            const header = document.querySelector('.sticky.top-0');
+            const headerHeight = header?.getBoundingClientRect().height || 0;
+            const elementPosition = totalSection.getBoundingClientRect().top + window.pageYOffset;
+            // Scroll to show the total with some padding, but ensure buttons are visible
+            const offsetPosition = elementPosition - headerHeight - 100;
+            
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+          } else {
+            // Fallback to default behavior if element not found
+            const stepId = `step-${widgetState.currentStep}`;
+            const element = document.getElementById(stepId);
+            if (element) {
+              const header = document.querySelector('.sticky.top-0');
+              const headerHeight = header?.getBoundingClientRect().height || 0;
+              const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+              const offsetPosition = elementPosition - headerHeight - 20;
+              
+              window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+              });
+            }
+          }
+        }, 300);
       } else {
         // For other steps, use default scroll behavior
         const stepId = `step-${widgetState.currentStep}`;
