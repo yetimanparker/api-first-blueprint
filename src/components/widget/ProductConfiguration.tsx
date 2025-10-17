@@ -86,7 +86,6 @@ const ProductConfiguration = ({
   const [notes, setNotes] = useState('');
   const [depth, setDepth] = useState<string>(measurement.depth?.toString() || '');
   const [isAdded, setIsAdded] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Check if product is volume-based
   const isVolumeBased = product && (
@@ -322,10 +321,6 @@ const ProductConfiguration = ({
   const lineTotal = calculateItemPrice();
   const selectedVariationObj = selectedVariation ? variations.find(v => v.id === selectedVariation) : null;
 
-  const formatPrice = (price: number) => {
-    return price.toFixed(settings.decimal_precision || 2);
-  };
-
   if (isAdded) {
     return null;
   }
@@ -444,106 +439,205 @@ const ProductConfiguration = ({
         </CardContent>
       </Card>
 
-       {/* Product Summary Card at Bottom */}
-       <Card className="border-l-4 shadow-sm border-primary">
-         <CardContent className="p-6">
-           <div className="space-y-3">
-             {settings.pricing_visibility !== 'after_submit' && (
-               <>
-                 <div className="flex justify-between items-center">
-                   <div className="flex-1">
-                     <h3 className="font-semibold">{product.name}</h3>
-                     <div className="text-sm text-muted-foreground">
-                       {isEachType && `${measurement.value} ${measurement.value === 1 ? 'item' : 'items'}`}
-                       {!isEachType && measurement.type === 'area' && !isVolumeBased && `${measurement.value.toFixed(2)} ${measurement.unit}`}
-                       {!isEachType && measurement.type === 'linear' && `${measurement.value.toFixed(2)} ${measurement.unit}`}
-                       {isVolumeBased && depth && `${((measurement.value * parseFloat(depth)) / 324).toFixed(2)} cu yd`}
-                     </div>
-                   </div>
-                   <span className="font-semibold ml-4">
-                     {settings.use_price_ranges 
-                       ? `$${formatPrice(calculateItemPrice() * 0.8)} - $${formatPrice(calculateItemPrice() * 1.2)}`
-                       : `$${formatPrice(calculateItemPrice())}`
-                     }
-                   </span>
-                 </div>
+      {/* Product Summary Card at Bottom */}
+      <Card className="border-l-4 shadow-sm border-primary">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            {/* Product Header - No color dot */}
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg">{product.name}</h3>
+              <p className="text-sm text-muted-foreground">
+                  {(() => {
+                    // For 'each' type products, show quantity
+                    if (isEachType) {
+                      return `Quantity: ${measurement.value} ${measurement.value === 1 ? 'item' : 'items'}`;
+                    }
+                    // For volume-based products with depth
+                    const depthValue = parseFloat(depth);
+                    if (depthValue && !isNaN(depthValue) && isVolumeBased) {
+                      return `${((measurement.value * depthValue) / 324).toFixed(2)} cubic yards (${measurement.value.toLocaleString()} sq ft × ${depthValue}" depth)`;
+                    }
+                    // Show height calculation if applied
+                    const variation = selectedVariation ? variations.find(v => v.id === selectedVariation) : null;
+                    const effectiveHeight = variation?.affects_area_calculation && variation?.height_value 
+                      ? variation.height_value 
+                      : (product.use_height_in_calculation && product.base_height ? product.base_height : null);
+                    const effectiveUnit = variation?.affects_area_calculation && variation?.height_value
+                      ? variation.unit_of_measurement
+                      : product.base_height_unit;
+                    
+                    if (effectiveHeight && measurement.type !== 'point') {
+                      const calculatedArea = calculateQuantityWithBaseHeight(
+                        measurement.value,
+                        { base_height: product.base_height, base_height_unit: product.base_height_unit, use_height_in_calculation: product.use_height_in_calculation },
+                        variation
+                      );
+                      return `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')} × ${effectiveHeight} ${effectiveUnit} height = ${calculatedArea.toFixed(2)} sq ft`;
+                    }
+                  return `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`;
+                })()}
+              </p>
+            </div>
 
-                 {selectedVariation && (
-                   <div className="pl-4 space-y-0.5">
-                     {variations
-                       .filter(v => v.id === selectedVariation)
-                       .map(v => (
-                         <div key={v.id} className="text-sm text-muted-foreground">• {v.name}</div>
-                       ))}
-                   </div>
-                 )}
+            {/* Itemized Pricing Breakdown */}
+            {settings.pricing_visibility === 'before_submit' && !settings.use_price_ranges && 
+             (!isVolumeBased || (isVolumeBased && depth && parseFloat(depth) > 0)) && (
+              <div className="space-y-2">
+                {/* Base Price */}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">
+                    Base Price ({(() => {
+                      const depthValue = parseFloat(depth);
+                      if (depthValue && !isNaN(depthValue) && isVolumeBased) {
+                        return `${((measurement.value * depthValue) / 324).toFixed(2)} cu yd`;
+                      }
+                      return `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`;
+                    })()} × {formatExactPrice(product.unit_price, {
+                      currency_symbol: settings.currency_symbol,
+                      decimal_precision: settings.decimal_precision
+                    })})
+                  </span>
+                  <span className="font-medium">
+                    {formatExactPrice(product.unit_price * (() => {
+                      const depthValue = parseFloat(depth);
+                      if (depthValue && !isNaN(depthValue) && isVolumeBased) {
+                        return (measurement.value * depthValue) / 324;
+                      }
+                      return measurement.value;
+                    })(), {
+                      currency_symbol: settings.currency_symbol,
+                      decimal_precision: settings.decimal_precision
+                    })}
+                  </span>
+                </div>
 
-                 {Object.entries(selectedAddons).filter(([_, qty]) => qty > 0).length > 0 && (
-                   <div className="space-y-1">
-                     {Object.entries(selectedAddons)
-                       .filter(([_, qty]) => qty > 0)
-                       .map(([addonId, qty]) => {
-                         const addon = addons.find(a => a.id === addonId)!;
-                         const addonTotal = addon.price_value * qty;
-                         return (
-                           <div key={addonId} className="flex justify-between items-center text-sm pl-4">
-                             <span className="text-muted-foreground">
-                               {addon.name}
-                               {addon.calculation_type === 'area_calculation' && measurement.type === 'area' 
-                                 ? ` ${measurement.value.toFixed(0)} ${measurement.unit}`
-                                 : qty > 1 
-                                   ? ` (${qty})`
-                                   : ''
-                               }
-                             </span>
-                             <span className="text-muted-foreground">
-                               {settings.use_price_ranges 
-                                 ? `$${formatPrice(addonTotal * 0.8)} - $${formatPrice(addonTotal * 1.2)}`
-                                 : `$${formatPrice(addonTotal)}`
-                               }
-                             </span>
-                           </div>
-                         );
-                       })}
-                   </div>
-                 )}
+                {/* Variation Adjustment */}
+                {selectedVariationObj && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">
+                      {selectedVariationObj.name} {selectedVariationObj.adjustment_type === 'percentage' 
+                        ? `(+${selectedVariationObj.price_adjustment}%)`
+                        : `(+${formatExactPrice(selectedVariationObj.price_adjustment, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })})`
+                      }
+                    </span>
+                    <span className="font-medium text-primary">
+                      +{formatExactPrice(
+                        (() => {
+                          const depthValue = parseFloat(depth);
+                          const qty = (depthValue && !isNaN(depthValue) && isVolumeBased) 
+                            ? (measurement.value * depthValue) / 324 
+                            : measurement.value;
+                          return selectedVariationObj.adjustment_type === 'percentage'
+                            ? (product.unit_price * qty * selectedVariationObj.price_adjustment / 100)
+                            : (selectedVariationObj.price_adjustment * qty);
+                        })(),
+                        {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        }
+                      )}
+                    </span>
+                  </div>
+                )}
 
-                 <div className="flex justify-between items-center pt-2 border-t">
-                   <span className="font-semibold">Total</span>
-                   <span className="font-semibold">
-                     {settings.use_price_ranges 
-                       ? `$${formatPrice(calculateItemPrice() * 0.8)} - $${formatPrice(calculateItemPrice() * 1.2)}`
-                       : `$${formatPrice(calculateItemPrice())}`
-                     }
-                   </span>
-                 </div>
-               </>
-             )}
-           </div>
+                {/* Add-ons */}
+                {Object.entries(selectedAddons)
+                  .filter(([_, quantity]) => quantity > 0)
+                  .map(([addonId, addonQuantity]) => {
+                    const addon = addons.find(a => a.id === addonId);
+                    if (!addon) return null;
+                    
+                    // For area-based addons, use the original measurement value (linear feet)
+                    // For per-unit addons on volume products, use the calculated cubic yards
+                    let quantity = measurement.value;
+                    
+                    if (addon.calculation_type !== 'area_calculation') {
+                      const depthValue = parseFloat(depth);
+                      if (depthValue && !isNaN(depthValue) && isVolumeBased && measurement.type === 'area') {
+                        quantity = (measurement.value * depthValue) / 324;
+                      }
+                    }
+                    
+                    const variationData = selectedVariationObj ? {
+                      height: selectedVariationObj.height_value || null,
+                      unit: selectedVariationObj.unit_of_measurement || 'ft',
+                      affects_area_calculation: selectedVariationObj.affects_area_calculation || false
+                    } : undefined;
 
-           <div className="flex justify-between items-center gap-4 mt-6 pt-4 border-t">
-             {onRemove && (
-               <Button
-                 onClick={onRemove}
-                 variant="outline"
-                 className="flex-1"
-                 disabled={isSubmitting}
-               >
-                 <Trash2 className="h-4 w-4 mr-2" />
-                 Remove
-               </Button>
-             )}
-             <Button
-               onClick={handleAddToQuote}
-               className="flex-1"
-               disabled={isSubmitting || (isVolumeBased && !depth)}
-             >
-               <Package className="h-4 w-4 mr-2" />
-               Add to Quote
-             </Button>
-           </div>
-         </CardContent>
-       </Card>
+                    const addonPrice = calculateAddonWithAreaData(
+                      addon.price_value,
+                      quantity,
+                      addon.calculation_type,
+                      variationData,
+                      {
+                        base_height: product.base_height,
+                        base_height_unit: product.base_height_unit,
+                        use_height_in_calculation: product.use_height_in_calculation
+                      }
+                    );
+                    const addonTotal = addonPrice * addonQuantity;
+
+                    return (
+                      <div key={addonId} className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">
+                          {addon.name} {addonQuantity > 1 ? `(×${addonQuantity})` : ''}
+                        </span>
+                        <span className="font-medium text-primary">
+                          +{formatExactPrice(addonTotal, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })}
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                <Separator className="my-2" />
+
+                {/* Total */}
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">Total</span>
+                  <span className="text-2xl font-bold text-green-600">
+                    {formatExactPrice(lineTotal, {
+                      currency_symbol: settings.currency_symbol,
+                      decimal_precision: settings.decimal_precision
+                    })}
+                  </span>
+                </div>
+              </div>
+            )}
+            
+            {settings.pricing_visibility === 'after_submit' && (
+              <div className="space-y-2 pl-6">
+                <p className="text-sm text-muted-foreground">
+                  Pricing will be shown after you submit your quote request
+                </p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
+              <Button variant="destructive" size="lg" className="flex-1 w-full" onClick={onRemove}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Remove
+              </Button>
+              <Button 
+                onClick={handleAddToQuote} 
+                variant="success" 
+                size="lg" 
+                className="flex-1 w-full"
+                disabled={isVolumeBased && (!depth || parseFloat(depth) <= 0)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add to Quote
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       </div>
     </div>
   );

@@ -268,10 +268,6 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
     : 0;
   const total = subtotal + taxAmount;
 
-  const formatPrice = (price: number) => {
-    return price.toFixed(settings.decimal_precision || 2);
-  };
-
   // Show price ranges when enabled, regardless of quote status (so contractor knows customer's view)
   const shouldShowPriceRanges = settings.use_price_ranges;
 
@@ -317,78 +313,112 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             const addons = item.measurement_data?.addons || [];
             
             return (
-            <Card key={item.id}>
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center">
-                      <CardTitle className="text-base">
-                        {item.custom_name || item.products?.name}
-                      </CardTitle>
-                      {settings.pricing_visibility !== 'after_submit' && (
-                        <span className="font-semibold ml-4">
-                          {settings.use_price_ranges 
-                            ? `$${formatPrice(item.line_total * 0.8)} - $${formatPrice(item.line_total * 1.2)}`
-                            : `$${formatPrice(item.line_total)}`
-                          }
+              <div 
+                key={item.id} 
+                className="border-l-4 pl-4 py-2"
+                style={{ borderLeftColor: item.measurement_data?.mapColor || '#3B82F6' }}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="space-y-1">
+                    <p className="font-semibold">{item.products.name}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm text-muted-foreground">
+                        {item.quantity.toLocaleString()} {item.products.unit_type?.replace('_', ' ')}
+                        {item.measurement_data?.depth && item.products.unit_type === 'cubic_yard' && (
+                          <span className="text-xs ml-1">
+                            ({item.measurement_data.value.toLocaleString()} sq ft × {item.measurement_data.depth}" depth)
+                          </span>
+                        )}
+                      </p>
+                      {/* Show badge for point measurements */}
+                      {item.measurement_data?.type === 'point' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                          <MapPin className="h-3 w-3" />
+                          {item.measurement_data?.pointLocations?.length > 0 
+                            ? `${item.measurement_data.pointLocations.length} locations mapped`
+                            : item.measurement_data?.manualEntry 
+                              ? 'Manual entry'
+                              : 'Mapped'}
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-muted-foreground mt-0.5">
-                      {item.measurement_type === 'area' && !item.depth && `${item.measurement_value?.toFixed(2)} ${item.measurement_unit}`}
-                      {item.measurement_type === 'linear' && `${item.measurement_value?.toFixed(2)} ${item.measurement_unit}`}
-                      {item.measurement_type === 'point' && `${item.quantity} ${item.quantity === 1 ? 'item' : 'items'}`}
-                      {item.depth && `${item.quantity.toFixed(2)} cu yd`}
-                    </div>
+                  </div>
+                  <div className="text-right">
+                    {shouldShowPriceRanges ? (
+                      <div className="space-y-1">
+                        <p className="font-bold text-lg">
+                          {formatPriceRange(
+                            calculatePriceRange(item.line_total, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
+                            settings
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Exact: {formatExactPrice(item.line_total, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="font-bold text-lg">
+                        {formatExactPrice(item.line_total, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}
+                      </p>
+                    )}
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {item.measurement_data?.variations && item.measurement_data.variations.length > 0 && (
-                  <div className="pl-4 space-y-0.5">
-                    {item.measurement_data.variations.map((variation: any, idx: number) => (
-                      <div key={idx} className="text-sm text-muted-foreground">
-                        • {variation.name}
-                      </div>
-                    ))}
-                  </div>
-                )}
 
-                {item.measurement_data?.addons && item.measurement_data.addons.length > 0 && (
-                  <div className="space-y-1.5">
-                    {item.measurement_data.addons
-                      .filter((addon: any) => addon.quantity > 0)
-                      .map((addon: any, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center text-sm pl-4">
-                          <span className="text-muted-foreground">
-                            {addon.name}
-                            {addon.calculationType === 'area_calculation' && item.measurement_type === 'area'
-                              ? ` ${item.measurement_value?.toFixed(0)} ${item.measurement_unit}`
-                              : addon.quantity > 1
-                                ? ` (${addon.quantity})`
-                                : ''
-                            }
-                          </span>
-                          {settings.pricing_visibility !== 'after_submit' && (
-                            <span className="text-muted-foreground">
-                              {settings.use_price_ranges 
-                                ? `$${formatPrice(addon.priceValue * addon.quantity * 0.8)} - $${formatPrice(addon.priceValue * addon.quantity * 1.2)}`
-                                : `$${formatPrice(addon.priceValue * addon.quantity)}`
-                              }
-                            </span>
-                          )}
-                        </div>
-                      ))}
+                {/* Itemized breakdown */}
+                <div className="space-y-1 text-sm text-muted-foreground">
+                  <div>
+                    Base: {shouldShowPriceRanges ? (
+                      <>
+                        {formatPriceRange(
+                          calculatePriceRange(basePrice, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
+                          settings
+                        )}
+                        <span className="text-xs ml-2">
+                          (Exact: {formatExactPrice(basePrice, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })})
+                        </span>
+                      </>
+                    ) : (
+                      formatExactPrice(basePrice, {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      })
+                    )}
                   </div>
-                )}
+                  
+                  {variations.map((v: any) => (
+                    <div key={v.id}>
+                      {v.name}: +{formatExactPrice(
+                        v.adjustmentType === 'percentage' 
+                          ? basePrice * (v.priceAdjustment / 100)
+                          : v.priceAdjustment * item.quantity,
+                        { currency_symbol: settings.currency_symbol, decimal_precision: settings.decimal_precision }
+                      )}
+                    </div>
+                  ))}
+                  
+                  {addons.filter((a: any) => a.quantity > 0).map((a: any) => (
+                    <div key={a.id}>
+                      {a.name}: +{formatExactPrice(
+                        (a.calculationType === 'per_unit' ? a.priceValue * item.quantity : a.priceValue) * a.quantity,
+                        { currency_symbol: settings.currency_symbol, decimal_precision: settings.decimal_precision }
+                      )}
+                    </div>
+                  ))}
+                </div>
 
                 {item.notes && (
-                  <div className="text-sm text-muted-foreground pt-2 border-t">
-                    <span className="font-medium">Notes:</span> {item.notes}
-                  </div>
+                  <p className="text-sm text-muted-foreground mt-2 italic">{item.notes}</p>
                 )}
-              </CardContent>
-            </Card>
+              </div>
             );
           })}
 
