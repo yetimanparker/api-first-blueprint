@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { QuoteItem, CustomerInfo } from '@/types/widget';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
-import { formatExactPrice, calculatePriceRange, formatPriceRange } from '@/lib/priceUtils';
+import { formatExactPrice, calculatePriceRange, formatPriceRange, calculateAddonWithAreaData } from '@/lib/priceUtils';
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
@@ -411,15 +411,45 @@ const QuoteSuccess = ({
                               let addonCalc = '';
                               let addonPrice = 0;
                               
-                              if (addon.calculationType === 'per_unit') {
+                              if (addon.calculationType === 'area_calculation') {
+                                // Calculate addon with area data considering variation height
+                                const variationData = variations.length > 0
+                                  ? {
+                                      height: variations[0].height_value || null,
+                                      unit: variations[0].unit_of_measurement || 'ft',
+                                      affects_area_calculation: variations[0].affects_area_calculation || false
+                                    }
+                                  : undefined;
+                                
+                                const baseQuantity = item.measurement.depth
+                                  ? (item.measurement.value * item.measurement.depth) / 324
+                                  : item.measurement.value;
+                                
+                                addonPrice = calculateAddonWithAreaData(
+                                  addon.priceValue,
+                                  baseQuantity,
+                                  addon.calculationType,
+                                  variationData
+                                );
+                                
+                                // Display calculation
+                                if (variationData?.height && variationData.affects_area_calculation) {
+                                  const linearFeet = item.measurement.value;
+                                  const heightFeet = variationData.height;
+                                  const squareFeet = linearFeet * heightFeet;
+                                  addonCalc = `${squareFeet.toLocaleString()} SF × ${formatExactPrice(addon.priceValue, {
+                                    currency_symbol: settings.currency_symbol,
+                                    decimal_precision: settings.decimal_precision
+                                  })}/SF`;
+                                } else {
+                                  addonCalc = `${baseQuantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addon.priceValue, {
+                                    currency_symbol: settings.currency_symbol,
+                                    decimal_precision: settings.decimal_precision
+                                  })}/${unitAbbr}`;
+                                }
+                              } else if (addon.calculationType === 'per_unit') {
                                 addonPrice = addon.priceValue * quantity * addon.quantity;
                                 addonCalc = `${quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addon.priceValue, {
-                                  currency_symbol: settings.currency_symbol,
-                                  decimal_precision: settings.decimal_precision
-                                })}/${unitAbbr}`;
-                              } else if (addon.calculationType === 'area_calculation') {
-                                addonPrice = addon.priceValue * addon.quantity;
-                                addonCalc = `${addon.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addon.priceValue, {
                                   currency_symbol: settings.currency_symbol,
                                   decimal_precision: settings.decimal_precision
                                 })}/${unitAbbr}`;
@@ -436,7 +466,7 @@ const QuoteSuccess = ({
                                 <div key={addon.id} className="space-y-1">
                                   <div className="text-base">{addon.name}</div>
                                   <div className="text-sm text-muted-foreground">
-                                    {addonCalc} = {formatExactPrice(addonPrice, {
+                                    {addonCalc} = {formatExactPrice(addonPrice * addon.quantity, {
                                       currency_symbol: settings.currency_symbol,
                                       decimal_precision: settings.decimal_precision
                                     })}
