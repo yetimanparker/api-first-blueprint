@@ -513,10 +513,10 @@ const ProductConfiguration = ({
             {settings.pricing_visibility === 'before_submit' && !settings.use_price_ranges && 
              (!isVolumeBased || (isVolumeBased && depth && parseFloat(depth) > 0)) && (
               <div className="space-y-2">
-                {/* Base Price */}
+                {/* Product Price */}
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">
-                    Base Price ({(() => {
+                    {product.name}: {(() => {
                       const depthValue = parseFloat(depth);
                       if (depthValue && !isNaN(depthValue) && isVolumeBased) {
                         return `${((measurement.value * depthValue) / 324).toFixed(2)} cu yd`;
@@ -525,10 +525,7 @@ const ProductConfiguration = ({
                     })()} × {formatExactPrice(product.unit_price, {
                       currency_symbol: settings.currency_symbol,
                       decimal_precision: settings.decimal_precision
-                    })})
-                  </span>
-                  <span className="font-medium">
-                    {formatExactPrice(product.unit_price * (() => {
+                    })} = {formatExactPrice(product.unit_price * (() => {
                       const depthValue = parseFloat(depth);
                       if (depthValue && !isNaN(depthValue) && isVolumeBased) {
                         return (measurement.value * depthValue) / 324;
@@ -545,16 +542,22 @@ const ProductConfiguration = ({
                 {selectedVariationObj && (
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">
-                      {selectedVariationObj.name} {selectedVariationObj.adjustment_type === 'percentage' 
-                        ? `(+${selectedVariationObj.price_adjustment}%)`
-                        : `(+${formatExactPrice(selectedVariationObj.price_adjustment, {
+                      {selectedVariationObj.name}: {(() => {
+                        const depthValue = parseFloat(depth);
+                        const qty = (depthValue && !isNaN(depthValue) && isVolumeBased) 
+                          ? (measurement.value * depthValue) / 324 
+                          : measurement.value;
+                        return `${qty.toLocaleString()} ${measurement.unit.replace('_', ' ')}`;
+                      })()} × {selectedVariationObj.adjustment_type === 'percentage' 
+                        ? `${formatExactPrice(product.unit_price * (selectedVariationObj.price_adjustment / 100), {
                             currency_symbol: settings.currency_symbol,
                             decimal_precision: settings.decimal_precision
-                          })})`
-                      }
-                    </span>
-                    <span className="font-medium text-primary">
-                      +{formatExactPrice(
+                          })}`
+                        : formatExactPrice(selectedVariationObj.price_adjustment, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })
+                      } = {formatExactPrice(
                         (() => {
                           const depthValue = parseFloat(depth);
                           const qty = (depthValue && !isNaN(depthValue) && isVolumeBased) 
@@ -609,14 +612,24 @@ const ProductConfiguration = ({
                       }
                     );
                     const addonTotal = addonPrice * addonQuantity;
+                    
+                    // Calculate display quantity based on calculation type
+                    let displayQuantity = '';
+                    if (addon.calculation_type === 'area_calculation') {
+                      const height = selectedVariationObj?.height_value || product.base_height || 1;
+                      const area = quantity * height;
+                      displayQuantity = `${Math.round(area)} sq ft (${quantity} ${measurement.unit.replace('_', ' ')} × ${height}ft height)`;
+                    } else if (addon.calculation_type === 'per_unit') {
+                      displayQuantity = `${quantity.toLocaleString()} ${measurement.unit.replace('_', ' ')}`;
+                    }
 
                     return (
-                      <div key={addonId} className="flex justify-between items-center text-sm">
+                      <div key={addonId} className="text-sm">
                         <span className="text-muted-foreground">
-                          {addon.name} {addonQuantity > 1 ? `(×${addonQuantity})` : ''}
-                        </span>
-                        <span className="font-medium text-primary">
-                          +{formatExactPrice(addonTotal, {
+                          {addon.name}: {displayQuantity} × {formatExactPrice(addonPrice, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })}/sq ft = {formatExactPrice(addonTotal, {
                             currency_symbol: settings.currency_symbol,
                             decimal_precision: settings.decimal_precision
                           })}
@@ -625,11 +638,8 @@ const ProductConfiguration = ({
                     );
                   })}
 
-                <Separator className="my-2" />
-
-                {/* Total */}
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold">Total</span>
+                {/* Total in bottom right */}
+                <div className="flex justify-end items-center pt-2 border-t mt-2">
                   <span className="text-2xl font-bold text-green-600">
                     {formatExactPrice(lineTotal, {
                       currency_symbol: settings.currency_symbol,
