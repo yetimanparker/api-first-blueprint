@@ -494,7 +494,7 @@ const ProductConfiguration = ({
                   <div>
                     {selectedVariationObj ? `${selectedVariationObj.name} ` : ''}{product.name}:
                   </div>
-                  <div className="text-muted-foreground">
+                  <div className="text-sm text-muted-foreground">
                     {(() => {
                       const depthValue = parseFloat(depth);
                       if (depthValue && !isNaN(depthValue) && isVolumeBased) {
@@ -583,7 +583,7 @@ const ProductConfiguration = ({
                           const height = selectedVariationObj?.height_value || product.base_height || 1;
                           const area = quantity * height;
                           displayQuantity = Math.round(area).toLocaleString();
-                          displayUnit = 'Sq Ft';
+                          displayUnit = 'SF';
                         } else if (addon.calculation_type === 'per_unit') {
                           displayQuantity = quantity.toLocaleString();
                           displayUnit = measurement.unit.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -595,7 +595,7 @@ const ProductConfiguration = ({
                         return (
                           <div key={addonId} className="text-base">
                             <div>{addon.name}:</div>
-                            <div className="text-muted-foreground">
+                            <div className="text-sm text-muted-foreground">
                               {displayQuantity} {displayUnit} × {formatExactPrice(addon.price_value, {
                                 currency_symbol: settings.currency_symbol,
                                 decimal_precision: settings.decimal_precision
