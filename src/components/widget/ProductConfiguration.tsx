@@ -307,7 +307,9 @@ const ProductConfiguration = ({
       unitPrice: product.unit_price,
       quantity: actualQuantity,
       lineTotal: calculateItemPrice(),
-      notes: notes || undefined
+      notes: notes || undefined,
+      variations: selectedVariationObjects,
+      addons: selectedAddonObjects
     };
 
     onAddToQuote(quoteItem);
