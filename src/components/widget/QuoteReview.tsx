@@ -264,12 +264,15 @@ const QuoteReview = ({
           customName: item.customName || '',
           mapColor: item.measurement.mapColor,
           depth: item.measurement.depth,
-          variations: (item.variations || []).map(v => ({
-            id: v.id,
-            name: v.name,
-            priceAdjustment: v.priceAdjustment,
-            adjustmentType: v.adjustmentType
-          })),
+            variations: (item.variations || []).map(v => ({
+              id: v.id,
+              name: v.name,
+              priceAdjustment: v.priceAdjustment,
+              adjustmentType: v.adjustmentType,
+              height_value: v.height_value || null,
+              unit_of_measurement: v.unit_of_measurement || 'ft',
+              affects_area_calculation: v.affects_area_calculation || false
+            })),
           addons: (item.addons || []).map(a => ({
             id: a.id,
             name: a.name,
