@@ -484,9 +484,9 @@ const ProductConfiguration = ({
               <div className="space-y-3">
                 {/* Selection Header */}
                 {selectedVariationObj && (
-                  <div className="text-sm font-medium text-muted-foreground">
-                    Selection:
-                  </div>
+                <div className="text-sm font-bold text-muted-foreground">
+                  Selection:
+                </div>
                 )}
 
                 {/* Product Line with integrated variation */}
@@ -541,7 +541,7 @@ const ProductConfiguration = ({
                 {/* Add-ons Section */}
                 {Object.entries(selectedAddons).filter(([_, quantity]) => quantity > 0).length > 0 && (
                   <div className="space-y-2">
-                    <div className="text-sm font-medium text-muted-foreground">Add-ons:</div>
+                    <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
                     {Object.entries(selectedAddons)
                       .filter(([_, quantity]) => quantity > 0)
                       .map(([addonId, addonQuantity]) => {
