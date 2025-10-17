@@ -361,34 +361,33 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                 style={{ borderLeftColor: item.measurement_data?.mapColor || '#3B82F6' }}
               >
                 {/* Header: Product name with color indicator and quantity */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: item.measurement_data?.mapColor || '#3B82F6' }}
-                    />
-                    <span className="font-semibold">{item.products.name}</span>
-                    {/* Show badge for point measurements */}
-                    {item.measurement_data?.type === 'point' && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        <MapPin className="h-3 w-3" />
-                        {item.measurement_data?.pointLocations?.length > 0 
-                          ? `${item.measurement_data.pointLocations.length} locations mapped`
-                          : item.measurement_data?.manualEntry 
-                            ? 'Manual entry'
-                            : 'Mapped'}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <p className="text-sm text-muted-foreground">
-                    {item.quantity.toLocaleString()} {unitAbbr}
-                  </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: item.measurement_data?.mapColor || '#3B82F6' }}
+                  />
+                  <span className="font-semibold">
+                    {item.products.name}
+                    <span className="text-sm text-muted-foreground font-normal ml-2">
+                      ({item.quantity.toLocaleString()} {unitAbbr})
+                    </span>
+                  </span>
+                  {/* Show badge for point measurements */}
+                  {item.measurement_data?.type === 'point' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                      <MapPin className="h-3 w-3" />
+                      {item.measurement_data?.pointLocations?.length > 0 
+                        ? `${item.measurement_data.pointLocations.length} locations mapped`
+                        : item.measurement_data?.manualEntry 
+                          ? 'Manual entry'
+                          : 'Mapped'}
+                    </span>
+                  )}
                 </div>
                 
                 {/* Pricing Breakdown - only show if pricing should be visible */}
                 {settings.pricing_visibility === 'before_submit' && (
-                  <div className="space-y-3">
+                  <div className="space-y-1">
                     {/* Selection Header - only show if variations exist */}
                     {variations.length > 0 && (
                       <div className="text-sm font-bold text-muted-foreground">
@@ -417,7 +416,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                     
                     {/* Add-ons Section */}
                     {addons.filter((a: any) => a.quantity > 0).length > 0 && (
-                      <div className="space-y-2">
+                      <div className="space-y-1">
                         <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
                         {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
                           let addonCalc = '';

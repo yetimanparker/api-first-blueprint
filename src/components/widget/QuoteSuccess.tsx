@@ -360,23 +360,22 @@ const QuoteSuccess = ({
                     style={{ borderLeftColor: item.measurement.mapColor || '#3B82F6' }}
                   >
                     {/* Header: Product name with color indicator and quantity */}
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: item.measurement.mapColor || '#3B82F6' }}
-                        />
-                        <span className="font-semibold">{item.productName}</span>
-                      </div>
-                      
-                      <p className="text-sm text-muted-foreground">
-                        {quantity.toLocaleString()} {unitAbbr}
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: item.measurement.mapColor || '#3B82F6' }}
+                      />
+                      <span className="font-semibold">
+                        {item.productName}
+                        <span className="text-sm text-muted-foreground font-normal ml-2">
+                          ({quantity.toLocaleString()} {unitAbbr})
+                        </span>
+                      </span>
                     </div>
                     
                     {/* Pricing Breakdown - only show if pricing should be visible */}
                     {showPricing && (
-                      <div className="space-y-3">
+                      <div className="space-y-1">
                         {/* Selection Header - only show if variations exist */}
                         {variations.length > 0 && (
                           <div className="text-sm font-bold text-muted-foreground">
@@ -405,7 +404,7 @@ const QuoteSuccess = ({
                         
                         {/* Add-ons Section */}
                         {addons.filter((a: any) => a.quantity > 0).length > 0 && (
-                          <div className="space-y-2">
+                          <div className="space-y-1">
                             <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
                             {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
                               let addonCalc = '';

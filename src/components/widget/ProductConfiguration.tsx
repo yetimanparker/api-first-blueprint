@@ -473,15 +473,22 @@ const ProductConfiguration = ({
       <Card className="border-l-4 shadow-sm border-primary">
         <CardContent className="p-6">
           <div className="space-y-4">
-            {/* Product Header - No color dot */}
+            {/* Product Header with measurement inline */}
             <div className="flex-1">
-              <h3 className="font-semibold text-lg">{product.name}</h3>
+              <h3 className="font-semibold text-lg">
+                {product.name}
+                <span className="text-sm text-muted-foreground font-normal ml-2">
+                  ({isVolumeBased && depth && parseFloat(depth) > 0
+                    ? `${((measurement.value * parseFloat(depth)) / 324).toLocaleString()} cu yd`
+                    : `${measurement.value.toLocaleString()} ${measurement.unit.replace('_', ' ')}`})
+                </span>
+              </h3>
             </div>
 
             {/* Itemized Pricing Breakdown */}
             {settings.pricing_visibility === 'before_submit' && !settings.use_price_ranges &&
              (!isVolumeBased || (isVolumeBased && depth && parseFloat(depth) > 0)) && (
-              <div className="space-y-3">
+              <div className="space-y-1">
                 {/* Selection Header */}
                 {selectedVariationObj && (
                 <div className="text-sm font-bold text-muted-foreground">
@@ -540,7 +547,7 @@ const ProductConfiguration = ({
 
                 {/* Add-ons Section */}
                 {Object.entries(selectedAddons).filter(([_, quantity]) => quantity > 0).length > 0 && (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
                     {Object.entries(selectedAddons)
                       .filter(([_, quantity]) => quantity > 0)

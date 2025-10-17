@@ -538,7 +538,7 @@ const QuoteReview = ({
                 <div key={item.id} className="bg-background rounded-lg p-4 border border-green-200 dark:border-green-800">
                   {/* Mobile-optimized layout: stack everything vertically on mobile */}
                   <div className="flex flex-col gap-3 mb-3">
-                    {/* Row 1: Color badge + Product name */}
+                    {/* Row 1: Color badge + Product name with measurement inline */}
                     <div className="flex items-start gap-2">
                       <div 
                         className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5" 
@@ -546,7 +546,15 @@ const QuoteReview = ({
                           backgroundColor: item.measurement.mapColor || '#3B82F6',
                         }}
                       />
-                      <h3 className="font-semibold text-base flex-1 break-words leading-tight">{item.productName}</h3>
+                      <h3 className="font-semibold text-base flex-1 break-words leading-tight">
+                        {item.productName}
+                        <span className="text-sm text-muted-foreground font-normal ml-2">
+                          ({item.measurement.depth 
+                            ? `${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cubic yards`
+                            : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')}`
+                          })
+                        </span>
+                      </h3>
                       {onRemoveItem && (
                         <Button 
                           variant="ghost" 
@@ -558,19 +566,10 @@ const QuoteReview = ({
                         </Button>
                       )}
                     </div>
-                    
-                    {/* Row 2: Measurement details */}
-                    <p className="text-sm text-muted-foreground">
-                      {item.measurement.depth 
-                        ? `${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cubic yards (${item.measurement.value.toLocaleString()} sq ft × ${item.measurement.depth}" depth)`
-                        : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')}`
-                      }
-                    </p>
-                    
                   </div>
                   
                   {/* Itemized Breakdown - Show variations and add-ons always, prices conditionally */}
-                  <div className="space-y-3">
+                  <div className="space-y-1">
                     {/* Selection Header */}
                     {item.measurement.variations && item.measurement.variations.length > 0 && settings.pricing_visibility === 'before_submit' && (
                       <div className="text-sm font-bold text-muted-foreground">
@@ -637,7 +636,7 @@ const QuoteReview = ({
 
                     {/* Add-ons with Toggles - Always show, prices conditional */}
                     {item.measurement.addons && item.measurement.addons.length > 0 && (
-                      <div className="space-y-2">
+                      <div className="space-y-1">
                         <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
                         {item.measurement.addons.map((addon) => {
                           // Calculate addon price properly including area calculations
