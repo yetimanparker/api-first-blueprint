@@ -407,10 +407,10 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                         {item.quantity.toLocaleString()} {unitAbbr} × {formatExactPrice(baseUnitPrice, {
                           currency_symbol: settings.currency_symbol,
                           decimal_precision: settings.decimal_precision
-                        })}/{unitAbbr} = {formatExactPrice(baseTotal, {
+                        })}/{unitAbbr} = <span className="font-bold">{formatExactPrice(baseTotal, {
                           currency_symbol: settings.currency_symbol,
                           decimal_precision: settings.decimal_precision
-                        })}
+                        })}</span>
                       </div>
                     </div>
                     
@@ -447,10 +447,10 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                             <div key={addon.id} className="space-y-1">
                               <div className="text-base">{addon.name}</div>
                               <div className="text-sm text-muted-foreground">
-                                {addonCalc} = {formatExactPrice(addonPrice, {
+                                {addonCalc} = <span className="font-bold">{formatExactPrice(addonPrice, {
                                   currency_symbol: settings.currency_symbol,
                                   decimal_precision: settings.decimal_precision
-                                })}
+                                })}</span>
                               </div>
                             </div>
                           );

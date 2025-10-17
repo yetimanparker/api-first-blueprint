@@ -395,10 +395,10 @@ const QuoteSuccess = ({
                             {quantity.toLocaleString()} {unitAbbr} × {formatExactPrice(baseUnitPrice, {
                               currency_symbol: settings.currency_symbol,
                               decimal_precision: settings.decimal_precision
-                            })}/{unitAbbr} = {formatExactPrice(baseTotal, {
+                            })}/{unitAbbr} = <span className="font-bold">{formatExactPrice(baseTotal, {
                               currency_symbol: settings.currency_symbol,
                               decimal_precision: settings.decimal_precision
-                            })}
+                            })}</span>
                           </div>
                         </div>
                         
@@ -465,10 +465,10 @@ const QuoteSuccess = ({
                                 <div key={addon.id} className="space-y-1">
                                   <div className="text-base">{addon.name}</div>
                                   <div className="text-sm text-muted-foreground">
-                                    {addonCalc} = {formatExactPrice(addonPrice * addon.quantity, {
+                                    {addonCalc} = <span className="font-bold">{formatExactPrice(addonPrice * addon.quantity, {
                                       currency_symbol: settings.currency_symbol,
                                       decimal_precision: settings.decimal_precision
-                                    })}
+                                    })}</span>
                                   </div>
                                 </div>
                               );
