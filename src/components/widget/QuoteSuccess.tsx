@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { 
   CheckCircle2, 
   Download, 
@@ -258,62 +257,6 @@ const QuoteSuccess = ({
     setItems(quoteItems);
   }, [quoteItems]);
 
-  const toggleAddon = (itemId: string, addonId: string) => {
-    setItems(prevItems => prevItems.map(item => {
-      if (item.id !== itemId) return item;
-      
-      const updatedAddons = item.measurement.addons?.map(addon => {
-        if (addon.id === addonId) {
-          const newQuantity = addon.quantity > 0 ? 0 : 1;
-          return { ...addon, quantity: newQuantity };
-        }
-        return addon;
-      }) || [];
-
-      // Calculate quantity (use cubic yards if depth is provided)
-      const quantity = item.measurement.depth 
-        ? (item.measurement.value * item.measurement.depth) / 324 
-        : item.measurement.value;
-
-      // Recalculate line total
-      let basePrice = quantity * item.unitPrice;
-      
-      // Apply variations
-      if (item.measurement.variations && item.measurement.variations.length > 0) {
-        item.measurement.variations.forEach(variation => {
-          if (variation.adjustmentType === 'percentage') {
-            basePrice += basePrice * (variation.priceAdjustment / 100);
-          } else {
-            basePrice += variation.priceAdjustment * quantity;
-          }
-        });
-      }
-      
-      // Apply active addons
-      let addonsTotal = 0;
-      updatedAddons.forEach(addon => {
-        if (addon.quantity > 0) {
-          if (addon.calculationType === 'per_unit') {
-            addonsTotal += addon.priceValue * quantity * addon.quantity;
-          } else {
-            addonsTotal += addon.priceValue * addon.quantity;
-          }
-        }
-      });
-
-      const newLineTotal = basePrice + addonsTotal;
-
-      return {
-        ...item,
-        measurement: {
-          ...item.measurement,
-          addons: updatedAddons
-        },
-        lineTotal: newLineTotal
-      };
-    }));
-  };
-
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const taxAmount = settings.global_tax_rate > 0 
     ? subtotal * (settings.global_tax_rate / 100)
@@ -373,125 +316,155 @@ const QuoteSuccess = ({
             </CardHeader>
             <CardContent className="space-y-4">
             {items.map((item) => {
+                const variations = item.measurement.variations || [];
+                const addons = item.measurement.addons || [];
+                const showPricing = settings.pricing_visibility === 'before_submit';
+                
+                // Calculate unit abbreviation
+                const getUnitAbbreviation = (unit: string) => {
+                  switch (unit) {
+                    case 'sq_ft': return 'SF';
+                    case 'linear_ft': return 'LF';
+                    case 'cubic_yard': return 'cu yd';
+                    case 'each': return 'ea';
+                    default: return unit?.replace('_', ' ') || 'unit';
+                  }
+                };
+
                 const quantity = item.measurement.depth 
                   ? (item.measurement.value * item.measurement.depth) / 324 
                   : item.measurement.value;
-                const basePrice = quantity * item.unitPrice;
-                const showPricing = settings.pricing_visibility === 'before_submit';
+
+                // Calculate base price with variation adjustment
+                const getVariationAdjustedPrice = () => {
+                  let adjustedPrice = item.unitPrice;
+                  variations.forEach((v: any) => {
+                    if (v.adjustmentType === 'percentage') {
+                      adjustedPrice += item.unitPrice * (v.priceAdjustment / 100);
+                    } else {
+                      adjustedPrice += v.priceAdjustment;
+                    }
+                  });
+                  return adjustedPrice;
+                };
+
+                const baseUnitPrice = getVariationAdjustedPrice();
+                const baseTotal = baseUnitPrice * quantity;
+
+                const unitAbbr = getUnitAbbreviation(item.measurement.depth ? 'cubic_yard' : item.measurement.unit);
                 
                 return (
                   <div 
                     key={item.id} 
-                    className="border-l-4 pl-4 py-2"
+                    className="border-l-4 pl-4 py-2 space-y-3"
                     style={{ borderLeftColor: item.measurement.mapColor || '#3B82F6' }}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-semibold">{item.productName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {item.measurement.depth 
-                            ? `${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cubic yards (${item.measurement.value.toLocaleString()} sq ft × ${item.measurement.depth}" depth)`
-                            : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')}`
-                          }
-                        </p>
+                    {/* Header: Product name with color indicator and quantity */}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: item.measurement.mapColor || '#3B82F6' }}
+                        />
+                        <span className="font-semibold">{item.productName}</span>
                       </div>
-                      {showPricing && (
-                        <p className="font-bold text-lg">
-                          {settings.use_price_ranges ? (
-                            formatPriceRange(
-                              calculatePriceRange(item.lineTotal, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
-                              settings
-                            )
-                          ) : (
-                            formatExactPrice(item.lineTotal, {
-                              currency_symbol: settings.currency_symbol,
-                              decimal_precision: settings.decimal_precision
-                            })
-                          )}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Itemized breakdown - Always show variations/addons, pricing conditional */}
-                    <div className="space-y-1 text-sm">
-                      {showPricing && (
-                        <div className="text-muted-foreground">
-                          Base Price ({item.measurement.depth 
-                            ? `${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cu yd (${item.measurement.value.toLocaleString()} sq ft × ${item.measurement.depth}" depth)`
-                            : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')}`
-                          }
-                          {' × '}{formatExactPrice(item.unitPrice, {
-                            currency_symbol: settings.currency_symbol,
-                            decimal_precision: settings.decimal_precision
-                          })}): {settings.use_price_ranges ? (
-                            formatPriceRange(
-                              calculatePriceRange(basePrice, settings.price_range_lower_percentage, settings.price_range_upper_percentage),
-                              settings
-                            )
-                          ) : (
-                            formatExactPrice(basePrice, {
-                              currency_symbol: settings.currency_symbol,
-                              decimal_precision: settings.decimal_precision
-                            })
-                          )}
-                        </div>
-                      )}
                       
-                      {/* Variations - Always show name, pricing conditional */}
-                      {item.measurement.variations && item.measurement.variations.length > 0 && item.measurement.variations.map(v => {
-                        const variationPrice = v.adjustmentType === 'percentage' 
-                          ? basePrice * (v.priceAdjustment / 100)
-                          : v.priceAdjustment * quantity;
+                      <p className="text-sm text-muted-foreground">
+                        {quantity.toLocaleString()} {unitAbbr}
+                      </p>
+                    </div>
+                    
+                    {/* Pricing Breakdown - only show if pricing should be visible */}
+                    {showPricing && (
+                      <div className="space-y-3">
+                        {/* Selection Header - only show if variations exist */}
+                        {variations.length > 0 && (
+                          <div className="text-sm font-bold text-muted-foreground">
+                            Selection:
+                          </div>
+                        )}
                         
-                        return (
-                          <div key={v.id} className="text-muted-foreground">
-                            {showPricing ? (
-                              <>
-                                {v.name}: +{formatExactPrice(variationPrice, {
+                        {/* Base Product Line with Variation */}
+                        <div className="space-y-1">
+                          <div className="text-base">
+                            {variations.map((v: any) => (
+                              <span key={v.id}>{v.name} </span>
+                            ))}
+                            {item.productName}:
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {quantity.toLocaleString()} {unitAbbr} × {formatExactPrice(baseUnitPrice, {
+                              currency_symbol: settings.currency_symbol,
+                              decimal_precision: settings.decimal_precision
+                            })}/{unitAbbr} = {formatExactPrice(baseTotal, {
+                              currency_symbol: settings.currency_symbol,
+                              decimal_precision: settings.decimal_precision
+                            })}
+                          </div>
+                        </div>
+                        
+                        {/* Add-ons Section */}
+                        {addons.filter((a: any) => a.quantity > 0).length > 0 && (
+                          <div className="space-y-2">
+                            <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
+                            {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
+                              let addonCalc = '';
+                              let addonPrice = 0;
+                              
+                              if (addon.calculationType === 'per_unit') {
+                                addonPrice = addon.priceValue * quantity * addon.quantity;
+                                addonCalc = `${quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addon.priceValue, {
                                   currency_symbol: settings.currency_symbol,
                                   decimal_precision: settings.decimal_precision
-                                })}
-                              </>
-                            ) : (
-                              <>{v.name}</>
-                            )}
+                                })}/${unitAbbr}`;
+                              } else if (addon.calculationType === 'area_calculation') {
+                                addonPrice = addon.priceValue * addon.quantity;
+                                addonCalc = `${addon.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addon.priceValue, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })}/${unitAbbr}`;
+                              } else {
+                                // Total calculation
+                                addonPrice = addon.priceValue * addon.quantity;
+                                addonCalc = `${addon.quantity} × ${formatExactPrice(addon.priceValue, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })}`;
+                              }
+                              
+                              return (
+                                <div key={addon.id} className="space-y-1">
+                                  <div className="text-base">{addon.name}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {addonCalc} = {formatExactPrice(addonPrice, {
+                                      currency_symbol: settings.currency_symbol,
+                                      decimal_precision: settings.decimal_precision
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                      
-                      {/* Add-ons with Toggles - Always show, pricing conditional */}
-                      {item.measurement.addons && item.measurement.addons.length > 0 && item.measurement.addons.map(addon => {
-                        const addonPrice = addon.calculationType === 'per_unit'
-                          ? addon.priceValue * quantity
-                          : addon.priceValue;
-                        const isEnabled = addon.quantity > 0;
+                        )}
                         
-                        return (
-                          <div key={addon.id} className="flex items-center gap-2">
-                            <Switch
-                              checked={isEnabled}
-                              onCheckedChange={() => toggleAddon(item.id, addon.id)}
-                              className="scale-90 data-[state=checked]:bg-blue-600"
-                            />
-                            <span className={isEnabled ? 'text-foreground' : 'text-muted-foreground line-through'}>
-                              {showPricing ? (
-                                <>
-                                  {addon.name}: {addon.calculationType === 'per_unit' 
-                                    ? `${quantity.toLocaleString()} ${item.measurement.depth ? 'cu yd' : item.measurement.unit.replace('_', ' ')} × ` 
-                                    : `${addon.quantity.toFixed(1)} each × `
-                                  }+{formatExactPrice(addonPrice * addon.quantity, {
-                                    currency_symbol: settings.currency_symbol,
-                                    decimal_precision: settings.decimal_precision
-                                  })}
-                                </>
-                              ) : (
-                                <>{addon.name}</>
-                              )}
+                        {/* Item Total */}
+                        <div className="border-t-2 border-border pt-3">
+                          <div className="flex justify-end">
+                            <span className="text-lg font-bold text-green-600">
+                              Total: {formatExactPrice(item.lineTotal, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })}
                             </span>
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Notes */}
+                    {item.notes && (
+                      <p className="text-sm text-muted-foreground mt-2 italic">{item.notes}</p>
+                    )}
                   </div>
                 );
               })}
