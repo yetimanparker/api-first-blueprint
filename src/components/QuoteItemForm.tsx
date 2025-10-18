@@ -50,7 +50,7 @@ interface ProductAddon {
   description: string | null;
   price_value: number;
   price_type: "fixed" | "percentage";
-  calculation_type: "per_unit" | "total";
+  calculation_type: "per_unit" | "total" | "area_calculation";
   is_active: boolean;
   display_order: number;
 }
@@ -212,7 +212,7 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
         product_addons: product.product_addons?.map(addon => ({
           ...addon,
           price_type: addon.price_type as "fixed" | "percentage",
-          calculation_type: addon.calculation_type as "per_unit" | "total"
+          calculation_type: addon.calculation_type as "per_unit" | "total" | "area_calculation"
         })) || []
       }));
       
@@ -242,11 +242,25 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
     const addon = selectedProduct?.product_addons?.find(a => a.id === addonId);
     if (!addon) return total;
     
+    // Calculate base quantity (may be adjusted for area_calculation)
+    let calculationQuantity = quantity;
+    
+    // For area_calculation, multiply by height to get square footage
+    if (addon.calculation_type === "area_calculation") {
+      const height = selectedVariation?.height_value || selectedProduct?.base_height || 1;
+      calculationQuantity = quantity * height;
+    }
+    
     if (addon.price_type === "fixed") {
-      return total + (addon.calculation_type === "per_unit" ? addon.price_value * quantity : addon.price_value);
+      if (addon.calculation_type === "total") {
+        return total + addon.price_value;
+      } else {
+        // Both per_unit and area_calculation use quantity-based calculation
+        return total + (addon.price_value * calculationQuantity);
+      }
     } else {
       // Percentage addon
-      const baseAmount = addon.calculation_type === "per_unit" ? unitPrice * quantity : unitPrice;
+      const baseAmount = addon.calculation_type === "total" ? unitPrice : unitPrice * calculationQuantity;
       return total + (baseAmount * addon.price_value / 100);
     }
   }, 0);
@@ -294,21 +308,36 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
           const addon = selectedProduct.product_addons?.find(a => a.id === addonId);
           if (!addon) return null;
           
+          // Calculate base quantity (may be adjusted for area_calculation)
+          let calculationQuantity = data.quantity;
+          
+          // For area_calculation, multiply by height to get square footage
+          if (addon.calculation_type === "area_calculation") {
+            const height = selectedVariation?.height_value || selectedProduct?.base_height || 1;
+            calculationQuantity = data.quantity * height;
+          }
+          
           let addonCost = 0;
           if (addon.price_type === "fixed") {
-            addonCost = addon.calculation_type === "per_unit" ? addon.price_value * data.quantity : addon.price_value;
+            if (addon.calculation_type === "total") {
+              addonCost = addon.price_value;
+            } else {
+              // Both per_unit and area_calculation use quantity-based calculation
+              addonCost = addon.price_value * calculationQuantity;
+            }
           } else {
-            const baseAmount = addon.calculation_type === "per_unit" ? data.unit_price * data.quantity : data.unit_price;
+            // Percentage addon
+            const baseAmount = addon.calculation_type === "total" ? data.unit_price : data.unit_price * calculationQuantity;
             addonCost = baseAmount * addon.price_value / 100;
           }
           
           return {
-            addon_id: addon.id,
-            addon_name: addon.name,
-            addon_price: addon.price_value,
-            addon_cost: addonCost,
-            price_type: addon.price_type,
-            calculation_type: addon.calculation_type,
+            id: addon.id,
+            name: addon.name,
+            priceValue: addon.price_value,
+            calculationType: addon.calculation_type,
+            quantity: 1,
+            addonCost: addonCost,
           };
         }).filter(Boolean);
       }
@@ -317,11 +346,15 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
       let measurementData = null;
       if (selectedVariation) {
         measurementData = {
-          variation_id: selectedVariation.id,
-          variation_name: selectedVariation.name,
-          height: selectedVariation.height_value,
-          unit: selectedVariation.unit_of_measurement,
-          affects_area_calculation: selectedVariation.affects_area_calculation,
+          variations: [{
+            id: selectedVariation.id,
+            name: selectedVariation.name,
+            priceAdjustment: selectedVariation.price_adjustment,
+            adjustmentType: selectedVariation.adjustment_type,
+            height_value: selectedVariation.height_value,
+            unit_of_measurement: selectedVariation.unit_of_measurement,
+            affects_area_calculation: selectedVariation.affects_area_calculation,
+          }],
           addons: addonData,
         };
       } else if (addonData) {
@@ -625,17 +658,35 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
                        const addon = selectedProduct?.product_addons?.find(a => a.id === addonId);
                        if (!addon) return null;
                        
+                       // Calculate base quantity (may be adjusted for area_calculation)
+                       let calculationQuantity = quantity;
+                       let displayUnit = selectedProduct.unit_type;
+                       
+                       // For area_calculation, multiply by height to get square footage
+                       if (addon.calculation_type === "area_calculation") {
+                         const height = selectedVariation?.height_value || selectedProduct?.base_height || 1;
+                         calculationQuantity = quantity * height;
+                         displayUnit = "SF";
+                       }
+                       
                        let addonCost = 0;
                        if (addon.price_type === "fixed") {
-                         addonCost = addon.calculation_type === "per_unit" ? addon.price_value * quantity : addon.price_value;
+                         if (addon.calculation_type === "total") {
+                           addonCost = addon.price_value;
+                         } else {
+                           addonCost = addon.price_value * calculationQuantity;
+                         }
                        } else {
-                         const baseAmount = addon.calculation_type === "per_unit" ? unitPrice * quantity : unitPrice;
+                         const baseAmount = addon.calculation_type === "total" ? unitPrice : unitPrice * calculationQuantity;
                          addonCost = baseAmount * addon.price_value / 100;
                        }
                        
                        return (
                          <div key={addon.id} className="flex justify-between">
-                           <span>{addon.name}</span>
+                           <span>
+                             {addon.name}
+                             {addon.calculation_type === "area_calculation" && ` (${Math.round(calculationQuantity).toLocaleString()} ${displayUnit})`}
+                           </span>
                            <span>
                              +{settings ? formatExactPrice(addonCost, {
                                currency_symbol: settings.currency_symbol || '$',
