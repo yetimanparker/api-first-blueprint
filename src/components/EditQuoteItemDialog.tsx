@@ -94,6 +94,7 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
   const [unitPrice, setUnitPrice] = useState<number>(item.unit_price);
   const [notes, setNotes] = useState<string>(item.notes || "");
   const [selectedAddonIds, setSelectedAddonIds] = useState<string[]>([]);
+  const [addonCustomData, setAddonCustomData] = useState<Record<string, { price: number; quantity: number }>>({});
   
   const { toast } = useToast();
 
@@ -135,8 +136,22 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
           .map(a => a.id || a.addon_id)
           .filter(Boolean) as string[];
         setSelectedAddonIds(addonIds);
+        
+        // Load custom addon data (prices and quantities)
+        const customData: Record<string, { price: number; quantity: number }> = {};
+        item.measurement_data.addons.forEach(a => {
+          const addonId = a.id || a.addon_id;
+          if (addonId) {
+            customData[addonId] = {
+              price: a.priceValue || a.addon_price || 0,
+              quantity: a.quantity || 1
+            };
+          }
+        });
+        setAddonCustomData(customData);
       } else {
         setSelectedAddonIds([]);
+        setAddonCustomData({});
       }
       
       setQuantity(item.quantity);
@@ -180,13 +195,13 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
       const addon = product.product_addons?.find(a => a.id === addonId);
       if (!addon) return total;
       
-      // Get the stored addon quantity from measurement_data
-      const storedAddon = item.measurement_data?.addons?.find(a => (a.id || a.addon_id) === addonId);
-      const addonQuantity = storedAddon?.quantity || 1;
+      // Use custom price if set, otherwise use default
+      const customPrice = addonCustomData[addonId]?.price ?? addon.price_value;
+      const addonQuantity = addonCustomData[addonId]?.quantity ?? 1;
       
       // Use the same calculation as the quote summary
       const addonCost = calculateAddonWithAreaData(
-        addon.price_value,
+        customPrice,
         quantity,
         addon.calculation_type,
         variationData,
@@ -241,15 +256,14 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
           const addon = product.product_addons?.find(a => a.id === addonId);
           if (!addon) return null;
           
-          let addonQuantity = 1;
-          if (addon.calculation_type === 'per_unit') {
-            addonQuantity = quantity;
-          }
+          // Use custom values if available
+          const customPrice = addonCustomData[addonId]?.price ?? addon.price_value;
+          const addonQuantity = addonCustomData[addonId]?.quantity ?? 1;
           
           return {
             id: addon.id,
             name: addon.name,
-            priceValue: addon.price_value,
+            priceValue: customPrice,
             calculationType: addon.calculation_type,
             quantity: addonQuantity,
           };
@@ -314,6 +328,28 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
     setSelectedAddonIds(prev => 
       checked ? [...prev, addonId] : prev.filter(id => id !== addonId)
     );
+  };
+
+  const updateAddonPrice = (addonId: string, price: number) => {
+    setAddonCustomData(prev => ({
+      ...prev,
+      [addonId]: {
+        ...prev[addonId],
+        price,
+        quantity: prev[addonId]?.quantity ?? 1
+      }
+    }));
+  };
+
+  const updateAddonQuantity = (addonId: string, addonQty: number) => {
+    setAddonCustomData(prev => ({
+      ...prev,
+      [addonId]: {
+        ...prev[addonId],
+        quantity: addonQty,
+        price: prev[addonId]?.price ?? (product?.product_addons?.find(a => a.id === addonId)?.price_value || 0)
+      }
+    }));
   };
 
   const selectedVariation = product?.product_variations?.find(v => v.id === variationId);
@@ -392,28 +428,61 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
             {product.product_addons && product.product_addons.length > 0 && (
               <div className="space-y-2">
                 <Label>Add-ons</Label>
-                <div className="space-y-2 border rounded-lg p-4">
-                  {product.product_addons.map(addon => (
-                    <div key={addon.id} className="flex items-start space-x-2">
-                      <Checkbox
-                        id={`addon-${addon.id}`}
-                        checked={selectedAddonIds.includes(addon.id)}
-                        onCheckedChange={(checked) => toggleAddon(addon.id, checked as boolean)}
-                      />
-                      <div className="flex-1">
-                        <label htmlFor={`addon-${addon.id}`} className="text-sm font-medium cursor-pointer">
-                          {addon.name}
-                        </label>
-                        <p className="text-xs text-muted-foreground">
-                          ${addon.price_value} {addon.calculation_type === 'per_unit' ? 'per unit' : addon.calculation_type === 'area_calculation' ? 'per SF' : 'total'}
-                          {item.measurement_data?.addons?.find(a => (a.id || a.addon_id) === addon.id)?.quantity && 
-                           item.measurement_data.addons.find(a => (a.id || a.addon_id) === addon.id)!.quantity! > 1 && (
-                            <span className="ml-1 font-semibold">× {item.measurement_data.addons.find(a => (a.id || a.addon_id) === addon.id)!.quantity}</span>
-                          )}
-                        </p>
+                <div className="space-y-3 border rounded-lg p-4">
+                  {product.product_addons.map(addon => {
+                    const isSelected = selectedAddonIds.includes(addon.id);
+                    const customPrice = addonCustomData[addon.id]?.price ?? addon.price_value;
+                    const customQuantity = addonCustomData[addon.id]?.quantity ?? 1;
+                    
+                    return (
+                      <div key={addon.id} className="space-y-2 pb-3 border-b last:border-b-0 last:pb-0">
+                        <div className="flex items-start space-x-2">
+                          <Checkbox
+                            id={`addon-${addon.id}`}
+                            checked={isSelected}
+                            onCheckedChange={(checked) => toggleAddon(addon.id, checked as boolean)}
+                          />
+                          <div className="flex-1">
+                            <label htmlFor={`addon-${addon.id}`} className="text-sm font-medium cursor-pointer">
+                              {addon.name}
+                            </label>
+                            <p className="text-xs text-muted-foreground">
+                              {addon.calculation_type === 'per_unit' ? 'per unit' : addon.calculation_type === 'area_calculation' ? 'per SF' : 'total'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {isSelected && (
+                          <div className="ml-6 grid grid-cols-2 gap-2">
+                            <div>
+                              <Label htmlFor={`addon-price-${addon.id}`} className="text-xs">Price</Label>
+                              <Input
+                                id={`addon-price-${addon.id}`}
+                                type="number"
+                                value={customPrice}
+                                onChange={(e) => updateAddonPrice(addon.id, Number(e.target.value))}
+                                min={0}
+                                step={0.01}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor={`addon-qty-${addon.id}`} className="text-xs">Quantity</Label>
+                              <Input
+                                id={`addon-qty-${addon.id}`}
+                                type="number"
+                                value={customQuantity}
+                                onChange={(e) => updateAddonQuantity(addon.id, Number(e.target.value))}
+                                min={1}
+                                step={1}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
