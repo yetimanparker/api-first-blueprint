@@ -127,8 +127,16 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
       // Extract variation ID from measurement_data
       const variationId = editingItem.measurement_data?.variations?.[0]?.id || "none";
       
-    // Extract addon IDs from measurement_data (handle both id and addon_id formats)
-    const addonIds = editingItem.measurement_data?.addons?.map(a => a.id || a.addon_id) || [];
+      // Extract addon IDs from measurement_data (handle both id and addon_id formats)
+      // Filter addons that have quantity > 0 to only load actually selected ones
+      const selectedAddonData = editingItem.measurement_data?.addons?.filter(a => a.quantity && a.quantity > 0) || [];
+      const addonIds = selectedAddonData.map(a => a.id || a.addon_id).filter(Boolean);
+      
+      console.log('Loading edit item with addons:', {
+        savedAddons: editingItem.measurement_data?.addons,
+        filteredAddons: selectedAddonData,
+        extractedIds: addonIds
+      });
       
       form.reset({
         product_id: editingItem.product_id,
