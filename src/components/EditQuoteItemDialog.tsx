@@ -245,6 +245,12 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
             name: variation.name,
             priceAdjustment: variation.price_adjustment,
             adjustmentType: variation.adjustment_type,
+            height_value: variation.height_value,
+            heightValue: variation.height_value,
+            unit_of_measurement: variation.unit_of_measurement,
+            unit: variation.unit_of_measurement,
+            affects_area_calculation: variation.affects_area_calculation,
+            affectsAreaCalculation: variation.affects_area_calculation,
           }];
         }
       }

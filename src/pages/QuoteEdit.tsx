@@ -739,9 +739,9 @@ export default function QuoteEdit() {
                                 let addonPrice = 0;
                                 
                                 const variationData = variations[0] ? {
-                                  height: variations[0].height_value,
-                                  unit: variations[0].unit_of_measurement,
-                                  affects_area_calculation: variations[0].affects_area_calculation
+                                  height: variations[0].height_value || variations[0].height || variations[0].heightValue,
+                                  unit: variations[0].unit_of_measurement || variations[0].unit,
+                                  affects_area_calculation: variations[0].affects_area_calculation || variations[0].affectsAreaCalculation
                                 } : undefined;
                                 
                                 if (addonCalcType === 'per_unit') {
@@ -749,7 +749,7 @@ export default function QuoteEdit() {
                                   addonCalc = `${item.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addonPriceValue, {
                                     currency_symbol: settings?.currency_symbol || '$',
                                     decimal_precision: settings?.decimal_precision || 2
-                                  })}/${unitAbbr}`;
+                                  })}/${unitAbbr}${addonQty > 1 ? ` × ${addonQty}` : ''}`;
                                 } else if (addonCalcType === 'area_calculation') {
                                   // Calculate area with height
                                   const squareFeet = variationData?.affects_area_calculation && variationData.height
@@ -759,7 +759,7 @@ export default function QuoteEdit() {
                                   addonCalc = `${squareFeet.toLocaleString()} SF × ${formatExactPrice(addonPriceValue, {
                                     currency_symbol: settings?.currency_symbol || '$',
                                     decimal_precision: settings?.decimal_precision || 2
-                                  })}/SF`;
+                                  })}/SF${addonQty > 1 ? ` × ${addonQty}` : ''}`;
                                 } else {
                                   // Total calculation
                                   addonPrice = addonPriceValue * addonQty;
