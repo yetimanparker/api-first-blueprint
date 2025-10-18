@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { calculateAddonWithAreaData } from "@/lib/priceUtils";
 
 interface QuoteItem {
   id: string;
@@ -49,11 +50,17 @@ interface Product {
   name: string;
   unit_price: number;
   unit_type: string;
+  base_height?: number | null;
+  base_height_unit?: string | null;
+  use_height_in_calculation?: boolean | null;
   product_variations?: Array<{
     id: string;
     name: string;
     price_adjustment: number;
     adjustment_type: string;
+    height_value?: number | null;
+    unit_of_measurement?: string | null;
+    affects_area_calculation?: boolean | null;
   }>;
   product_addons?: Array<{
     id: string;
@@ -152,15 +159,37 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
   const calculateAddonCosts = () => {
     if (!product || selectedAddonIds.length === 0) return 0;
     
+    // Get variation data if selected
+    const selectedVariation = variationId !== "none" && product.product_variations
+      ? product.product_variations.find(v => v.id === variationId)
+      : null;
+    
+    const variationData = selectedVariation ? {
+      height: selectedVariation.height_value,
+      unit: selectedVariation.unit_of_measurement,
+      affects_area_calculation: selectedVariation.affects_area_calculation
+    } : undefined;
+    
+    const productData = {
+      base_height: product.base_height,
+      base_height_unit: product.base_height_unit,
+      use_height_in_calculation: product.use_height_in_calculation
+    };
+    
     return selectedAddonIds.reduce((total, addonId) => {
       const addon = product.product_addons?.find(a => a.id === addonId);
       if (!addon) return total;
       
-      if (addon.calculation_type === 'per_unit') {
-        return total + (addon.price_value * quantity);
-      } else {
-        return total + addon.price_value;
-      }
+      // Use the same calculation as the quote summary
+      const addonCost = calculateAddonWithAreaData(
+        addon.price_value,
+        quantity,
+        addon.calculation_type,
+        variationData,
+        productData
+      );
+      
+      return total + addonCost;
     }, 0);
   };
 
