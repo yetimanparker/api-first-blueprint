@@ -105,7 +105,16 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<string[]>(() => {
+    // Initialize with editing item's addon IDs if available
+    if (editingItem?.measurement_data?.addons) {
+      return editingItem.measurement_data.addons
+        .filter(a => a.quantity && a.quantity > 0)
+        .map(a => a.id || a.addon_id)
+        .filter(Boolean) as string[];
+    }
+    return [];
+  });
   const { toast } = useToast();
   const { settings } = useGlobalSettings();
 
