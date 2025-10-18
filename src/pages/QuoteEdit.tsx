@@ -13,7 +13,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin, Ruler, Plus, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { QuoteItemForm } from "@/components/QuoteItemForm";
+import { EditQuoteItemDialog } from "@/components/EditQuoteItemDialog";
 import { useGlobalSettings } from "@/hooks/useGlobalSettings";
 import { displayQuoteTotal, displayLineItemPrice, formatExactPrice, calculateAddonWithAreaData } from "@/lib/priceUtils";
 import MeasurementMap from "@/components/quote/MeasurementMap";
@@ -938,25 +938,17 @@ export default function QuoteEdit() {
         )}
 
         {/* Edit Item Dialog */}
-        <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Quote Item</DialogTitle>
-            </DialogHeader>
-            {editingItem && (
-              <div className="mt-4">
-                <QuoteItemForm
-                  quoteId={quote.id}
-                  editingItem={editingItem}
-                  onItemAdded={() => {
-                    setEditingItem(null);
-                    fetchQuoteData();
-                  }}
-                />
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        {editingItem && (
+          <EditQuoteItemDialog
+            open={!!editingItem}
+            onOpenChange={(open) => !open && setEditingItem(null)}
+            item={editingItem}
+            onSuccess={() => {
+              setEditingItem(null);
+              fetchQuoteData();
+            }}
+          />
+        )}
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={!!deletingItemId} onOpenChange={() => setDeletingItemId(null)}>
