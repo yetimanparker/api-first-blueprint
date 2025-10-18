@@ -105,16 +105,6 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const [selectedAddons, setSelectedAddons] = useState<string[]>(() => {
-    // Initialize with editing item's addon IDs if available
-    if (editingItem?.measurement_data?.addons) {
-      return editingItem.measurement_data.addons
-        .filter(a => a.quantity && a.quantity > 0)
-        .map(a => a.id || a.addon_id)
-        .filter(Boolean) as string[];
-    }
-    return [];
-  });
   const { toast } = useToast();
   const { settings } = useGlobalSettings();
 
@@ -155,9 +145,6 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
         notes: editingItem.notes || "",
         selected_addons: addonIds,
       });
-      
-      // Also update the selectedAddons state
-      setSelectedAddons(addonIds);
     } else {
       form.reset({
         product_id: "",
@@ -167,7 +154,6 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
         notes: "",
         selected_addons: [],
       });
-      setSelectedAddons([]);
     }
   }, [editingItem, form]);
 
@@ -256,6 +242,7 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
   const selectedVariationId = form.watch("variation_id");
   const quantity = form.watch("quantity");
   const unitPrice = form.watch("unit_price");
+  const selectedAddons = form.watch("selected_addons") || [];
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
   const selectedVariation = selectedProduct?.product_variations?.find(v => v.id === selectedVariationId && selectedVariationId !== "none");
@@ -291,7 +278,6 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
   useEffect(() => {
     // Reset selected addons when product changes
     if (selectedProductId) {
-      setSelectedAddons([]);
       form.setValue("selected_addons", []);
     }
   }, [selectedProductId, form]);
@@ -326,8 +312,8 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
     try {
       // Prepare addon data
       let addonData = null;
-      if (selectedAddons.length > 0 && selectedProduct) {
-        addonData = selectedAddons.map(addonId => {
+      if (data.selected_addons && data.selected_addons.length > 0 && selectedProduct) {
+        addonData = data.selected_addons.map(addonId => {
           const addon = selectedProduct.product_addons?.find(a => a.id === addonId);
           if (!addon) return null;
           
@@ -438,7 +424,6 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
 
       if (!editingItem) {
         form.reset();
-        setSelectedAddons([]);
       }
       onItemAdded();
     } catch (error: any) {
@@ -551,10 +536,10 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
                          id={addon.id}
                          checked={selectedAddons.includes(addon.id)}
                          onCheckedChange={(checked) => {
+                           const currentAddons = form.getValues("selected_addons") || [];
                            const newSelectedAddons = checked
-                             ? [...selectedAddons, addon.id]
-                             : selectedAddons.filter(id => id !== addon.id);
-                           setSelectedAddons(newSelectedAddons);
+                             ? [...currentAddons, addon.id]
+                             : currentAddons.filter(id => id !== addon.id);
                            form.setValue("selected_addons", newSelectedAddons);
                          }}
                        />
