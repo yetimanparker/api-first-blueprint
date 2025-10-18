@@ -421,23 +421,37 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                         {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
                           let addonCalc = '';
                           let addonPrice = 0;
+                          const addonQty = addon.quantity || 1;
+                          const addonPriceValue = addon.priceValue || addon.addon_price || 0;
+                          const addonCalcType = addon.calculationType || addon.calculation_type;
                           
-                          if (addon.calculationType === 'per_unit') {
-                            addonPrice = addon.priceValue * item.quantity * addon.quantity;
-                            addonCalc = `${item.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addon.priceValue, {
+                          // Get variation data for area calculations
+                          const variationData = variations[0] ? {
+                            height: variations[0].height_value || variations[0].height || variations[0].heightValue,
+                            unit: variations[0].unit_of_measurement || variations[0].unit,
+                            affects_area_calculation: variations[0].affects_area_calculation || variations[0].affectsAreaCalculation
+                          } : undefined;
+                          
+                          if (addonCalcType === 'per_unit') {
+                            addonPrice = addonPriceValue * item.quantity * addonQty;
+                            addonCalc = `${item.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addonPriceValue, {
                               currency_symbol: settings.currency_symbol,
                               decimal_precision: settings.decimal_precision
-                            })}/${unitAbbr}`;
-                          } else if (addon.calculationType === 'area_calculation') {
-                            addonPrice = addon.priceValue * addon.quantity;
-                            addonCalc = `${addon.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addon.priceValue, {
+                            })}/${unitAbbr}${addonQty > 1 ? ` × ${addonQty}` : ''}`;
+                          } else if (addonCalcType === 'area_calculation') {
+                            // Calculate area with height
+                            const squareFeet = variationData?.affects_area_calculation && variationData.height
+                              ? item.quantity * variationData.height
+                              : item.quantity;
+                            addonPrice = squareFeet * addonPriceValue * addonQty;
+                            addonCalc = `${squareFeet.toLocaleString()} SF × ${formatExactPrice(addonPriceValue, {
                               currency_symbol: settings.currency_symbol,
                               decimal_precision: settings.decimal_precision
-                            })}/${unitAbbr}`;
+                            })}/SF${addonQty > 1 ? ` × ${addonQty}` : ''}`;
                           } else {
                             // Total calculation
-                            addonPrice = addon.priceValue * addon.quantity;
-                            addonCalc = `${addon.quantity} × ${formatExactPrice(addon.priceValue, {
+                            addonPrice = addonPriceValue * addonQty;
+                            addonCalc = `${addonQty} × ${formatExactPrice(addonPriceValue, {
                               currency_symbol: settings.currency_symbol,
                               decimal_precision: settings.decimal_precision
                             })}`;

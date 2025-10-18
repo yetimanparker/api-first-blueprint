@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { useGlobalSettings } from "@/hooks/useGlobalSettings";
-import { formatExactPrice, calculateTieredPrice, PricingTier, displayTieredPrice } from "@/lib/priceUtils";
+import { formatExactPrice, calculateTieredPrice, PricingTier, displayTieredPrice, calculateAddonWithAreaData } from "@/lib/priceUtils";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 
 const quoteItemSchema = z.object({
@@ -662,48 +662,69 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
                  {selectedAddons.length > 0 && (
                    <div className="text-sm text-muted-foreground mt-2">
                      <div className="font-medium">Add-ons:</div>
-                     {selectedAddons.map(addonId => {
-                       const addon = selectedProduct?.product_addons?.find(a => a.id === addonId);
-                       if (!addon) return null;
-                       
-                       // Calculate base quantity (may be adjusted for area_calculation)
-                       let calculationQuantity = quantity;
-                       let displayUnit = selectedProduct.unit_type;
-                       
-                       // For area_calculation, multiply by height to get square footage
-                       if (addon.calculation_type === "area_calculation") {
-                         const height = selectedVariation?.height_value || selectedProduct?.base_height || 1;
-                         calculationQuantity = quantity * height;
-                         displayUnit = "SF";
-                       }
-                       
-                       let addonCost = 0;
-                       if (addon.price_type === "fixed") {
-                         if (addon.calculation_type === "total") {
-                           addonCost = addon.price_value;
-                         } else {
-                           addonCost = addon.price_value * calculationQuantity;
-                         }
-                       } else {
-                         const baseAmount = addon.calculation_type === "total" ? unitPrice : unitPrice * calculationQuantity;
-                         addonCost = baseAmount * addon.price_value / 100;
-                       }
-                       
-                       return (
-                         <div key={addon.id} className="flex justify-between">
-                           <span>
-                             {addon.name}
-                             {addon.calculation_type === "area_calculation" && ` (${Math.round(calculationQuantity).toLocaleString()} ${displayUnit})`}
-                           </span>
-                           <span>
-                             +{settings ? formatExactPrice(addonCost, {
-                               currency_symbol: settings.currency_symbol || '$',
-                               decimal_precision: settings.decimal_precision || 2
-                             }) : `$${addonCost.toFixed(2)}`}
-                           </span>
-                         </div>
-                       );
-                     })}
+                      {selectedAddons.map(addonId => {
+                        const addon = selectedProduct?.product_addons?.find(a => a.id === addonId);
+                        if (!addon) return null;
+                        
+                        let addonCalc = '';
+                        let addonCost = 0;
+                        const addonQty = 1; // Default quantity for internal builder
+                        
+                        // Get variation data for area calculations
+                        const variationData = selectedVariation ? {
+                          height: selectedVariation.height_value,
+                          unit: selectedVariation.unit_of_measurement,
+                          affects_area_calculation: selectedVariation.affects_area_calculation
+                        } : undefined;
+                        
+                        const productData = {
+                          base_height: selectedProduct.base_height,
+                          base_height_unit: selectedProduct.base_height_unit,
+                          use_height_in_calculation: selectedProduct.use_height_in_calculation
+                        };
+                        
+                        if (addon.calculation_type === 'per_unit') {
+                          addonCost = addon.price_value * quantity * addonQty;
+                          addonCalc = `${quantity.toLocaleString()} ${selectedProduct.unit_type === 'linear_ft' ? 'LF' : selectedProduct.unit_type === 'sq_ft' ? 'SF' : selectedProduct.unit_type} × ${formatExactPrice(addon.price_value, {
+                            currency_symbol: settings?.currency_symbol || '$',
+                            decimal_precision: settings?.decimal_precision || 2
+                          })}`;
+                        } else if (addon.calculation_type === 'area_calculation') {
+                          // Calculate area with height using the utility function
+                          const calculatedArea = calculateAddonWithAreaData(
+                            1, // Use 1 to get just the area
+                            quantity,
+                            'area_calculation',
+                            variationData,
+                            productData
+                          );
+                          
+                          addonCost = calculatedArea * addon.price_value * addonQty;
+                          addonCalc = `${Math.round(calculatedArea).toLocaleString()} SF × ${formatExactPrice(addon.price_value, {
+                            currency_symbol: settings?.currency_symbol || '$',
+                            decimal_precision: settings?.decimal_precision || 2
+                          })}/SF`;
+                        } else {
+                          // Total calculation
+                          addonCost = addon.price_value * addonQty;
+                          addonCalc = `${addonQty} × ${formatExactPrice(addon.price_value, {
+                            currency_symbol: settings?.currency_symbol || '$',
+                            decimal_precision: settings?.decimal_precision || 2
+                          })}`;
+                        }
+                        
+                        return (
+                          <div key={addon.id} className="space-y-1">
+                            <div className="text-sm font-medium">{addon.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {addonCalc} = <span className="font-semibold">+{settings ? formatExactPrice(addonCost, {
+                                currency_symbol: settings.currency_symbol || '$',
+                                decimal_precision: settings.decimal_precision || 2
+                              }) : `$${addonCost.toFixed(2)}`}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
                    </div>
                  )}
               </div>

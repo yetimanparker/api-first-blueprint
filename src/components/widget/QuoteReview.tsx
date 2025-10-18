@@ -719,10 +719,12 @@ const QuoteReview = ({
                                       displayUnit = 'ea';
                                     }
                                     
+                                    // Show quantity multiplier when > 1
+                                    const qtyMultiplier = addon.quantity > 1 ? ` × ${addon.quantity}` : '';
                                     return `${displayQuantity} ${displayUnit} × ${formatExactPrice(displayPrice, {
                                       currency_symbol: settings.currency_symbol,
                                       decimal_precision: settings.decimal_precision
-                                    })}/${displayUnit} = `;
+                                    })}/${displayUnit}${qtyMultiplier} = `;
                                   })()}
                                   <span className="font-bold">{formatExactPrice(addonPrice * addon.quantity, {
                                     currency_symbol: settings.currency_symbol,
