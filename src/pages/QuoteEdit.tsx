@@ -71,15 +71,19 @@ interface QuoteItem {
       [key: string]: any;
     }>;
     addons?: Array<{
-      addon_id: string;
-      addon_name: string;
+      id?: string;  // New format
+      name?: string;  // New format
+      priceValue?: number;
+      calculationType?: 'per_unit' | 'total' | 'area_calculation';
+      quantity?: number;
+      addonCost?: number;
+      // Old format for backward compatibility
+      addon_id?: string;
+      addon_name?: string;
       addon_price?: number;
       addon_cost?: number;
       price_type?: string;
       calculation_type?: string;
-      priceValue?: number;
-      calculationType?: string;
-      quantity?: number;
       [key: string]: any;
     }>;
     [key: string]: any;
@@ -723,6 +727,13 @@ export default function QuoteEdit() {
                             <div className="space-y-1">
                               <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
                               {addons.filter((a) => a.quantity > 0).map((addon) => {
+                                // Handle both old and new field name formats
+                                const addonName = addon.name || addon.addon_name;
+                                const addonPriceValue = addon.priceValue || addon.addon_price || 0;
+                                const addonCalcType = addon.calculationType || addon.calculation_type || 'total';
+                                const addonId = addon.id || addon.addon_id;
+                                const addonQty = addon.quantity || 1;
+                                
                                 // Calculate proper addon display
                                 let addonCalc = '';
                                 let addonPrice = 0;
@@ -733,34 +744,34 @@ export default function QuoteEdit() {
                                   affects_area_calculation: variations[0].affects_area_calculation
                                 } : undefined;
                                 
-                                if (addon.calculationType === 'per_unit') {
-                                  addonPrice = addon.priceValue * item.quantity * addon.quantity;
-                                  addonCalc = `${item.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addon.priceValue, {
+                                if (addonCalcType === 'per_unit') {
+                                  addonPrice = addonPriceValue * item.quantity * addonQty;
+                                  addonCalc = `${item.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addonPriceValue, {
                                     currency_symbol: settings?.currency_symbol || '$',
                                     decimal_precision: settings?.decimal_precision || 2
                                   })}/${unitAbbr}`;
-                                } else if (addon.calculationType === 'area_calculation') {
+                                } else if (addonCalcType === 'area_calculation') {
                                   // Calculate area with height
                                   const squareFeet = variationData?.affects_area_calculation && variationData.height
                                     ? item.quantity * variationData.height
                                     : item.quantity;
-                                  addonPrice = addon.priceValue * squareFeet * addon.quantity;
-                                  addonCalc = `${squareFeet.toLocaleString()} SF × ${formatExactPrice(addon.priceValue, {
+                                  addonPrice = addonPriceValue * squareFeet * addonQty;
+                                  addonCalc = `${squareFeet.toLocaleString()} SF × ${formatExactPrice(addonPriceValue, {
                                     currency_symbol: settings?.currency_symbol || '$',
                                     decimal_precision: settings?.decimal_precision || 2
                                   })}/SF`;
                                 } else {
                                   // Total calculation
-                                  addonPrice = addon.priceValue * addon.quantity;
-                                  addonCalc = `${addon.quantity} × ${formatExactPrice(addon.priceValue, {
+                                  addonPrice = addonPriceValue * addonQty;
+                                  addonCalc = `${addonQty} × ${formatExactPrice(addonPriceValue, {
                                     currency_symbol: settings?.currency_symbol || '$',
                                     decimal_precision: settings?.decimal_precision || 2
                                   })}`;
                                 }
                                 
                                 return (
-                                  <div key={addon.id} className="space-y-1">
-                                    <div className="text-base">{addon.name}</div>
+                                  <div key={addonId} className="space-y-1">
+                                    <div className="text-base">{addonName}</div>
                                     <div className="text-sm text-muted-foreground">
                                       {addonCalc} = <span className="font-bold">{formatExactPrice(addonPrice, {
                                         currency_symbol: settings?.currency_symbol || '$',

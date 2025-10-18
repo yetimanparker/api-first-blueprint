@@ -84,7 +84,13 @@ interface QuoteItem {
   };
   measurement_data?: {
     variations?: Array<{ id: string; name: string; [key: string]: any }>;
-    addons?: Array<{ addon_id: string; addon_name: string; [key: string]: any }>;
+    addons?: Array<{ 
+      id?: string; 
+      addon_id?: string; 
+      name?: string;
+      addon_name?: string; 
+      [key: string]: any 
+    }>;
     [key: string]: any;
   };
 }
@@ -121,8 +127,8 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
       // Extract variation ID from measurement_data
       const variationId = editingItem.measurement_data?.variations?.[0]?.id || "none";
       
-    // Extract addon IDs from measurement_data
-    const addonIds = editingItem.measurement_data?.addons?.map(a => a.id) || [];
+    // Extract addon IDs from measurement_data (handle both id and addon_id formats)
+    const addonIds = editingItem.measurement_data?.addons?.map(a => a.id || a.addon_id) || [];
       
       form.reset({
         product_id: editingItem.product_id,
