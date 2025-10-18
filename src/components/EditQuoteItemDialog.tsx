@@ -180,6 +180,10 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
       const addon = product.product_addons?.find(a => a.id === addonId);
       if (!addon) return total;
       
+      // Get the stored addon quantity from measurement_data
+      const storedAddon = item.measurement_data?.addons?.find(a => (a.id || a.addon_id) === addonId);
+      const addonQuantity = storedAddon?.quantity || 1;
+      
       // Use the same calculation as the quote summary
       const addonCost = calculateAddonWithAreaData(
         addon.price_value,
@@ -189,14 +193,28 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
         productData
       );
       
-      return total + addonCost;
+      // Multiply by addon quantity
+      return total + (addonCost * addonQuantity);
     }, 0);
   };
 
   // Calculate line total
   const calculateLineTotal = () => {
+    const selectedVariation = variationId !== "none" && product?.product_variations
+      ? product.product_variations.find(v => v.id === variationId)
+      : null;
+    
+    let adjustedPrice = unitPrice;
+    if (selectedVariation) {
+      if (selectedVariation.adjustment_type === 'percentage') {
+        adjustedPrice = unitPrice * (1 + selectedVariation.price_adjustment / 100);
+      } else {
+        adjustedPrice = unitPrice + selectedVariation.price_adjustment;
+      }
+    }
+    
     const addonCosts = calculateAddonCosts();
-    return (unitPrice * quantity) + addonCosts;
+    return (adjustedPrice * quantity) + addonCosts;
   };
 
   const handleSave = async () => {
@@ -299,6 +317,19 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
   };
 
   const selectedVariation = product?.product_variations?.find(v => v.id === variationId);
+  
+  // Calculate unit price with variation adjustment
+  const getAdjustedUnitPrice = () => {
+    if (!selectedVariation) return unitPrice;
+    
+    if (selectedVariation.adjustment_type === 'percentage') {
+      return unitPrice * (1 + selectedVariation.price_adjustment / 100);
+    } else {
+      return unitPrice + selectedVariation.price_adjustment;
+    }
+  };
+
+  const adjustedUnitPrice = getAdjustedUnitPrice();
   const addonCosts = calculateAddonCosts();
   const lineTotal = calculateLineTotal();
 
@@ -345,11 +376,14 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
                   </SelectContent>
                 </Select>
                 {selectedVariation && (
-                  <p className="text-sm text-muted-foreground">
-                    Adjustment: {selectedVariation.adjustment_type === 'percentage' 
-                      ? `${selectedVariation.price_adjustment}%` 
-                      : `$${selectedVariation.price_adjustment}`}
-                  </p>
+                  <div className="text-sm text-muted-foreground space-y-1 mt-2 p-2 bg-background rounded">
+                    <div>Base Price: ${product.unit_price}/{product.unit_type}</div>
+                    <div>Adjustment: {selectedVariation.adjustment_type === 'percentage' 
+                      ? `+${selectedVariation.price_adjustment}%` 
+                      : `+$${selectedVariation.price_adjustment}`}
+                    </div>
+                    <div className="font-semibold text-foreground">Adjusted Price: ${getAdjustedUnitPrice().toFixed(2)}/{product.unit_type}</div>
+                  </div>
                 )}
               </div>
             )}
@@ -371,7 +405,11 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
                           {addon.name}
                         </label>
                         <p className="text-xs text-muted-foreground">
-                          ${addon.price_value} {addon.calculation_type === 'per_unit' ? 'per unit' : 'total'}
+                          ${addon.price_value} {addon.calculation_type === 'per_unit' ? 'per unit' : addon.calculation_type === 'area_calculation' ? 'per SF' : 'total'}
+                          {item.measurement_data?.addons?.find(a => (a.id || a.addon_id) === addon.id)?.quantity && 
+                           item.measurement_data.addons.find(a => (a.id || a.addon_id) === addon.id)!.quantity! > 1 && (
+                            <span className="ml-1 font-semibold">× {item.measurement_data.addons.find(a => (a.id || a.addon_id) === addon.id)!.quantity}</span>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -419,7 +457,7 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
             <div className="p-4 bg-muted rounded-lg space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Subtotal:</span>
-                <span>${(unitPrice * quantity).toFixed(2)}</span>
+                <span>${(adjustedUnitPrice * quantity).toFixed(2)}</span>
               </div>
               {addonCosts > 0 && (
                 <div className="flex justify-between text-sm">
