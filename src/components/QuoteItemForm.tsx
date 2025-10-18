@@ -121,8 +121,8 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
       // Extract variation ID from measurement_data
       const variationId = editingItem.measurement_data?.variations?.[0]?.id || "none";
       
-      // Extract addon IDs from measurement_data
-      const addonIds = editingItem.measurement_data?.addons?.map(a => a.addon_id) || [];
+    // Extract addon IDs from measurement_data
+    const addonIds = editingItem.measurement_data?.addons?.map(a => a.id) || [];
       
       form.reset({
         product_id: editingItem.product_id,
