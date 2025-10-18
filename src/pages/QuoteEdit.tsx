@@ -79,7 +79,6 @@ export default function QuoteEdit() {
   const [editingItem, setEditingItem] = useState<QuoteItem | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [editingAddress, setEditingAddress] = useState(false);
-  const [showAddItemForm, setShowAddItemForm] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
   const [addressForm, setAddressForm] = useState({
     project_address: "",
@@ -580,8 +579,8 @@ export default function QuoteEdit() {
           </Card>
         </Collapsible>
 
-        {/* Action Buttons */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-3">
+        {/* Action Button */}
+        <div className="mb-6">
           <Button 
             variant="outline"
             onClick={() => navigate(`/quote/builder/${quote.id}`)}
@@ -590,33 +589,8 @@ export default function QuoteEdit() {
             <Ruler className="h-4 w-4 mr-2" />
             Use Measurement Tool
           </Button>
-          <Button 
-            variant="outline"
-            onClick={() => setShowAddItemForm(!showAddItemForm)}
-            className="w-full sm:w-auto"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {showAddItemForm ? 'Hide' : 'Add Item to Quote'}
-          </Button>
         </div>
 
-        {/* Add Item Form - Collapsible */}
-        {showAddItemForm && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Add New Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <QuoteItemForm 
-                quoteId={quote.id}
-                onItemAdded={() => {
-                  fetchQuoteData();
-                  setShowAddItemForm(false);
-                }}
-              />
-            </CardContent>
-          </Card>
-        )}
 
         {/* Quote Summary Card */}
         <Card className="mb-6 bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
