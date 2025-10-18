@@ -59,7 +59,31 @@ interface QuoteItem {
   unit_price: number;
   line_total: number;
   notes?: string;
-  measurement_data?: MeasurementData;
+  measurement_data?: {
+    variations?: Array<{
+      id: string;
+      name: string;
+      priceAdjustment: number;
+      adjustmentType: 'fixed' | 'percentage';
+      height_value?: number;
+      unit_of_measurement?: string;
+      affects_area_calculation?: boolean;
+      [key: string]: any;
+    }>;
+    addons?: Array<{
+      addon_id: string;
+      addon_name: string;
+      addon_price?: number;
+      addon_cost?: number;
+      price_type?: string;
+      calculation_type?: string;
+      priceValue?: number;
+      calculationType?: string;
+      quantity?: number;
+      [key: string]: any;
+    }>;
+    [key: string]: any;
+  };
   product: {
     name: string;
     unit_type: string;
@@ -87,9 +111,6 @@ export default function QuoteEdit() {
     project_zip_code: "",
     notes: ""
   });
-  const [editingPriceItemId, setEditingPriceItemId] = useState<string | null>(null);
-  const [tempPrice, setTempPrice] = useState<string>("");
-  const [tempQuantity, setTempQuantity] = useState<string>("");
 
   useEffect(() => {
     if (quoteId) {
@@ -145,13 +166,7 @@ export default function QuoteEdit() {
 
       if (itemsError) throw itemsError;
       
-      // Parse measurement_data from Json to MeasurementData type
-      const parsedItems = (itemsData || []).map(item => ({
-        ...item,
-        measurement_data: item.measurement_data ? item.measurement_data as unknown as MeasurementData : undefined
-      }));
-      
-      setQuoteItems(parsedItems);
+      setQuoteItems((itemsData || []) as QuoteItem[]);
 
     } catch (error) {
       console.error('Error fetching quote data:', error);
@@ -334,92 +349,6 @@ export default function QuoteEdit() {
         project_zip_code: quote.project_zip_code || "",
         notes: quote.notes || ""
       });
-    }
-  };
-
-  const startInlineEdit = (item: QuoteItem) => {
-    setEditingPriceItemId(item.id);
-    setTempPrice(item.unit_price.toString());
-    setTempQuantity(item.quantity.toString());
-  };
-
-  const cancelInlineEdit = () => {
-    setEditingPriceItemId(null);
-    setTempPrice("");
-    setTempQuantity("");
-  };
-
-  const saveInlineEdit = async (itemId: string) => {
-    try {
-      const price = parseFloat(tempPrice);
-      const quantity = parseFloat(tempQuantity);
-
-      if (isNaN(price) || price <= 0) {
-        toast({
-          title: "Invalid Price",
-          description: "Please enter a valid price greater than 0",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (isNaN(quantity) || quantity <= 0) {
-        toast({
-          title: "Invalid Quantity",
-          description: "Please enter a valid quantity greater than 0",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setSaving(true);
-      const lineTotal = price * quantity;
-
-      // Update the quote item
-      const { error: itemError } = await supabase
-        .from('quote_items')
-        .update({
-          unit_price: price,
-          quantity: quantity,
-          line_total: lineTotal
-        })
-        .eq('id', itemId);
-
-      if (itemError) throw itemError;
-
-      // Recalculate and update quote total
-      const { data: allItems, error: fetchError } = await supabase
-        .from('quote_items')
-        .select('line_total')
-        .eq('quote_id', quoteId);
-
-      if (fetchError) throw fetchError;
-
-      const newTotal = allItems.reduce((sum, item) => sum + item.line_total, 0);
-
-      const { error: quoteError } = await supabase
-        .from('quotes')
-        .update({ total_amount: newTotal })
-        .eq('id', quoteId);
-
-      if (quoteError) throw quoteError;
-
-      toast({
-        title: "Price Updated",
-        description: "Item price has been updated successfully",
-      });
-
-      cancelInlineEdit();
-      fetchQuoteData(); // Refresh to show updated values
-    } catch (error) {
-      console.error('Error updating price:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update item price",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -698,7 +627,6 @@ export default function QuoteEdit() {
             {quoteItems.length > 0 && (
               <div className="space-y-4 mb-6">
                 {quoteItems.map((item) => {
-                  const isEditing = editingPriceItemId === item.id;
                   const variations = item.measurement_data?.variations || [];
                   const addons = item.measurement_data?.addons || [];
                   
@@ -739,99 +667,33 @@ export default function QuoteEdit() {
                             className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: item.measurement_data?.mapColor || '#3B82F6' }}
                           />
-                          {!isEditing ? (
-                            <span className="font-semibold text-base">
-                              {item.product.name}
-                              <span className="text-sm text-muted-foreground font-normal ml-2">
-                                ({item.quantity.toLocaleString()} {unitAbbr})
-                              </span>
+                          <span className="font-semibold text-base">
+                            {item.product.name}
+                            <span className="text-sm text-muted-foreground font-normal ml-2">
+                              ({item.quantity.toLocaleString()} {unitAbbr})
                             </span>
-                          ) : (
-                            <span className="font-semibold text-base">{item.product.name}</span>
-                          )}
+                          </span>
                         </div>
                         <div className="flex gap-2">
-                          {!isEditing && (
-                            <>
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                onClick={() => startInlineEdit(item)}
-                                title="Edit price"
+                                onClick={() => setEditingItem(item)}
+                                title="Edit item"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => setDeletingItemId(item.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => setDeletingItemId(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                       
-                      {isEditing ? (
-                        <div className="space-y-2 mt-2">
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <div className="flex-1">
-                              <Label className="text-xs">Quantity</Label>
-                              <Input
-                                type="number"
-                                value={tempQuantity}
-                                onChange={(e) => setTempQuantity(e.target.value)}
-                                step="0.01"
-                                min="0"
-                                className="h-8"
-                              />
-                              <span className="text-xs text-muted-foreground">{unitAbbr}</span>
-                            </div>
-                            <div className="flex-1">
-                              <Label className="text-xs">Unit Price</Label>
-                              <Input
-                                type="number"
-                                value={tempPrice}
-                                onChange={(e) => setTempPrice(e.target.value)}
-                                step="0.01"
-                                min="0"
-                                className="h-8"
-                              />
-                              <span className="text-xs text-muted-foreground">per {unitAbbr}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between pt-2 border-t">
-                            <span className="text-sm font-semibold">
-                              Line Total: {settings ? formatExactPrice(parseFloat(tempPrice || "0") * parseFloat(tempQuantity || "0"), {
-                                currency_symbol: settings.currency_symbol,
-                                decimal_precision: settings.decimal_precision
-                              }) : `$${(parseFloat(tempPrice || "0") * parseFloat(tempQuantity || "0")).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            </span>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="default"
-                                onClick={() => saveInlineEdit(item.id)}
-                                disabled={saving}
-                              >
-                                <Check className="h-4 w-4 mr-1" />
-                                Save
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={cancelInlineEdit}
-                                disabled={saving}
-                              >
-                                <X className="h-4 w-4 mr-1" />
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
+                      <div className="space-y-1">
                           {/* Selection Header */}
                           {variations.length > 0 && (
                             <div className="text-sm font-bold text-muted-foreground">Selection:</div>
@@ -923,10 +785,9 @@ export default function QuoteEdit() {
                             </div>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      </div>
+                    );
+                  })}
               </div>
             )}
 

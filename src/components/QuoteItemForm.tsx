@@ -82,6 +82,11 @@ interface QuoteItem {
     name: string;
     unit_type: string;
   };
+  measurement_data?: {
+    variations?: Array<{ id: string; name: string; [key: string]: any }>;
+    addons?: Array<{ addon_id: string; addon_name: string; [key: string]: any }>;
+    [key: string]: any;
+  };
 }
 
 interface QuoteItemFormProps {
@@ -113,14 +118,23 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
   // Reset form when editingItem changes
   useEffect(() => {
     if (editingItem) {
+      // Extract variation ID from measurement_data
+      const variationId = editingItem.measurement_data?.variations?.[0]?.id || "none";
+      
+      // Extract addon IDs from measurement_data
+      const addonIds = editingItem.measurement_data?.addons?.map(a => a.addon_id) || [];
+      
       form.reset({
         product_id: editingItem.product_id,
-        variation_id: "none",
+        variation_id: variationId,
         quantity: editingItem.quantity,
         unit_price: editingItem.unit_price,
         notes: editingItem.notes || "",
-        selected_addons: [],
+        selected_addons: addonIds,
       });
+      
+      // Also update the selectedAddons state
+      setSelectedAddons(addonIds);
     } else {
       form.reset({
         product_id: "",
@@ -130,6 +144,7 @@ export function QuoteItemForm({ quoteId, onItemAdded, editingItem }: QuoteItemFo
         notes: "",
         selected_addons: [],
       });
+      setSelectedAddons([]);
     }
   }, [editingItem, form]);
 
