@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Building2, Package, Users, FileText, Settings, Plus, ExternalLink, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { LogOut, Building2, Package, Users, FileText, Settings, Plus, ExternalLink, Eye, Zap } from "lucide-react";
 import type { User, Session } from "@supabase/supabase-js";
 import { useContractorId } from "@/hooks/useContractorId";
+import { ProductForm } from "@/components/ProductForm";
 
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -17,6 +19,7 @@ const Dashboard = () => {
     totalCustomers: 0,
     totalRevenue: 0,
   });
+  const [showQuickAddDialog, setShowQuickAddDialog] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { contractorId } = useContractorId();
@@ -250,10 +253,20 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" onClick={() => navigate("/products")}>
-                <Plus className="h-4 w-4 mr-2" />
-                Manage Products
-              </Button>
+              <div className="flex gap-2">
+                <Button className="flex-1" onClick={() => navigate("/products")}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Manage Products
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => setShowQuickAddDialog(true)}
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  Quick Add
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -346,6 +359,26 @@ const Dashboard = () => {
           </Card>
         </div>
       </main>
+
+      {/* Quick Add Product Dialog */}
+      <Dialog open={showQuickAddDialog} onOpenChange={setShowQuickAddDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Product</DialogTitle>
+          </DialogHeader>
+          <ProductForm
+            product={null}
+            onSaved={() => {
+              setShowQuickAddDialog(false);
+              toast({
+                title: "Success",
+                description: "Product added successfully",
+              });
+            }}
+            onCancel={() => setShowQuickAddDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
