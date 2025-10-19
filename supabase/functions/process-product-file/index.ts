@@ -27,6 +27,39 @@ interface ProductManagementItem {
   isNew?: boolean;
 }
 
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+    
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        // Escaped quote
+        current += '"';
+        i++; // Skip next quote
+      } else {
+        // Toggle quote state
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // Field separator (only when not in quotes)
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  // Add the last field
+  result.push(current.trim());
+  
+  return result;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -77,7 +110,7 @@ serve(async (req) => {
       throw new Error('File must contain at least a header row and one data row');
     }
 
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const headers = parseCSVLine(lines[0]);
     console.log('CSV headers:', headers);
 
     // Validate required columns based on mode
@@ -139,15 +172,24 @@ serve(async (req) => {
 
     // Process each data row
     for (let i = 1; i < lines.length && i <= 501; i++) { // Limit to 500 products + header
-      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+      const values = parseCSVLine(lines[i]);
       
       if (values.length < headers.length && values.join('').trim() === '') {
         continue; // Skip empty rows
       }
 
+      // Validate column count matches header count
+      if (values.length !== headers.length) {
+        console.warn(`Row ${i}: Expected ${headers.length} columns, got ${values.length}`);
+        // Pad with empty strings if needed
+        while (values.length < headers.length) {
+          values.push('');
+        }
+      }
+
       const row: any = {};
       headers.forEach((header, index) => {
-        row[header] = values[index] || '';
+        row[header] = values[index] ? values[index].trim() : '';
       });
 
       const rowErrors: ValidationError[] = [];
