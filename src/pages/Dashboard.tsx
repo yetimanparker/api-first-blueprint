@@ -252,7 +252,7 @@ const Dashboard = () => {
             <CardContent>
               <Button className="w-full" onClick={() => navigate("/products")}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Products
+                Manage Products
               </Button>
             </CardContent>
           </Card>
