@@ -286,16 +286,45 @@ serve(async (req) => {
           
           const isExisting = !!existingProduct;
           
-          // Convert category and subcategory names to UUIDs if needed
-          let categoryId = category;
-          let subcategoryId = subcategory;
-          
-          if (category && !category.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-            categoryId = categoryNameToIdMap.get(category.toLowerCase()) || category;
+          // Convert category and subcategory to IDs, but validate they exist
+          let categoryId = undefined;
+          let subcategoryId = undefined;
+
+          if (category) {
+            // Check if it's a UUID
+            if (category.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+              // Verify the UUID exists in our category map
+              if (categoryMap.has(category)) {
+                categoryId = category;
+              } else {
+                rowErrors.push({ row: i, field: 'Category', message: `Category UUID "${category}" not found` });
+              }
+            } else {
+              // It's a name, look it up
+              categoryId = categoryNameToIdMap.get(category.toLowerCase());
+              if (!categoryId) {
+                rowErrors.push({ row: i, field: 'Category', message: `Category "${category}" not found` });
+              }
+            }
           }
-          
-          if (subcategory && !subcategory.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-            subcategoryId = subcategoryNameToIdMap.get(subcategory.toLowerCase()) || subcategory;
+
+          if (subcategory && categoryId) {
+            // Check if it's a UUID
+            if (subcategory.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+              // Verify the UUID exists and belongs to the selected category
+              const subcat = subcategoryMap.get(subcategory);
+              if (subcat && subcat.category_id === categoryId) {
+                subcategoryId = subcategory;
+              } else {
+                rowErrors.push({ row: i, field: 'Subcategory', message: `Subcategory UUID "${subcategory}" not found or doesn't belong to selected category` });
+              }
+            } else {
+              // It's a name, look it up
+              subcategoryId = subcategoryNameToIdMap.get(subcategory.toLowerCase());
+              if (!subcategoryId) {
+                rowErrors.push({ row: i, field: 'Subcategory', message: `Subcategory "${subcategory}" not found` });
+              }
+            }
           }
 
           item = {

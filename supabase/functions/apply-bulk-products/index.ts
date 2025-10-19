@@ -132,26 +132,44 @@ serve(async (req) => {
 
           // Handle category creation/lookup
           if (update.category) {
-            const categoryKey = update.category.toLowerCase();
-            if (categoryMap.has(categoryKey)) {
-              categoryId = categoryMap.get(categoryKey);
-            } else {
-              // Create new category
-              const { data: newCategory, error: categoryError } = await supabaseClient
+            // First check if it's already a valid UUID that exists
+            if (update.category.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+              // It's a UUID - verify it exists for this contractor
+              const { data: existingCat } = await supabaseClient
                 .from('product_categories')
-                .insert({
-                  name: update.category,
-                  contractor_id: contractor.id,
-                  color_hex: '#3B82F6'
-                })
                 .select('id')
+                .eq('id', update.category)
+                .eq('contractor_id', contractor.id)
                 .single();
-
-              if (categoryError) {
-                console.warn(`Could not create category ${update.category}:`, categoryError.message);
+              
+              if (existingCat) {
+                categoryId = existingCat.id;
               } else {
-                categoryId = newCategory.id;
-                categoryMap.set(categoryKey, categoryId);
+                console.warn(`Category UUID ${update.category} not found for contractor`);
+              }
+            } else {
+              // It's a name - look it up or create it
+              const categoryKey = update.category.toLowerCase();
+              if (categoryMap.has(categoryKey)) {
+                categoryId = categoryMap.get(categoryKey);
+              } else {
+                // Create new category
+                const { data: newCategory, error: categoryError } = await supabaseClient
+                  .from('product_categories')
+                  .insert({
+                    name: update.category,
+                    contractor_id: contractor.id,
+                    color_hex: '#3B82F6'
+                  })
+                  .select('id')
+                  .single();
+
+                if (categoryError) {
+                  console.warn(`Could not create category ${update.category}:`, categoryError.message);
+                } else {
+                  categoryId = newCategory.id;
+                  categoryMap.set(categoryKey, categoryId);
+                }
               }
             }
           }

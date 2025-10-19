@@ -116,8 +116,8 @@ serve(async (req) => {
       if (products && products.length > 0) {
         products.forEach((product, index) => {
           const shortId = (index + 1).toString(); // Simple sequential ID
-          const categoryName = categoryMap.get(product.category) || product.category || '';
-          const subcategoryName = subcategoryMap.get(product.subcategory) || product.subcategory || '';
+          const categoryName = categoryMap.get(product.category) || '';
+          const subcategoryName = subcategoryMap.get(product.subcategory) || '';
           
           csvContent += [
             shortId,
