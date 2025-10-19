@@ -21,10 +21,8 @@ interface ProductManagementItem {
   unitType: string;
   category?: string;
   subcategory?: string;
-  colorHex: string;
   photoUrl?: string;
   isActive: boolean;
-  showPricingBeforeSubmit: boolean;
   displayOrder: number;
   isNew?: boolean;
 }
@@ -194,9 +192,7 @@ serve(async (req) => {
             unitPrice: newPrice,
             oldPrice: existingProduct.unit_price,
             unitType: existingProduct.unit_type || 'sq_ft',
-            colorHex: '#3B82F6',
             isActive: true,
-            showPricingBeforeSubmit: true,
             displayOrder: 0
           };
           preview.push(item);
@@ -211,10 +207,8 @@ serve(async (req) => {
         const unitType = row['Unit Type'] || row['Unit'] || 'sq_ft';
         const category = row['Category'] || '';
         const subcategory = row['Subcategory'] || '';
-        const colorHex = row['Color Hex'] || row['Color'] || '#3B82F6';
         const photoUrl = row['Photo URL'] || row['Photo'] || '';
         const isActiveStr = row['Active'] || row['Is Active'] || 'TRUE';
-        const showPricingStr = row['Show Pricing Before Submit'] || 'TRUE';
         const displayOrderStr = row['Display Order'] || '0';
 
         // Validation
@@ -234,10 +228,6 @@ serve(async (req) => {
         const validUnitTypes = ['sq_ft', 'linear_ft', 'each', 'hour', 'yard', 'ton'];
         if (!validUnitTypes.includes(unitType)) {
           rowErrors.push({ row: i, field: 'Unit Type', message: `Must be one of: ${validUnitTypes.join(', ')}` });
-        }
-
-        if (colorHex && !/^#[0-9A-Fa-f]{6}$/.test(colorHex)) {
-          rowErrors.push({ row: i, field: 'Color Hex', message: 'Must be a valid hex color (e.g., #3B82F6)' });
         }
 
         if (rowErrors.length === 0) {
@@ -275,10 +265,8 @@ serve(async (req) => {
             unitType,
             category: categoryId,
             subcategory: subcategoryId,
-            colorHex: colorHex || '#3B82F6',
             photoUrl,
             isActive: isActiveStr.toLowerCase() === 'true',
-            showPricingBeforeSubmit: showPricingStr.toLowerCase() === 'true',
             displayOrder: parseInt(displayOrderStr) || 0,
             isNew: !isExisting
           };

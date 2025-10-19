@@ -22,10 +22,8 @@ interface ProductManagementItem {
   unitType: string;
   category?: string;
   subcategory?: string;
-  colorHex: string;
   photoUrl?: string;
   isActive: boolean;
-  showPricingBeforeSubmit: boolean;
   displayOrder: number;
   selected: boolean;
   isNew?: boolean;
@@ -49,7 +47,30 @@ export function BulkProductManagement() {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [progress, setProgress] = useState(0);
   const [batchId, setBatchId] = useState<string>("");
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  const [subcategories, setSubcategories] = useState<{id: string, name: string, category_id: string}[]>([]);
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    const fetchCategoriesAndSubcategories = async () => {
+      const { data: categoriesData } = await supabase
+        .from('product_categories')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+      
+      const { data: subcategoriesData } = await supabase
+        .from('product_subcategories')
+        .select('id, name, category_id')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (categoriesData) setCategories(categoriesData);
+      if (subcategoriesData) setSubcategories(subcategoriesData);
+    };
+    
+    fetchCategoriesAndSubcategories();
+  }, []);
 
   const downloadTemplate = async (mode: ManagementMode) => {
     try {
@@ -221,6 +242,24 @@ export function BulkProductManagement() {
   const toggleAllItems = () => {
     const allSelected = previewItems.every(item => item.selected);
     setPreviewItems(prev => prev.map(item => ({ ...item, selected: !allSelected })));
+  };
+
+  const updateItemCategory = (index: number, categoryId: string) => {
+    setPreviewItems(prev => prev.map((item, i) => 
+      i === index ? { ...item, category: categoryId, subcategory: undefined } : item
+    ));
+  };
+
+  const updateItemSubcategory = (index: number, subcategoryId: string) => {
+    setPreviewItems(prev => prev.map((item, i) => 
+      i === index ? { ...item, subcategory: subcategoryId } : item
+    ));
+  };
+
+  const updateItemActive = (index: number, isActive: boolean) => {
+    setPreviewItems(prev => prev.map((item, i) => 
+      i === index ? { ...item, isActive } : item
+    ));
   };
 
   const getChangeDescription = (item: ProductManagementItem) => {
@@ -400,14 +439,72 @@ export function BulkProductManagement() {
                       {item.isNew && <Badge variant="secondary">NEW</Badge>}
                     </div>
                     {managementMode === 'full_management' && (
-                      <div className="text-sm text-muted-foreground mt-1">
-                        {item.category && <span>Category: {item.category}</span>}
-                        {item.subcategory && <span> • Subcategory: {item.subcategory}</span>}
-                        <span> • ${item.unitPrice} per {item.unitType}</span>
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        <div>
+                          <Label className="text-xs">Category</Label>
+                          <Select
+                            value={item.category || ''}
+                            onValueChange={(value) => updateItemCategory(index, value)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.map(cat => (
+                                <SelectItem key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label className="text-xs">Subcategory</Label>
+                          <Select
+                            value={item.subcategory || ''}
+                            onValueChange={(value) => updateItemSubcategory(index, value)}
+                            disabled={!item.category}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Select subcategory" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subcategories
+                                .filter(sub => sub.category_id === item.category)
+                                .map(sub => (
+                                  <SelectItem key={sub.id} value={sub.id}>
+                                    {sub.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label className="text-xs">Status</Label>
+                          <Select
+                            value={item.isActive ? 'active' : 'inactive'}
+                            onValueChange={(value) => updateItemActive(index, value === 'active')}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="inactive">Inactive</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     )}
                     <p className="text-sm text-muted-foreground mt-1">
-                      {getChangeDescription(item)}
+                      ${item.unitPrice} per {item.unitType}
+                      {item.oldPrice && item.oldPrice !== item.unitPrice && (
+                        <span className="ml-2 text-xs">
+                          (was ${item.oldPrice})
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>

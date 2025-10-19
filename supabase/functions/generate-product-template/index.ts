@@ -108,10 +108,8 @@ serve(async (req) => {
         'Unit Type',
         'Category',
         'Subcategory',
-        'Color Hex',
         'Photo URL',
         'Active',
-        'Show Pricing Before Submit',
         'Display Order'
       ].join(',') + '\n';
 
@@ -129,10 +127,8 @@ serve(async (req) => {
             product.unit_type,
             `"${categoryName}"`,
             `"${subcategoryName}"`,
-            product.color_hex,
             `"${product.photo_url || ''}"`,
             product.is_active ? 'TRUE' : 'FALSE',
-            product.show_pricing_before_submit ? 'TRUE' : 'FALSE',
             product.display_order || 0
           ].join(',') + '\n';
         });
@@ -151,9 +147,7 @@ serve(async (req) => {
             index === 0 ? 'linear_ft' : index === 1 ? 'sq_ft' : 'each',
             `"${category}"`,
             '""',
-            '#3B82F6',
             '""',
-            'TRUE',
             'TRUE',
             index
           ].join(',') + '\n';

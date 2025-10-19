@@ -15,10 +15,8 @@ interface ProductUpdate {
   unitType: string;
   category?: string;
   subcategory?: string;
-  colorHex: string;
   photoUrl?: string;
   isActive: boolean;
-  showPricingBeforeSubmit: boolean;
   displayOrder: number;
   isNew?: boolean;
 }
@@ -144,7 +142,7 @@ serve(async (req) => {
                 .insert({
                   name: update.category,
                   contractor_id: contractor.id,
-                  color_hex: update.colorHex || '#3B82F6'
+                  color_hex: '#3B82F6'
                 })
                 .select('id')
                 .single();
@@ -193,10 +191,10 @@ serve(async (req) => {
             unit_type: update.unitType,
             category: categoryId,
             subcategory: subcategoryId,
-            color_hex: update.colorHex || '#3B82F6',
+            color_hex: '#3B82F6',
             photo_url: update.photoUrl || null,
             is_active: update.isActive,
-            show_pricing_before_submit: update.showPricingBeforeSubmit,
+            show_pricing_before_submit: true,
             display_order: update.displayOrder || 0,
             contractor_id: contractor.id,
             updated_at: new Date().toISOString()
