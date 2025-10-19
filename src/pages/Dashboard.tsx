@@ -5,10 +5,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LogOut, Building2, Package, Users, FileText, Settings, Plus, ExternalLink, Eye, Zap } from "lucide-react";
+import { LogOut, Building2, Package, Users, FileText, Settings, Plus, ExternalLink, Eye, Zap, UserPlus } from "lucide-react";
 import type { User, Session } from "@supabase/supabase-js";
 import { useContractorId } from "@/hooks/useContractorId";
 import { ProductForm } from "@/components/ProductForm";
+import { CustomerDialog } from "@/components/CustomerDialog";
+import { NewQuoteDialog } from "@/components/NewQuoteDialog";
 
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -23,6 +25,49 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { contractorId } = useContractorId();
+
+  const handleQuoteCreated = () => {
+    // Refresh stats when a new quote is created
+    if (contractorId) {
+      fetchStats();
+    }
+  };
+
+  const fetchStats = async () => {
+    if (!contractorId) return;
+
+    try {
+      // Fetch unviewed quotes count
+      const { count: unviewedQuotesCount } = await supabase
+        .from('quotes')
+        .select('*', { count: 'exact', head: true })
+        .eq('contractor_id', contractorId)
+        .is('first_viewed_at', null);
+
+      // Fetch customers count
+      const { count: customersCount } = await supabase
+        .from('customers')
+        .select('*', { count: 'exact', head: true })
+        .eq('contractor_id', contractorId);
+
+      // Fetch total revenue from accepted quotes
+      const { data: acceptedQuotes } = await supabase
+        .from('quotes')
+        .select('total_amount')
+        .eq('contractor_id', contractorId)
+        .eq('status', 'accepted');
+
+      const totalRevenue = acceptedQuotes?.reduce((sum, quote) => sum + Number(quote.total_amount || 0), 0) || 0;
+
+      setStats({
+        quotesNotViewed: unviewedQuotesCount || 0,
+        totalCustomers: customersCount || 0,
+        totalRevenue,
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -53,42 +98,6 @@ const Dashboard = () => {
 
   // Fetch dashboard statistics
   useEffect(() => {
-    if (!contractorId) return;
-
-    const fetchStats = async () => {
-      try {
-        // Fetch unviewed quotes count
-        const { count: unviewedQuotesCount } = await supabase
-          .from('quotes')
-          .select('*', { count: 'exact', head: true })
-          .eq('contractor_id', contractorId)
-          .is('first_viewed_at', null);
-
-        // Fetch customers count
-        const { count: customersCount } = await supabase
-          .from('customers')
-          .select('*', { count: 'exact', head: true })
-          .eq('contractor_id', contractorId);
-
-        // Fetch total revenue from accepted quotes
-        const { data: acceptedQuotes } = await supabase
-          .from('quotes')
-          .select('total_amount')
-          .eq('contractor_id', contractorId)
-          .eq('status', 'accepted');
-
-        const totalRevenue = acceptedQuotes?.reduce((sum, quote) => sum + Number(quote.total_amount || 0), 0) || 0;
-
-        setStats({
-          quotesNotViewed: unviewedQuotesCount || 0,
-          totalCustomers: customersCount || 0,
-          totalRevenue,
-        });
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      }
-    };
-
     fetchStats();
   }, [contractorId]);
 
@@ -232,10 +241,31 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full" onClick={() => navigate("/crm")}>
-                <Users className="h-4 w-4 mr-2" />
-                View Customers
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button variant="outline" className="w-full" onClick={() => navigate("/crm")}>
+                  <Users className="h-4 w-4 mr-2" />
+                  View Customers
+                </Button>
+                <div className="flex gap-2">
+                  <CustomerDialog 
+                    trigger={
+                      <Button variant="outline" className="flex-1">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Customer
+                      </Button>
+                    }
+                  />
+                  <NewQuoteDialog 
+                    onQuoteCreated={handleQuoteCreated}
+                    trigger={
+                      <Button variant="outline" className="flex-1">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Quote
+                      </Button>
+                    }
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
 

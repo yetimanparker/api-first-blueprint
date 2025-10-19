@@ -26,9 +26,10 @@ interface Customer {
 
 interface NewQuoteDialogProps {
   onQuoteCreated?: () => void;
+  trigger?: React.ReactNode;
 }
 
-export function NewQuoteDialog({ onQuoteCreated }: NewQuoteDialogProps) {
+export function NewQuoteDialog({ onQuoteCreated, trigger }: NewQuoteDialogProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<'select' | 'create'>('select');
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -225,10 +226,12 @@ export function NewQuoteDialog({ onQuoteCreated }: NewQuoteDialogProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          New Quote
-        </Button>
+        {trigger || (
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            New Quote
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
