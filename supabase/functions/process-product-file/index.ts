@@ -267,7 +267,7 @@ serve(async (req) => {
           rowErrors.push({ row: i, field: 'Unit Price', message: 'Must be a valid positive number' });
         }
 
-        const validUnitTypes = ['sq_ft', 'linear_ft', 'each', 'hour', 'yard', 'ton'];
+        const validUnitTypes = ['sq_ft', 'linear_ft', 'cubic_yard', 'each', 'hour', 'yard', 'ton'];
         if (!validUnitTypes.includes(unitType)) {
           rowErrors.push({ row: i, field: 'Unit Type', message: `Must be one of: ${validUnitTypes.join(', ')}` });
         }
