@@ -343,10 +343,10 @@ export default function Products() {
               </div>
               <Dialog open={!!editingProduct} onOpenChange={(open) => !open && setEditingProduct(null)}>
                 <DialogTrigger asChild>
-            <Button onClick={() => setEditingProduct({})} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 mr-2" />
-              Manage Products
-            </Button>
+                  <Button onClick={() => setEditingProduct({})} className="w-full sm:w-auto">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Product
+                  </Button>
                 </DialogTrigger>
                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                    <DialogHeader>
