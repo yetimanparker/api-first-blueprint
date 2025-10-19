@@ -129,6 +129,8 @@ export function ProductSettings() {
         .upsert({
           contractor_id: contractorId,
           ...data,
+        }, {
+          onConflict: 'contractor_id'
         });
 
       if (error) throw error;
