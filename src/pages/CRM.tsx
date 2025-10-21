@@ -325,6 +325,49 @@ const CRM = () => {
     }
   };
 
+  const updateQuoteStatus = async (quoteId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('quotes')
+        .update({ status: newStatus })
+        .eq('id', quoteId);
+
+      if (error) throw error;
+
+      // Update allQuotes state
+      setAllQuotes(prev => 
+        prev.map(quote => 
+          quote.id === quoteId 
+            ? { ...quote, status: newStatus }
+            : quote
+        )
+      );
+
+      // Update customerQuotes state to keep it synced
+      setCustomerQuotes(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(customerId => {
+          updated[customerId] = updated[customerId].map(quote =>
+            quote.id === quoteId ? { ...quote, status: newStatus } : quote
+          );
+        });
+        return updated;
+      });
+
+      toast({
+        title: "Status updated",
+        description: `Quote status changed to ${newStatus}`,
+      });
+    } catch (error) {
+      console.error('Error updating quote status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update quote status",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleQuoteCreated = () => {
     fetchCustomers();
     fetchAllQuotes();
@@ -340,6 +383,16 @@ const CRM = () => {
       case "quoted": case "negotiating": return "secondary";
       case "lead": case "contacted": return "outline";
       case "lost": case "inactive": return "destructive";
+      default: return "secondary";
+    }
+  };
+
+  const getQuoteStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case "accepted": return "default";
+      case "pending": return "secondary";
+      case "draft": return "outline";
+      case "declined": case "expired": return "destructive";
       default: return "secondary";
     }
   };
@@ -787,10 +840,22 @@ const CRM = () => {
                                 )}
                               </div>
                               {/* Mobile: Show status below quote number */}
-                              <div className="sm:hidden mt-1">
-                                <Badge variant={getStatusBadgeVariant(quote.status)} className="text-xs">
-                                  {quote.status}
-                                </Badge>
+                              <div className="sm:hidden mt-1" onClick={(e) => e.stopPropagation()}>
+                                <Select 
+                                  value={quote.status} 
+                                  onValueChange={(newStatus) => updateQuoteStatus(quote.id, newStatus)}
+                                >
+                                  <SelectTrigger className="w-[140px] h-7 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="draft">Draft</SelectItem>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="accepted">Accepted</SelectItem>
+                                    <SelectItem value="declined">Declined</SelectItem>
+                                    <SelectItem value="expired">Expired</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </div>
                             </div>
                           </TableCell>
@@ -810,10 +875,22 @@ const CRM = () => {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="hidden sm:table-cell">
-                            <Badge variant={getStatusBadgeVariant(quote.status)}>
-                              {quote.status}
-                            </Badge>
+                          <TableCell className="hidden sm:table-cell" onClick={(e) => e.stopPropagation()}>
+                            <Select 
+                              value={quote.status} 
+                              onValueChange={(newStatus) => updateQuoteStatus(quote.id, newStatus)}
+                            >
+                              <SelectTrigger className="w-[140px] h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="draft">Draft</SelectItem>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="accepted">Accepted</SelectItem>
+                                <SelectItem value="declined">Declined</SelectItem>
+                                <SelectItem value="expired">Expired</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
                             <span className="font-medium">{formatCurrency(quote.total_amount)}</span>
