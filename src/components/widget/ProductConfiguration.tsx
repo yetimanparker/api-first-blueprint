@@ -434,6 +434,11 @@ const ProductConfiguration = ({
                   <div key={addon.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 p-3 border rounded-lg bg-card">
                     <div className="flex-1">
                       <p className="font-medium">{addon.name}</p>
+                      {addon.description && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {addon.description}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {formatExactPrice(addon.price_value, {
                           currency_symbol: settings.currency_symbol,
