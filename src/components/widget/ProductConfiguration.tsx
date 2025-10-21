@@ -443,7 +443,7 @@ const ProductConfiguration = ({
                         {formatExactPrice(addon.price_value, {
                           currency_symbol: settings.currency_symbol,
                           decimal_precision: settings.decimal_precision
-                        })} per {addon.calculation_type === 'per_unit' ? 'unit' : 'each'}
+                        })} {addon.calculation_type === 'per_unit' ? 'per unit' : addon.calculation_type === 'area_calculation' ? 'per SF' : 'total'}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 justify-end sm:justify-start flex-shrink-0">
