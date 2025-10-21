@@ -567,9 +567,11 @@ const MeasurementTools = ({
     }));
   };
 
-  // Render dimensional shape (only updates polygon visual, not handles)
+  // Render dimensional shape (updates polygon and handles)
   const renderDimensionalShape = () => {
     if (!mapRef.current || !product || !dimensionalCenter) return;
+    
+    console.log('🎨 Rendering dimensional shape, handles exist:', !!dragHandle, !!rotationHandle);
     
     const width = product.default_width!;
     const length = product.default_length!;
@@ -601,6 +603,7 @@ const MeasurementTools = ({
         zIndex: 1
       });
       currentShapeRef.current = polygon;
+      console.log('✅ Created new polygon');
     }
     
     // Update handle positions (don't recreate them)
@@ -611,11 +614,22 @@ const MeasurementTools = ({
     if (rotationHandle) {
       rotationHandle.setPosition(corners[1]); // Top-right corner
     }
+    
+    // If handles don't exist yet, set them up
+    if (!dragHandle || !rotationHandle) {
+      console.log('⚠️ Handles missing, setting up now');
+      setupDimensionalHandles();
+    }
   };
 
   // Setup dimensional handles (only called once after placement)
   const setupDimensionalHandles = () => {
-    if (!mapRef.current || !product || !dimensionalCenter) return;
+    if (!mapRef.current || !product || !dimensionalCenter) {
+      console.log('❌ Cannot setup handles - missing requirements');
+      return;
+    }
+    
+    console.log('🔧 Setting up dimensional handles');
     
     const color = getNextMeasurementColor();
     const corners = calculateRotatedRectangle(
@@ -695,6 +709,8 @@ const MeasurementTools = ({
       optimized: false // Important for smooth dragging
     });
     setRotationHandle(rotate);
+    
+    console.log('✅ Created drag and rotation handles');
     
     // Track initial angle for relative rotation
     rotateDragStartListenerRef.current = google.maps.event.addListener(rotate, 'dragstart', (e: any) => {
@@ -850,6 +866,8 @@ const MeasurementTools = ({
   const placeDimensionalProduct = (latLng: google.maps.LatLng) => {
     if (!product || !product.default_width || !product.default_length || !mapRef.current) return;
 
+    console.log('📍 Placing dimensional product');
+    
     const center = { lat: latLng.lat(), lng: latLng.lng() };
     const area = Math.ceil(product.default_width * product.default_length);
     
@@ -859,11 +877,11 @@ const MeasurementTools = ({
     setIsDrawing(false);
     setMapMeasurement(area);
     
-    // Setup handles once after state is set
-    setTimeout(() => {
+    // Use requestAnimationFrame to ensure state is updated before rendering
+    requestAnimationFrame(() => {
+      console.log('🎬 Setting up handles and rendering shape');
       setupDimensionalHandles();
-      renderDimensionalShape();
-    }, 0);
+    });
   };
 
   const updateMeasurementLabel = (
