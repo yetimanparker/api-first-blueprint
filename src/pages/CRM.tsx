@@ -61,7 +61,7 @@ const CRM = () => {
   const [quoteSearchTerm, setQuoteSearchTerm] = useState("");
   const [quoteStatusFilter, setQuoteStatusFilter] = useState("all");
   const [quoteSortBy, setQuoteSortBy] = useState("unseen_first");
-  const [activeTab, setActiveTab] = useState("customers");
+  const [activeTab, setActiveTab] = useState("quotes");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -419,13 +419,13 @@ const CRM = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="customers" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Customers
-            </TabsTrigger>
             <TabsTrigger value="quotes" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               All Quotes
+            </TabsTrigger>
+            <TabsTrigger value="customers" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Customers
             </TabsTrigger>
           </TabsList>
 
