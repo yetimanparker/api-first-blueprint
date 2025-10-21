@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Plus, Phone, Mail, MapPin, Edit, Eye, MoreVertical, Ruler } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +37,7 @@ interface Quote {
   total_amount: number;
   created_at: string;
   expires_at?: string;
+  first_viewed_at: string | null;
   project_address?: string;
   project_city?: string;
   project_state?: string;
@@ -95,34 +97,35 @@ export default function CustomerDetail() {
     }
   };
 
-  const markQuoteAsViewed = async (quoteId: string) => {
+  const toggleQuoteViewedStatus = async (quoteId: string, currentStatus: string | null) => {
     try {
-      // Check if quote has already been viewed
-      const quote = quotes.find(q => q.id === quoteId);
-      if (quote && (quote as any).first_viewed_at) {
-        // Already viewed, no need to update
-        return;
-      }
-
+      const newStatus = currentStatus === null ? new Date().toISOString() : null;
+      
       const { error } = await supabase
         .from('quotes')
-        .update({ first_viewed_at: new Date().toISOString() })
-        .eq('id', quoteId)
-        .is('first_viewed_at', null); // Only update if not already viewed
+        .update({ first_viewed_at: newStatus })
+        .eq('id', quoteId);
 
-      if (error) {
-        console.error('Error marking quote as viewed:', error);
-      }
+      if (error) throw error;
+
+      await fetchCustomerData();
+      
+      toast({
+        title: "Status Updated",
+        description: newStatus === null ? "Quote marked as unseen" : "Quote marked as seen",
+      });
     } catch (error) {
-      console.error('Error marking quote as viewed:', error);
+      console.error('Error toggling quote status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update quote status",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleQuickView = async (quoteId: string) => {
+  const handleQuickView = (quoteId: string) => {
     setQuickViewQuoteId(quoteId);
-    await markQuoteAsViewed(quoteId);
-    // Refresh to get updated view status
-    await fetchCustomerData();
   };
 
   const handleStatusChange = async (quoteId: string, newStatus: string) => {
@@ -304,7 +307,40 @@ export default function CustomerDetail() {
                       <div key={quote.id} className="border rounded-lg p-3 md:p-4 hover:shadow-md transition-shadow">
                         <div className="flex items-start justify-between gap-2 mb-3">
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 flex-1">
-                            <h3 className="font-semibold text-base md:text-lg truncate">{quote.quote_number}</h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-base md:text-lg truncate">{quote.quote_number}</h3>
+                              {quote.first_viewed_at === null ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-auto p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleQuoteViewedStatus(quote.id, quote.first_viewed_at);
+                                  }}
+                                >
+                                  <Badge variant="destructive" className="text-xs cursor-pointer hover:bg-destructive/80">
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    Unseen
+                                  </Badge>
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-auto p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleQuoteViewedStatus(quote.id, quote.first_viewed_at);
+                                  }}
+                                >
+                                  <Badge variant="outline" className="text-xs cursor-pointer hover:bg-muted">
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    Seen
+                                  </Badge>
+                                </Button>
+                              )}
+                            </div>
                             <Select
                               value={quote.status}
                               onValueChange={(value) => handleStatusChange(quote.id, value)}
@@ -335,10 +371,8 @@ export default function CustomerDetail() {
                                   <Eye className="h-4 w-4 mr-2" />
                                   Quick View
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {
-                                  markQuoteAsViewed(quote.id);
-                                  navigate(`/quote/edit/${quote.id}`);
-                                }}>
+                                <DropdownMenuItem onClick={() => navigate(`/quote/edit/${quote.id}`)}>
+
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit Quote
                                 </DropdownMenuItem>
@@ -358,10 +392,7 @@ export default function CustomerDetail() {
                             </Button>
                             <Button
                               size="sm"
-                              onClick={() => {
-                                markQuoteAsViewed(quote.id);
-                                navigate(`/quote/edit/${quote.id}`);
-                              }}
+                              onClick={() => navigate(`/quote/edit/${quote.id}`)}
                             >
                               <Edit className="h-4 w-4 mr-2" />
                               Edit Quote

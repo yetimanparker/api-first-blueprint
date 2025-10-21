@@ -298,6 +298,33 @@ const CRM = () => {
     }
   };
 
+  const toggleQuoteViewedStatus = async (quoteId: string, currentStatus: string | null) => {
+    try {
+      const newStatus = currentStatus === null ? new Date().toISOString() : null;
+      
+      const { error } = await supabase
+        .from('quotes')
+        .update({ first_viewed_at: newStatus })
+        .eq('id', quoteId);
+
+      if (error) throw error;
+
+      await fetchAllQuotes();
+      
+      toast({
+        title: "Status Updated",
+        description: newStatus === null ? "Quote marked as unseen" : "Quote marked as seen",
+      });
+    } catch (error) {
+      console.error('Error toggling quote status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update quote status",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleQuoteCreated = () => {
     fetchCustomers();
     fetchAllQuotes();
@@ -727,11 +754,36 @@ const CRM = () => {
                             <div className="flex flex-col">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">{quote.quote_number}</span>
-                                {quote.first_viewed_at === null && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    <Eye className="h-3 w-3 mr-1" />
-                                    Unseen
-                                  </Badge>
+                                {quote.first_viewed_at === null ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-auto p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleQuoteViewedStatus(quote.id, quote.first_viewed_at);
+                                    }}
+                                  >
+                                    <Badge variant="destructive" className="text-xs cursor-pointer hover:bg-destructive/80">
+                                      <Eye className="h-3 w-3 mr-1" />
+                                      Unseen
+                                    </Badge>
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-auto p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleQuoteViewedStatus(quote.id, quote.first_viewed_at);
+                                    }}
+                                  >
+                                    <Badge variant="outline" className="text-xs cursor-pointer hover:bg-muted">
+                                      <Eye className="h-3 w-3 mr-1" />
+                                      Seen
+                                    </Badge>
+                                  </Button>
                                 )}
                               </div>
                               {/* Mobile: Show status below quote number */}
