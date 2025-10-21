@@ -519,7 +519,6 @@ export default function QuoteEdit() {
             onClick={() => navigate(`/quote/builder/${quote.id}`)}
             className="w-full sm:w-auto text-base font-bold"
           >
-            <Plus className="h-4 w-4 mr-2" />
             + Add Product to Quote
           </Button>
         </div>
