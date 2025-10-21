@@ -330,7 +330,7 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
           {filteredProducts.map((product) => (
             <Card 
               key={product.id}
-              className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 hover:scale-[1.02] rounded-xl overflow-hidden"
+              className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 hover:scale-[1.02] rounded-xl overflow-hidden h-[420px] flex flex-col"
               onClick={() => onProductSelect(product.id)}
             >
               {product.photo_url && (
@@ -346,68 +346,61 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
                 </div>
               )}
               
-              <CardContent className="p-5">
-                <div className="mb-3">
-                  <h3 className="font-semibold text-base leading-tight mb-1">
+              <CardContent className="p-5 flex flex-col flex-1">
+                {/* Title - Fixed height */}
+                <div className="mb-3 h-12">
+                  <h3 className="font-semibold text-base leading-tight line-clamp-2">
                     {product.name}
                   </h3>
                 </div>
 
+                {/* Description - Fixed height, 2-line clamp */}
                 {product.description && (
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2 h-10">
                     {product.description}
                   </p>
                 )}
+                
+                {/* Empty description placeholder for consistent spacing */}
+                {!product.description && (
+                  <div className="mb-4 h-10"></div>
+                )}
 
-                 <div className="flex items-center justify-between mb-3">
-                   {shouldShowPricing(product) && (
-                     <span className="text-lg font-bold text-primary">
-                       {formatExactPrice(product.unit_price, {
-                         currency_symbol: settings.currency_symbol,
-                         decimal_precision: settings.decimal_precision
-                       })}
-                       <span className="text-sm font-normal text-muted-foreground ml-1">
-                         / {product.unit_type}
-                       </span>
-                     </span>
-                   )}
-                   
-                   {/* Show "From $X" for products with required variations */}
-                   {!shouldShowPricing(product) && 
-                     settings.pricing_visibility !== 'after_submit' && 
-                     product.product_variations?.some(v => v.is_required) && (
-                     <span className="text-lg font-bold text-primary">
-                       From {formatExactPrice(product.unit_price, {
-                         currency_symbol: settings.currency_symbol,
-                         decimal_precision: settings.decimal_precision
-                       })}
-                       <span className="text-sm font-normal text-muted-foreground ml-1">
-                         / {product.unit_type}
-                       </span>
-                     </span>
-                   )}
-                 </div>
+                {/* Spacer to push price to bottom */}
+                <div className="flex-grow"></div>
 
-                {/* Badges at bottom */}
-                <div className="flex flex-wrap gap-1.5">
-                  {(() => {
-                    const categoryName = getCategoryName(product.category);
-                    const subcategoryName = getSubcategoryName(product.subcategory);
-                    return (
-                      <>
-                        {categoryName && (
-                          <Badge variant="outline" className="text-xs bg-muted/50">
-                            {categoryName}
-                          </Badge>
-                        )}
-                        {subcategoryName && (
-                          <Badge variant="outline" className="text-xs bg-muted/50">
-                            {subcategoryName}
-                          </Badge>
-                        )}
-                      </>
-                    );
-                  })()}
+                {/* Price section - Fixed at bottom */}
+                <div className="mt-auto">
+                  {shouldShowPricing(product) && (
+                    <div className="space-y-0.5">
+                      <div className="text-lg font-bold text-primary">
+                        {formatExactPrice(product.unit_price, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        per {product.unit_type}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Show "From $X" for products with required variations */}
+                  {!shouldShowPricing(product) && 
+                    settings.pricing_visibility !== 'after_submit' && 
+                    product.product_variations?.some(v => v.is_required) && (
+                    <div className="space-y-0.5">
+                      <div className="text-lg font-bold text-primary">
+                        From {formatExactPrice(product.unit_price, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        per {product.unit_type}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
