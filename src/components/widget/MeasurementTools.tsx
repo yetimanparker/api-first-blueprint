@@ -93,6 +93,13 @@ const MeasurementTools = ({
   const isDrawingRef = useRef(false);
   const pointCountRef = useRef(0); // Track point count for reliable sequential numbering
   
+  // Refs for smooth drag and rotation
+  const dragListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const rotateListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const rotateDragStartListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const initialRotationRef = useRef<number>(0);
+  const dragStartAngleRef = useRef<number>(0);
+  
   // Color palette for different measurements on the map
   const MAP_COLORS = [
     '#3B82F6', // blue
@@ -290,10 +297,10 @@ const MeasurementTools = ({
     // Map state is now automatically preserved via listeners
   }, [measurementType]);
 
-  // Update dimensional shape when rotation or center changes
+  // Update dimensional shape when rotation or center changes (only renders, doesn't recreate handles)
   useEffect(() => {
     if (isDimensionalPlaced && dimensionalCenter && product?.default_width && product?.default_length && mapRef.current) {
-      updateDimensionalShape();
+      renderDimensionalShape();
     }
   }, [dimensionalRotation, dimensionalCenter, isDimensionalPlaced]);
 
@@ -560,37 +567,73 @@ const MeasurementTools = ({
     }));
   };
 
-  // Update dimensional shape based on current state
-  const updateDimensionalShape = () => {
+  // Render dimensional shape (only updates polygon visual, not handles)
+  const renderDimensionalShape = () => {
     if (!mapRef.current || !product || !dimensionalCenter) return;
-    
-    // Clean up old shapes and handles
-    if (currentShapeRef.current) currentShapeRef.current.setMap(null);
-    if (rotationHandle) rotationHandle.setMap(null);
-    if (dragHandle) dragHandle.setMap(null);
     
     const width = product.default_width!;
     const length = product.default_length!;
     const color = getNextMeasurementColor();
     
-    // Calculate and create polygon
+    // Calculate new corners
     const corners = calculateRotatedRectangle(
-      dimensionalCenter.lat, dimensionalCenter.lng,
-      width, length, dimensionalRotation
+      dimensionalCenter.lat,
+      dimensionalCenter.lng,
+      width,
+      length,
+      dimensionalRotation
     );
     
-    const polygon = new google.maps.Polygon({
-      paths: corners,
-      fillColor: color,
-      fillOpacity: 0.3,
-      strokeColor: color,
-      strokeWeight: 2,
-      map: mapRef.current,
-      zIndex: 1
-    });
-    currentShapeRef.current = polygon;
+    // Update existing polygon or create new one
+    if (currentShapeRef.current && currentShapeRef.current instanceof google.maps.Polygon) {
+      currentShapeRef.current.setPath(corners);
+    } else {
+      // Clean up old shape if it exists
+      if (currentShapeRef.current) currentShapeRef.current.setMap(null);
+      
+      const polygon = new google.maps.Polygon({
+        paths: corners,
+        fillColor: color,
+        fillOpacity: 0.3,
+        strokeColor: color,
+        strokeWeight: 2,
+        map: mapRef.current,
+        zIndex: 1
+      });
+      currentShapeRef.current = polygon;
+    }
     
-    // Create drag handle (center)
+    // Update handle positions (don't recreate them)
+    if (dragHandle) {
+      dragHandle.setPosition(dimensionalCenter);
+    }
+    
+    if (rotationHandle) {
+      rotationHandle.setPosition(corners[1]); // Top-right corner
+    }
+  };
+
+  // Setup dimensional handles (only called once after placement)
+  const setupDimensionalHandles = () => {
+    if (!mapRef.current || !product || !dimensionalCenter) return;
+    
+    const color = getNextMeasurementColor();
+    const corners = calculateRotatedRectangle(
+      dimensionalCenter.lat,
+      dimensionalCenter.lng,
+      product.default_width!,
+      product.default_length!,
+      dimensionalRotation
+    );
+    
+    // Clean up existing handles and listeners
+    if (dragListenerRef.current) google.maps.event.removeListener(dragListenerRef.current);
+    if (rotateListenerRef.current) google.maps.event.removeListener(rotateListenerRef.current);
+    if (rotateDragStartListenerRef.current) google.maps.event.removeListener(rotateDragStartListenerRef.current);
+    if (dragHandle) dragHandle.setMap(null);
+    if (rotationHandle) rotationHandle.setMap(null);
+    
+    // Create center drag handle
     const drag = new google.maps.Marker({
       position: dimensionalCenter,
       map: mapRef.current,
@@ -609,19 +652,35 @@ const MeasurementTools = ({
         fontSize: '16px',
         fontWeight: 'bold'
       },
-      title: 'Drag to move'
+      title: 'Drag to move',
+      optimized: false // Important for smooth dragging
     });
     setDragHandle(drag);
     
-    // Add drag listener
-    google.maps.event.addListener(drag, 'drag', (e: any) => {
-      setDimensionalCenter({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+    // Add drag listener with optimized updates
+    dragListenerRef.current = google.maps.event.addListener(drag, 'drag', (e: any) => {
+      const newCenter = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+      setDimensionalCenter(newCenter);
+      
+      // Immediately update position for smooth feedback (don't wait for re-render)
+      if (currentShapeRef.current instanceof google.maps.Polygon) {
+        const corners = calculateRotatedRectangle(
+          newCenter.lat,
+          newCenter.lng,
+          product.default_width!,
+          product.default_length!,
+          dimensionalRotation
+        );
+        currentShapeRef.current.setPath(corners);
+        if (rotationHandle) {
+          rotationHandle.setPosition(corners[1]);
+        }
+      }
     });
     
-    // Create rotation handle (top-right corner)
-    const handlePosition = corners[1];
+    // Create rotation handle
     const rotate = new google.maps.Marker({
-      position: handlePosition,
+      position: corners[1],
       map: mapRef.current,
       draggable: true,
       icon: {
@@ -632,23 +691,51 @@ const MeasurementTools = ({
         strokeWeight: 2,
         scale: 8
       },
-      title: 'Drag to rotate'
+      title: 'Drag to rotate',
+      optimized: false // Important for smooth dragging
     });
     setRotationHandle(rotate);
     
-    // Add rotation drag listener
-    google.maps.event.addListener(rotate, 'drag', (e: any) => {
+    // Track initial angle for relative rotation
+    rotateDragStartListenerRef.current = google.maps.event.addListener(rotate, 'dragstart', (e: any) => {
       const handleLat = e.latLng.lat();
       const handleLng = e.latLng.lng();
-      const centerLat = dimensionalCenter.lat;
-      const centerLng = dimensionalCenter.lng;
+      dragStartAngleRef.current = Math.atan2(
+        handleLat - dimensionalCenter.lat,
+        handleLng - dimensionalCenter.lng
+      ) * (180 / Math.PI);
+      initialRotationRef.current = dimensionalRotation;
+    });
+    
+    // Add rotation drag listener with smooth updates
+    rotateListenerRef.current = google.maps.event.addListener(rotate, 'drag', (e: any) => {
+      const handleLat = e.latLng.lat();
+      const handleLng = e.latLng.lng();
       
-      // Calculate angle from center to handle
-      const deltaLng = handleLng - centerLng;
-      const deltaLat = handleLat - centerLat;
-      const angle = Math.atan2(deltaLat, deltaLng) * (180 / Math.PI);
+      // Calculate current angle
+      const currentAngle = Math.atan2(
+        handleLat - dimensionalCenter.lat,
+        handleLng - dimensionalCenter.lng
+      ) * (180 / Math.PI);
       
-      setDimensionalRotation(angle);
+      // Calculate relative rotation
+      const angleDelta = currentAngle - dragStartAngleRef.current;
+      const newRotation = initialRotationRef.current + angleDelta;
+      
+      setDimensionalRotation(newRotation);
+      
+      // Immediately update shape for smooth feedback
+      if (currentShapeRef.current instanceof google.maps.Polygon) {
+        const corners = calculateRotatedRectangle(
+          dimensionalCenter.lat,
+          dimensionalCenter.lng,
+          product.default_width!,
+          product.default_length!,
+          newRotation
+        );
+        currentShapeRef.current.setPath(corners);
+        rotate.setPosition(corners[1]);
+      }
     });
   };
 
@@ -772,7 +859,11 @@ const MeasurementTools = ({
     setIsDrawing(false);
     setMapMeasurement(area);
     
-    // useEffect will handle the actual rendering
+    // Setup handles once after state is set
+    setTimeout(() => {
+      setupDimensionalHandles();
+      renderDimensionalShape();
+    }, 0);
   };
 
   const updateMeasurementLabel = (
