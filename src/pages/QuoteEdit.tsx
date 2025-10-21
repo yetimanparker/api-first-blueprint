@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin, Ruler, Plus, ChevronDown, User, ExternalLink } from "lucide-react";
+import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin, Ruler, Plus, ChevronDown, User, ExternalLink, ListTodo } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { EditQuoteItemDialog } from "@/components/EditQuoteItemDialog";
@@ -22,6 +22,7 @@ import MeasurementDetails from "@/components/quote/MeasurementDetails";
 import type { MeasurementData } from "@/types/widget";
 import { TaskDropdown } from "@/components/crm/TaskDropdown";
 import QuoteTasksSection from "@/components/crm/QuoteTasksSection";
+import { QuoteTasksDialog } from "@/components/crm/QuoteTasksDialog";
 
 interface Quote {
   id: string;
@@ -109,6 +110,8 @@ export default function QuoteEdit() {
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [editingAddress, setEditingAddress] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
+  const [tasksDialogOpen, setTasksDialogOpen] = useState(false);
+  const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [addressForm, setAddressForm] = useState({
     project_address: "",
     project_city: "", 
@@ -120,6 +123,7 @@ export default function QuoteEdit() {
   useEffect(() => {
     if (quoteId) {
       fetchQuoteData();
+      fetchPendingTasksCount();
     }
   }, [quoteId]);
 
@@ -183,6 +187,22 @@ export default function QuoteEdit() {
       navigate('/crm');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPendingTasksCount = async () => {
+    if (!quoteId) return;
+    
+    try {
+      const { count } = await supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('quote_id', quoteId)
+        .neq('status', 'completed');
+      
+      setPendingTasksCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching pending tasks count:', error);
     }
   };
 
@@ -431,6 +451,15 @@ export default function QuoteEdit() {
               <span className="sm:hidden">Back</span>
             </Button>
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setTasksDialogOpen(true)} className="gap-2">
+                <ListTodo className="h-4 w-4" />
+                <span className="hidden sm:inline">Tasks</span>
+                {pendingTasksCount > 0 && (
+                  <Badge variant="secondary" className="h-5 px-2">
+                    {pendingTasksCount}
+                  </Badge>
+                )}
+              </Button>
               {quote.access_token && (
                 <Button variant="outline" size="sm" onClick={copyQuoteLink} className="hidden sm:flex">
                   <Copy className="h-4 w-4 mr-2" />
@@ -1015,6 +1044,22 @@ export default function QuoteEdit() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Tasks Dialog */}
+        {quote && customer && (
+          <QuoteTasksDialog
+            quoteId={quote.id}
+            quoteNumber={quote.quote_number}
+            customerId={customer.id}
+            open={tasksDialogOpen}
+            onOpenChange={(open) => {
+              setTasksDialogOpen(open);
+              if (!open) {
+                fetchPendingTasksCount();
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   );
