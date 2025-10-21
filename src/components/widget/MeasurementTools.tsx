@@ -569,7 +569,21 @@ const MeasurementTools = ({
 
   // Render dimensional shape (updates polygon and handles)
   const renderDimensionalShape = useCallback(() => {
-    if (!mapRef.current || !product || !dimensionalCenter) return;
+    if (!mapRef.current || !product || !dimensionalCenter) {
+      console.log('❌ Cannot render dimensional shape - missing requirements', {
+        hasMap: !!mapRef.current,
+        hasProduct: !!product,
+        hasCenter: !!dimensionalCenter
+      });
+      return;
+    }
+    
+    console.log('🎨 Rendering dimensional shape', {
+      hasDragHandle: !!dragHandle,
+      hasRotationHandle: !!rotationHandle,
+      center: dimensionalCenter,
+      rotation: dimensionalRotation
+    });
     
     const width = product.default_width!;
     const length = product.default_length!;
@@ -586,6 +600,7 @@ const MeasurementTools = ({
     // Update existing polygon or create new one
     if (currentShapeRef.current && currentShapeRef.current instanceof google.maps.Polygon) {
       currentShapeRef.current.setPath(corners);
+      console.log('✅ Updated polygon path');
     } else {
       // Clean up old shape if it exists
       if (currentShapeRef.current) currentShapeRef.current.setMap(null);
@@ -601,21 +616,37 @@ const MeasurementTools = ({
         zIndex: 1
       });
       currentShapeRef.current = polygon;
+      console.log('✅ Created new polygon');
     }
     
     // CRITICAL: Always update handle positions to stay locked to shape
     if (dragHandle) {
       dragHandle.setPosition(dimensionalCenter);
+      console.log('✅ Updated drag handle position');
     }
     
     if (rotationHandle) {
       rotationHandle.setPosition(corners[1]); // Top-right corner
+      console.log('✅ Updated rotation handle position');
+    }
+    
+    // If handles don't exist yet, set them up
+    if (!dragHandle || !rotationHandle) {
+      console.log('⚠️ Handles missing - calling setupDimensionalHandles');
+      setupDimensionalHandles();
     }
   }, [dimensionalCenter, dimensionalRotation, product, dragHandle, rotationHandle]);
 
   // Setup dimensional handles (only called once after placement)
   const setupDimensionalHandles = useCallback(() => {
+    console.log('🔧 setupDimensionalHandles called', {
+      hasMap: !!mapRef.current,
+      hasProduct: !!product,
+      hasCenter: !!dimensionalCenter
+    });
+    
     if (!mapRef.current || !product || !dimensionalCenter) {
+      console.log('❌ Cannot setup handles - missing requirements');
       return;
     }
     
@@ -852,6 +883,8 @@ const MeasurementTools = ({
   const placeDimensionalProduct = (latLng: google.maps.LatLng) => {
     if (!product || !product.default_width || !product.default_length || !mapRef.current) return;
     
+    console.log('📍 Placing dimensional product at', latLng.lat(), latLng.lng());
+    
     const center = { lat: latLng.lat(), lng: latLng.lng() };
     const area = Math.ceil(product.default_width * product.default_length);
     
@@ -861,8 +894,11 @@ const MeasurementTools = ({
     setIsDrawing(false);
     setMapMeasurement(area);
     
+    console.log('✅ State updated, scheduling handle setup');
+    
     // Use requestAnimationFrame to ensure state is updated before rendering
     requestAnimationFrame(() => {
+      console.log('🎬 requestAnimationFrame callback - calling setupDimensionalHandles');
       setupDimensionalHandles();
       renderDimensionalShape();
     });
