@@ -65,6 +65,7 @@ interface Product {
   product_addons?: Array<{
     id: string;
     name: string;
+    description?: string;
     price_value: number;
     calculation_type: string;
   }>;
@@ -448,14 +449,19 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
                             checked={isSelected}
                             onCheckedChange={(checked) => toggleAddon(addon.id, checked as boolean)}
                           />
-                          <div className="flex-1">
-                            <label htmlFor={`addon-${addon.id}`} className="text-sm font-medium cursor-pointer">
-                              {addon.name}
-                            </label>
-                            <p className="text-xs text-muted-foreground">
-                              {addon.calculation_type === 'per_unit' ? 'per unit' : addon.calculation_type === 'area_calculation' ? 'per SF' : 'total'}
-                            </p>
-                          </div>
+                <div className="flex-1">
+                  <label htmlFor={`addon-${addon.id}`} className="text-sm font-medium cursor-pointer">
+                    {addon.name}
+                  </label>
+                  {addon.description && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {addon.description}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {addon.calculation_type === 'per_unit' ? 'per unit' : addon.calculation_type === 'area_calculation' ? 'per SF' : 'total'}
+                  </p>
+                </div>
                         </div>
                         
                         {isSelected && (
