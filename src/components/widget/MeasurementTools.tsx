@@ -1,5 +1,5 @@
 /// <reference types="@types/google.maps" />
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { Input } from '@/components/ui/input';
@@ -568,14 +568,11 @@ const MeasurementTools = ({
   };
 
   // Render dimensional shape (updates polygon and handles)
-  const renderDimensionalShape = () => {
+  const renderDimensionalShape = useCallback(() => {
     if (!mapRef.current || !product || !dimensionalCenter) return;
-    
-    console.log('🎨 Rendering dimensional shape, handles exist:', !!dragHandle, !!rotationHandle);
     
     const width = product.default_width!;
     const length = product.default_length!;
-    const color = getNextMeasurementColor();
     
     // Calculate new corners
     const corners = calculateRotatedRectangle(
@@ -593,6 +590,7 @@ const MeasurementTools = ({
       // Clean up old shape if it exists
       if (currentShapeRef.current) currentShapeRef.current.setMap(null);
       
+      const color = getNextMeasurementColor();
       const polygon = new google.maps.Polygon({
         paths: corners,
         fillColor: color,
@@ -603,10 +601,9 @@ const MeasurementTools = ({
         zIndex: 1
       });
       currentShapeRef.current = polygon;
-      console.log('✅ Created new polygon');
     }
     
-    // Update handle positions (don't recreate them)
+    // CRITICAL: Always update handle positions to stay locked to shape
     if (dragHandle) {
       dragHandle.setPosition(dimensionalCenter);
     }
@@ -614,22 +611,13 @@ const MeasurementTools = ({
     if (rotationHandle) {
       rotationHandle.setPosition(corners[1]); // Top-right corner
     }
-    
-    // If handles don't exist yet, set them up
-    if (!dragHandle || !rotationHandle) {
-      console.log('⚠️ Handles missing, setting up now');
-      setupDimensionalHandles();
-    }
-  };
+  }, [dimensionalCenter, dimensionalRotation, product, dragHandle, rotationHandle]);
 
   // Setup dimensional handles (only called once after placement)
-  const setupDimensionalHandles = () => {
+  const setupDimensionalHandles = useCallback(() => {
     if (!mapRef.current || !product || !dimensionalCenter) {
-      console.log('❌ Cannot setup handles - missing requirements');
       return;
     }
-    
-    console.log('🔧 Setting up dimensional handles');
     
     const color = getNextMeasurementColor();
     const corners = calculateRotatedRectangle(
@@ -710,8 +698,6 @@ const MeasurementTools = ({
     });
     setRotationHandle(rotate);
     
-    console.log('✅ Created drag and rotation handles');
-    
     // Track initial angle for relative rotation
     rotateDragStartListenerRef.current = google.maps.event.addListener(rotate, 'dragstart', (e: any) => {
       const handleLat = e.latLng.lat();
@@ -749,12 +735,12 @@ const MeasurementTools = ({
           product.default_length!,
           newRotation
         );
-        currentShapeRef.current.setPath(corners);
-        rotate.setPosition(corners[1]);
-      }
-    });
-  };
-
+      currentShapeRef.current.setPath(corners);
+      // Update rotation handle to stay locked to corner
+      rotate.setPosition(corners[1]);
+    }
+  });
+  }, [dimensionalCenter, dimensionalRotation, product, dragHandle, rotationHandle]);
   const setupDrawingManager = (map: google.maps.Map) => {
     const nextColor = getNextMeasurementColor();
     
@@ -865,8 +851,6 @@ const MeasurementTools = ({
 
   const placeDimensionalProduct = (latLng: google.maps.LatLng) => {
     if (!product || !product.default_width || !product.default_length || !mapRef.current) return;
-
-    console.log('📍 Placing dimensional product');
     
     const center = { lat: latLng.lat(), lng: latLng.lng() };
     const area = Math.ceil(product.default_width * product.default_length);
@@ -879,8 +863,8 @@ const MeasurementTools = ({
     
     // Use requestAnimationFrame to ensure state is updated before rendering
     requestAnimationFrame(() => {
-      console.log('🎬 Setting up handles and rendering shape');
       setupDimensionalHandles();
+      renderDimensionalShape();
     });
   };
 
