@@ -7,12 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Search, Users, FileText, Phone, Mail, MapPin, MoreHorizontal, Edit, Plus, ArrowUpDown, Eye } from "lucide-react";
+import { ArrowLeft, Search, Users, FileText, Phone, Mail, MapPin, MoreHorizontal, Edit, Plus, ArrowUpDown, Eye, ListTodo, CheckSquare, ArrowUp, ArrowDown, Clock, Flag, Calendar, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { NewQuoteDialog } from "@/components/NewQuoteDialog";
 import { CustomerDialog } from "@/components/CustomerDialog";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { TaskDropdown } from "@/components/crm/TaskDropdown";
+import { format, isPast } from "date-fns";
 
 interface Customer {
   id: string;
@@ -49,6 +52,29 @@ interface QuoteWithCustomer extends Quote {
   };
 }
 
+interface TaskWithRelations {
+  id: string;
+  title: string;
+  description: string | null;
+  task_type: string;
+  status: string;
+  priority: string;
+  due_date: string | null;
+  completed_at: string | null;
+  created_at: string;
+  customer_id: string | null;
+  quote_id: string | null;
+  customer?: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  quote?: {
+    quote_number: string;
+    status: string;
+  };
+}
+
 const CRM = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
@@ -66,10 +92,20 @@ const CRM = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
+  
+  // Task-related state
+  const [allTasks, setAllTasks] = useState<TaskWithRelations[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<TaskWithRelations[]>([]);
+  const [taskSearchTerm, setTaskSearchTerm] = useState("");
+  const [taskStatusFilter, setTaskStatusFilter] = useState("all");
+  const [taskPriorityFilter, setTaskPriorityFilter] = useState("all");
+  const [taskSortBy, setTaskSortBy] = useState("due_date");
+  const [taskSortOrder, setTaskSortOrder] = useState<'asc' | 'desc'>("asc");
 
   useEffect(() => {
     fetchCustomers();
     fetchAllQuotes();
+    fetchAllTasks();
     // Check for URL filter parameter
     const filterParam = searchParams.get('filter');
     if (filterParam === 'unviewed') {
@@ -178,6 +214,26 @@ const CRM = () => {
     setFilteredQuotes(filtered);
   }, [allQuotes, quoteSearchTerm, quoteStatusFilter, quoteSortBy]);
 
+  // Filter and sort tasks
+  useEffect(() => {
+    let filtered = allTasks.filter(task => {
+      const matchesSearch = 
+        task.title.toLowerCase().includes(taskSearchTerm.toLowerCase()) ||
+        (task.description && task.description.toLowerCase().includes(taskSearchTerm.toLowerCase())) ||
+        (task.customer && `${task.customer.first_name} ${task.customer.last_name}`.toLowerCase().includes(taskSearchTerm.toLowerCase())) ||
+        (task.quote && task.quote.quote_number.toLowerCase().includes(taskSearchTerm.toLowerCase()));
+
+      const matchesStatus = taskStatusFilter === "all" || task.status === taskStatusFilter;
+      const matchesPriority = taskPriorityFilter === "all" || task.priority === taskPriorityFilter;
+
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+
+    // Apply sorting
+    filtered = sortTasks(filtered, taskSortBy, taskSortOrder);
+    setFilteredTasks(filtered);
+  }, [allTasks, taskSearchTerm, taskStatusFilter, taskPriorityFilter, taskSortBy, taskSortOrder]);
+
   const fetchCustomers = async () => {
     try {
       const { data: customersData, error: customersError } = await supabase
@@ -263,6 +319,44 @@ const CRM = () => {
         variant: "destructive",
       });
       console.error("Error fetching quotes:", error);
+    }
+  };
+
+  const fetchAllTasks = async () => {
+    try {
+      const { data: contractorData } = await supabase
+        .from('contractors')
+        .select('id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!contractorData) return;
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          customers!customer_id(first_name, last_name, email),
+          quotes!quote_id(quote_number, status)
+        `)
+        .eq('contractor_id', contractorData.id)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        const tasksWithRelations = data.map(task => ({
+          ...task,
+          customer: Array.isArray(task.customers) ? task.customers[0] : task.customers,
+          quote: Array.isArray(task.quotes) ? task.quotes[0] : task.quotes
+        }));
+        setAllTasks(tasksWithRelations);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to load tasks",
+        variant: "destructive",
+      });
+      console.error("Error fetching tasks:", error);
     }
   };
 
@@ -431,6 +525,106 @@ const CRM = () => {
     return quotes?.reduce((sum, quote) => sum + quote.total_amount, 0) || 0;
   };
 
+  const toggleTaskCompletion = async (taskId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+    const updateData: any = { status: newStatus };
+    
+    if (newStatus === 'completed') {
+      updateData.completed_at = new Date().toISOString();
+    } else {
+      updateData.completed_at = null;
+    }
+
+    const { error } = await supabase
+      .from('tasks')
+      .update(updateData)
+      .eq('id', taskId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update task",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    fetchAllTasks();
+  };
+
+  const getTaskTypeIcon = (type: string) => {
+    const icons = {
+      follow_up: Phone,
+      send_quote: Mail,
+      schedule_meeting: Calendar,
+      site_visit: Calendar,
+      review_quote: FileText,
+      other: AlertCircle,
+    };
+    return icons[type] || AlertCircle;
+  };
+
+  const getPriorityVariant = (priority: string): "default" | "destructive" | "secondary" | "outline" => {
+    switch (priority) {
+      case "high": return "destructive";
+      case "medium": return "secondary";
+      case "low": return "outline";
+      default: return "outline";
+    }
+  };
+
+  const getTaskStatusBadgeVariant = (status: string): "default" | "destructive" | "secondary" | "outline" => {
+    switch (status) {
+      case "completed": return "default";
+      case "in_progress": return "secondary";
+      case "pending": return "outline";
+      case "cancelled": return "destructive";
+      default: return "outline";
+    }
+  };
+
+  const sortTasks = (tasks: TaskWithRelations[], sortBy: string, sortOrder: 'asc' | 'desc') => {
+    return [...tasks].sort((a, b) => {
+      // Completed tasks always go to bottom
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+      if (a.status !== 'completed' && b.status === 'completed') return -1;
+
+      let comparison = 0;
+
+      switch (sortBy) {
+        case 'due_date':
+          if (!a.due_date && !b.due_date) return priorityValue(b.priority) - priorityValue(a.priority);
+          if (!a.due_date) return 1;
+          if (!b.due_date) return -1;
+          comparison = new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+          if (comparison === 0) return priorityValue(b.priority) - priorityValue(a.priority);
+          break;
+
+        case 'priority':
+          comparison = priorityValue(a.priority) - priorityValue(b.priority);
+          break;
+
+        case 'status':
+          const statusValues = { pending: 1, in_progress: 2, completed: 3, cancelled: 4 };
+          comparison = (statusValues[a.status] || 0) - (statusValues[b.status] || 0);
+          break;
+
+        case 'created_at':
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  };
+
+  const priorityValue = (priority: string) => {
+    const values = { high: 3, medium: 2, low: 1 };
+    return values[priority] || 0;
+  };
+
+  const pendingTasksCount = allTasks.filter(t => t.status !== 'completed').length;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -471,14 +665,27 @@ const CRM = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
             <TabsTrigger value="quotes" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               All Quotes
+              {allQuotes.length > 0 && (
+                <Badge variant="secondary" className="ml-1">{allQuotes.length}</Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="customers" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Customers
+              {customers.length > 0 && (
+                <Badge variant="secondary" className="ml-1">{customers.length}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="flex items-center gap-2">
+              <ListTodo className="h-4 w-4" />
+              All Tasks
+              {pendingTasksCount > 0 && (
+                <Badge variant="destructive" className="ml-1">{pendingTasksCount}</Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -940,6 +1147,221 @@ const CRM = () => {
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tasks Tab */}
+          <TabsContent value="tasks" className="space-y-6">
+            {/* Search and Filter Bar */}
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                  <div className="flex-1 w-full">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        placeholder="Search tasks by title, customer, or quote..."
+                        value={taskSearchTerm}
+                        onChange={(e) => setTaskSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+                    <Select value={taskStatusFilter} onValueChange={setTaskStatusFilter}>
+                      <SelectTrigger className="w-full sm:w-[140px]">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={taskPriorityFilter} onValueChange={setTaskPriorityFilter}>
+                      <SelectTrigger className="w-full sm:w-[140px]">
+                        <SelectValue placeholder="Priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Priority</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={taskSortBy} onValueChange={(value) => setTaskSortBy(value)}>
+                      <SelectTrigger className="w-full sm:w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="due_date">Due Date</SelectItem>
+                        <SelectItem value="priority">Priority</SelectItem>
+                        <SelectItem value="status">Status</SelectItem>
+                        <SelectItem value="created_at">Created</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setTaskSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                    >
+                      {taskSortOrder === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Tasks Table */}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px]"></TableHead>
+                      <TableHead>Task</TableHead>
+                      <TableHead className="hidden md:table-cell">Customer</TableHead>
+                      <TableHead className="hidden md:table-cell">Quote</TableHead>
+                      <TableHead className="hidden sm:table-cell">Priority</TableHead>
+                      <TableHead className="hidden sm:table-cell">Status</TableHead>
+                      <TableHead className="hidden lg:table-cell">Due Date</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTasks.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-12">
+                          <Clock className="h-12 w-12 mx-auto mb-3 opacity-50 text-muted-foreground" />
+                          <p className="text-lg font-medium">No tasks found</p>
+                          <p className="text-sm text-muted-foreground">
+                            {taskSearchTerm || taskStatusFilter !== "all" || taskPriorityFilter !== "all"
+                              ? "Try adjusting your filters"
+                              : "Tasks will appear here as you create them"}
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredTasks.map((task) => {
+                        const TaskIcon = getTaskTypeIcon(task.task_type);
+                        const isOverdue = task.due_date && isPast(new Date(task.due_date)) && task.status !== 'completed';
+                        
+                        return (
+                          <TableRow key={task.id} className="hover:bg-muted/50">
+                            <TableCell>
+                              <Checkbox
+                                checked={task.status === 'completed'}
+                                onCheckedChange={() => toggleTaskCompletion(task.id, task.status)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <TaskIcon className="h-4 w-4 text-muted-foreground" />
+                                  <span className={`font-medium ${task.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
+                                    {task.title}
+                                  </span>
+                                  {isOverdue && (
+                                    <Badge variant="destructive" className="text-xs">
+                                      <Flag className="h-3 w-3 mr-1" />
+                                      Overdue
+                                    </Badge>
+                                  )}
+                                </div>
+                                {task.description && (
+                                  <p className="text-sm text-muted-foreground line-clamp-1">{task.description}</p>
+                                )}
+                                {/* Mobile: Show additional info below */}
+                                <div className="md:hidden flex flex-wrap gap-2 mt-2">
+                                  {task.customer && (
+                                    <span className="text-sm text-muted-foreground">
+                                      {task.customer.first_name} {task.customer.last_name}
+                                    </span>
+                                  )}
+                                  {task.quote && (
+                                    <span className="text-sm text-muted-foreground">
+                                      {task.quote.quote_number}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="sm:hidden flex gap-2 mt-1">
+                                  <Badge variant={getPriorityVariant(task.priority)} className="text-xs">
+                                    {task.priority}
+                                  </Badge>
+                                  <Badge variant={getTaskStatusBadgeVariant(task.status)} className="text-xs">
+                                    {task.status.replace('_', ' ')}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              {task.customer && (
+                                <Button
+                                  variant="link"
+                                  className="p-0 h-auto"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/customer/${task.customer_id}`);
+                                  }}
+                                >
+                                  {task.customer.first_name} {task.customer.last_name}
+                                </Button>
+                              )}
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              {task.quote && (
+                                <Button
+                                  variant="link"
+                                  className="p-0 h-auto"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/quote/edit/${task.quote_id}`);
+                                  }}
+                                >
+                                  {task.quote.quote_number}
+                                </Button>
+                              )}
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">
+                              <Badge variant={getPriorityVariant(task.priority)}>
+                                {task.priority}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">
+                              <Badge variant={getTaskStatusBadgeVariant(task.status)}>
+                                {task.status.replace('_', ' ')}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell">
+                              {task.due_date ? (
+                                <span className={`text-sm ${isOverdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                                  {format(new Date(task.due_date), 'MMM d, yyyy')}
+                                  <br />
+                                  <span className="text-xs">{format(new Date(task.due_date), 'h:mm a')}</span>
+                                </span>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">No due date</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <TaskDropdown
+                                quoteId={task.quote_id || ''}
+                                customerId={task.customer_id || ''}
+                                task={task}
+                                onTaskCreated={fetchAllTasks}
+                                mode="edit"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
