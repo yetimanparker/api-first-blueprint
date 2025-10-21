@@ -374,7 +374,7 @@ export default function CustomerDetail() {
                                 <DropdownMenuItem onClick={() => navigate(`/quote/edit/${quote.id}`)}>
 
                                   <Edit className="h-4 w-4 mr-2" />
-                                  Edit Quote
+                                  View/Edit
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -395,7 +395,7 @@ export default function CustomerDetail() {
                               onClick={() => navigate(`/quote/edit/${quote.id}`)}
                             >
                               <Edit className="h-4 w-4 mr-2" />
-                              Edit Quote
+                              View/Edit
                             </Button>
                           </div>
                         </div>
