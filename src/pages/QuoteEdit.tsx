@@ -517,10 +517,10 @@ export default function QuoteEdit() {
           <Button 
             variant="outline"
             onClick={() => navigate(`/quote/builder/${quote.id}`)}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto text-base font-bold"
           >
-            <Ruler className="h-4 w-4 mr-2" />
-            Use Measurement Tool
+            <Plus className="h-4 w-4 mr-2" />
+            + Add Product to Quote
           </Button>
         </div>
 
