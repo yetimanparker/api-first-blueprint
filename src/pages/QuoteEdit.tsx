@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -356,6 +357,36 @@ export default function QuoteEdit() {
     }
   };
 
+  const updateQuoteStatus = async (newStatus: string) => {
+    if (!quote) return;
+
+    try {
+      setSaving(true);
+      const { error } = await supabase
+        .from('quotes')
+        .update({ status: newStatus })
+        .eq('id', quote.id);
+
+      if (error) throw error;
+
+      setQuote({ ...quote, status: newStatus });
+      
+      toast({
+        title: "Status updated",
+        description: `Quote status changed to ${newStatus}`,
+      });
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update quote status",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'accepted': return 'default';
@@ -434,9 +465,18 @@ export default function QuoteEdit() {
               <h2 className="text-lg sm:text-xl font-semibold text-muted-foreground">
                 {quote.quote_number}
               </h2>
-              <Badge variant={getStatusBadgeVariant(quote.status)}>
-                {quote.status}
-              </Badge>
+              <Select value={quote.status} onValueChange={updateQuoteStatus} disabled={saving}>
+                <SelectTrigger className="w-[140px] h-7">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="accepted">Accepted</SelectItem>
+                  <SelectItem value="declined">Declined</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
               {quote.parent_quote_id && (
                 <Badge variant="outline">v{quote.version_number}</Badge>
               )}
