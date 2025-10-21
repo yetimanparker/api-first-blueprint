@@ -332,23 +332,40 @@ const CRM = () => {
 
       if (!contractorData) return;
 
-      const { data, error } = await supabase
+      const { data: tasksData, error } = await supabase
         .from('tasks')
-        .select(`
-          *,
-          customers!customer_id(first_name, last_name, email),
-          quotes!quote_id(quote_number, status)
-        `)
+        .select('*')
         .eq('contractor_id', contractorData.id)
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        const tasksWithRelations = data.map(task => ({
+      if (error) throw error;
+
+      if (tasksData && tasksData.length > 0) {
+        // Fetch related customers and quotes separately
+        const customerIds = tasksData.map(t => t.customer_id).filter(Boolean);
+        const quoteIds = tasksData.map(t => t.quote_id).filter(Boolean);
+
+        const [customersResponse, quotesResponse] = await Promise.all([
+          customerIds.length > 0 
+            ? supabase.from('customers').select('id, first_name, last_name, email').in('id', customerIds)
+            : Promise.resolve({ data: [] }),
+          quoteIds.length > 0
+            ? supabase.from('quotes').select('id, quote_number, status').in('id', quoteIds)
+            : Promise.resolve({ data: [] })
+        ]);
+
+        const customersMap = new Map((customersResponse.data || []).map(c => [c.id, c]));
+        const quotesMap = new Map((quotesResponse.data || []).map(q => [q.id, q]));
+
+        const tasksWithRelations = tasksData.map(task => ({
           ...task,
-          customer: Array.isArray(task.customers) ? task.customers[0] : task.customers,
-          quote: Array.isArray(task.quotes) ? task.quotes[0] : task.quotes
+          customer: task.customer_id ? customersMap.get(task.customer_id) : undefined,
+          quote: task.quote_id ? quotesMap.get(task.quote_id) : undefined
         }));
+
         setAllTasks(tasksWithRelations);
+      } else {
+        setAllTasks([]);
       }
     } catch (error: any) {
       toast({
