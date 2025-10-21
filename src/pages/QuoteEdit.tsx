@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin, Ruler, Plus, ChevronDown } from "lucide-react";
+import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin, Ruler, Plus, ChevronDown, User, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { EditQuoteItemDialog } from "@/components/EditQuoteItemDialog";
@@ -415,13 +415,25 @@ export default function QuoteEdit() {
             </div>
           </div>
           
-          {/* Bottom row: Customer and Quote info */}
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">
-              {customer.first_name} {customer.last_name}
-            </p>
+          {/* Customer and Quote Info - Redesigned */}
+          <div className="space-y-2">
+            {/* Customer Name - Prominent and Clickable */}
+            <Link 
+              to={`/customer/${customer.id}`}
+              className="flex items-center gap-2 group w-fit"
+            >
+              <User className="h-6 w-6 text-primary" />
+              <h1 className="text-2xl sm:text-3xl font-bold group-hover:text-primary transition-colors">
+                {customer.first_name} {customer.last_name}
+              </h1>
+              <ExternalLink className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors opacity-0 group-hover:opacity-100" />
+            </Link>
+            
+            {/* Quote Number and Status */}
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold">{quote.quote_number}</h1>
+              <h2 className="text-lg sm:text-xl font-semibold text-muted-foreground">
+                {quote.quote_number}
+              </h2>
               <Badge variant={getStatusBadgeVariant(quote.status)}>
                 {quote.status}
               </Badge>
@@ -429,6 +441,8 @@ export default function QuoteEdit() {
                 <Badge variant="outline">v{quote.version_number}</Badge>
               )}
             </div>
+            
+            {/* Created Date */}
             <p className="text-sm text-muted-foreground">
               Created {new Date(quote.created_at).toLocaleDateString()}
             </p>
@@ -527,19 +541,9 @@ export default function QuoteEdit() {
         {/* Quote Summary Card */}
         <Card className="mb-6 bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 shadow-lg">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2 text-green-700 dark:text-green-400">
-                Quote Summary ({quoteItems.length} {quoteItems.length === 1 ? 'Item' : 'Items'})
-              </CardTitle>
-              <div className="flex items-center gap-3">
-                <Badge variant={getStatusBadgeVariant(quote.status)}>
-                  {quote.status}
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Created {new Date(quote.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
+            <CardTitle className="text-lg flex items-center gap-2 text-green-700 dark:text-green-400">
+              Quote Summary ({quoteItems.length} {quoteItems.length === 1 ? 'Item' : 'Items'})
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {quoteItems.length === 0 && (
