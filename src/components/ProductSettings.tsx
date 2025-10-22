@@ -19,7 +19,6 @@ const productSettingsSchema = z.object({
   require_product_photos: z.boolean(),
   global_tax_rate: z.number().min(0).max(100),
   global_markup_percentage: z.number().min(0).max(100),
-  show_markup_in_widget: z.boolean(),
   currency_symbol: z.string().min(1, "Currency symbol is required"),
   decimal_precision: z.number().min(0).max(4),
 });
@@ -55,7 +54,6 @@ export function ProductSettings() {
       require_product_photos: false,
       global_tax_rate: 0,
       global_markup_percentage: 0,
-      show_markup_in_widget: false,
       currency_symbol: '$',
       decimal_precision: 2,
     },
@@ -98,7 +96,6 @@ export function ProductSettings() {
             require_product_photos: settings.require_product_photos || false,
             global_tax_rate: settings.global_tax_rate || 0,
             global_markup_percentage: settings.global_markup_percentage || 0,
-            show_markup_in_widget: settings.show_markup_in_widget || false,
             currency_symbol: settings.currency_symbol || '$',
             decimal_precision: settings.decimal_precision ?? 2,
           });
@@ -325,30 +322,6 @@ export function ProductSettings() {
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="show_markup_in_widget"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-lg border p-4 gap-2">
-                    <div className="space-y-0.5 flex-1">
-                      <FormLabel className="text-base">Show Markup as Separate Line Item</FormLabel>
-                      <FormDescription className="text-sm">
-                        When enabled, markup will be shown separately in quotes. When disabled, markup is included in the total without displaying it as a line item.
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

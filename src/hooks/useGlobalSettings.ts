@@ -9,7 +9,6 @@ export interface GlobalSettings extends PriceRangeSettings {
   require_product_photos: boolean;
   global_tax_rate: number;
   global_markup_percentage: number;
-  show_markup_in_widget: boolean;
   require_email: boolean;
   require_phone: boolean;
   require_address: boolean;
@@ -59,7 +58,6 @@ export function useGlobalSettings(contractorId?: string) {
           require_product_photos: false,
           global_tax_rate: 0,
           global_markup_percentage: 0,
-          show_markup_in_widget: false,
           require_email: true,
           require_phone: true,
           require_address: true,
@@ -96,7 +94,6 @@ export function useGlobalSettings(contractorId?: string) {
           require_product_photos: contractorSettings.require_product_photos || false,
           global_tax_rate: contractorSettings.global_tax_rate || 0,
           global_markup_percentage: contractorSettings.global_markup_percentage || 0,
-          show_markup_in_widget: contractorSettings.show_markup_in_widget || false,
           require_email: contractorSettings.require_email ?? true,
           require_phone: contractorSettings.require_phone ?? true,
           require_address: contractorSettings.require_address ?? true,
@@ -120,7 +117,6 @@ export function useGlobalSettings(contractorId?: string) {
           require_product_photos: false,
           global_tax_rate: 0,
           global_markup_percentage: 0,
-          show_markup_in_widget: false,
           require_email: true,
           require_phone: true,
           require_address: true,

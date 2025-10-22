@@ -241,9 +241,7 @@ const ProductConfiguration = ({
       }
     });
 
-    return settings.global_markup_percentage > 0 
-      ? applyGlobalMarkup(subtotal, settings.global_markup_percentage)
-      : subtotal;
+    return subtotal;
   };
 
   const handleAddToQuote = () => {
