@@ -74,8 +74,10 @@ const QuoteReview = ({
   }, [quoteItems]);
 
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
-  const markupAmount = 0;
-  const taxableAmount = subtotal;
+  const markupAmount = settings.global_markup_percentage > 0 
+    ? applyGlobalMarkup(subtotal, settings.global_markup_percentage) - subtotal 
+    : 0;
+  const taxableAmount = subtotal + markupAmount;
   const taxAmount = settings.global_tax_rate > 0 
     ? applyGlobalTax(taxableAmount, settings.global_tax_rate) - taxableAmount 
     : 0;
@@ -770,6 +772,18 @@ const QuoteReview = ({
                   })}
                 </span>
               </div>
+              
+              {markupAmount > 0 && settings.show_markup_in_widget && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Markup ({settings.global_markup_percentage}%):</span>
+                  <span>
+                    {formatExactPrice(markupAmount, {
+                      currency_symbol: settings.currency_symbol,
+                      decimal_precision: settings.decimal_precision
+                    })}
+                  </span>
+                </div>
+              )}
               
               {taxAmount > 0 && (
                 <div className="flex justify-between text-sm text-muted-foreground">
