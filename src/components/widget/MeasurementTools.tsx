@@ -934,11 +934,20 @@ const MeasurementTools = ({
     // Calculate midpoint
     const midLat = (point1.lat() + point2.lat()) / 2;
     const midLng = (point1.lng() + point2.lng()) / 2;
-    const midpoint = new google.maps.LatLng(midLat, midLng);
+    
+    // Calculate perpendicular offset (offset to the right of the line direction)
+    const angle = google.maps.geometry.spherical.computeHeading(point1, point2);
+    const perpendicularAngle = angle + 90; // 90 degrees to the right
+    const offsetDistance = 8; // meters offset
+    const offsetPoint = google.maps.geometry.spherical.computeOffset(
+      new google.maps.LatLng(midLat, midLng),
+      offsetDistance,
+      perpendicularAngle
+    );
     
     // Create label marker
     const marker = new google.maps.Marker({
-      position: midpoint,
+      position: offsetPoint,
       map: mapRef.current,
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
@@ -1008,6 +1017,14 @@ const MeasurementTools = ({
       const path = shape.getPath();
       const midIndex = Math.floor(path.getLength() / 2);
       center = path.getAt(midIndex);
+      
+      // Offset the total label away from the line
+      if (path.getLength() >= 2) {
+        const prevPoint = path.getAt(Math.max(0, midIndex - 1));
+        const angle = google.maps.geometry.spherical.computeHeading(prevPoint, center);
+        const perpendicularAngle = angle + 90;
+        center = google.maps.geometry.spherical.computeOffset(center, 12, perpendicularAngle);
+      }
     }
 
     if (measurementLabelRef.current) {
