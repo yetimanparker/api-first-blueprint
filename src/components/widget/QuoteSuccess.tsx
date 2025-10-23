@@ -212,7 +212,7 @@ const QuoteSuccess = ({
             label: {
               text: `${item.productName}\n${item.measurement.value.toLocaleString()} sq ft`,
               color: color,
-              fontSize: '12px',
+              fontSize: '16px',
               fontWeight: 'bold',
             },
           });
@@ -239,7 +239,7 @@ const QuoteSuccess = ({
             label: {
               text: `${item.productName}\n${item.measurement.value.toLocaleString()} ft`,
               color: color,
-              fontSize: '12px',
+              fontSize: '16px',
               fontWeight: 'bold',
             },
           });

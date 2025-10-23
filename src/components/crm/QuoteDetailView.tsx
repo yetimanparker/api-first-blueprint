@@ -222,7 +222,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
               label: {
                 text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} sq ft`,
                 color: color,
-                fontSize: '12px',
+                fontSize: '16px',
                 fontWeight: 'bold',
               },
             });
@@ -242,7 +242,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
               label: {
                 text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} ft`,
                 color: color,
-                fontSize: '12px',
+                fontSize: '16px',
                 fontWeight: 'bold',
               },
             });

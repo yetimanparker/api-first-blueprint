@@ -463,8 +463,8 @@ const MeasurementTools = ({
           label: {
             text: `${item.customName || item.productName}\n${item.measurement.value.toLocaleString()} sq ft`,
             color: color,
-            fontSize: '12px',
-            fontWeight: '500',
+            fontSize: '16px',
+            fontWeight: 'bold',
           },
         });
         previousLabelsRef.current.push(marker);
@@ -494,8 +494,8 @@ const MeasurementTools = ({
           label: {
             text: `${item.customName || item.productName}\n${item.measurement.value.toLocaleString()} ft`,
             color: color,
-            fontSize: '12px',
-            fontWeight: '500',
+            fontSize: '16px',
+            fontWeight: 'bold',
           },
         });
         previousLabelsRef.current.push(marker);
