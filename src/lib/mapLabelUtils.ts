@@ -9,12 +9,13 @@ export function getZoomBasedFontSize(zoomLevel: number): number {
   // Scale font size based on zoom level
   // Lower zoom (zoomed out) = smaller text
   // Higher zoom (zoomed in) = larger text
+  // Cap at 12px for full zoom to prevent oversized labels
   
-  if (zoomLevel <= 10) return 10;
-  if (zoomLevel <= 12) return 11;
-  if (zoomLevel <= 14) return 12;
-  if (zoomLevel <= 16) return 14;
-  if (zoomLevel <= 18) return 15;
-  if (zoomLevel <= 20) return 16;
-  return 17;
+  if (zoomLevel <= 10) return 8;
+  if (zoomLevel <= 12) return 9;
+  if (zoomLevel <= 14) return 10;
+  if (zoomLevel <= 16) return 11;
+  if (zoomLevel <= 18) return 12;
+  // Cap at 12px even for zoom levels above 18
+  return 12;
 }

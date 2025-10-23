@@ -220,7 +220,7 @@ const QuoteSuccess = ({
             map: map,
             icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
             label: {
-              text: `${item.productName}\n${item.measurement.value.toLocaleString()} sq ft`,
+              text: `${item.productName} ${item.measurement.value.toLocaleString()} sq ft`,
               color: color,
               fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
               fontWeight: 'bold',
@@ -247,7 +247,7 @@ const QuoteSuccess = ({
             map: map,
             icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
             label: {
-              text: `${item.productName}\n${item.measurement.value.toLocaleString()} ft`,
+              text: `${item.productName} ${item.measurement.value.toLocaleString()} ft`,
               color: color,
               fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
               fontWeight: 'bold',

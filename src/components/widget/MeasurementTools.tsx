@@ -320,6 +320,13 @@ const MeasurementTools = ({
     }
   }, [existingQuoteItems]);
 
+  // Re-render existing measurements when zoom changes (to update label font sizes)
+  useEffect(() => {
+    if (mapRef.current && existingQuoteItems.length > 0) {
+      renderExistingMeasurements(mapRef.current);
+    }
+  }, [currentZoom]);
+
   const fetchApiKey = async () => {
     try {
       // API key is now handled by the shared loader
@@ -471,7 +478,7 @@ const MeasurementTools = ({
             scale: 0,
           },
           label: {
-            text: `${item.customName || item.productName}\n${item.measurement.value.toLocaleString()} sq ft`,
+            text: `${item.customName || item.productName} ${item.measurement.value.toLocaleString()} sq ft`,
             color: color,
             fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
             fontWeight: 'bold',
@@ -502,7 +509,7 @@ const MeasurementTools = ({
             scale: 0,
           },
           label: {
-            text: `${item.customName || item.productName}\n${item.measurement.value.toLocaleString()} ft`,
+            text: `${item.customName || item.productName} ${item.measurement.value.toLocaleString()} ft`,
             color: color,
             fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
             fontWeight: 'bold',
@@ -520,7 +527,7 @@ const MeasurementTools = ({
             label: {
               text: `${idx + 1}`,
               color: 'white',
-              fontSize: '12px',
+              fontSize: `${Math.max(8, getZoomBasedFontSize(currentZoom) - 2)}px`,
               fontWeight: 'bold'
             },
             icon: {

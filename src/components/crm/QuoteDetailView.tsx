@@ -230,7 +230,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
               map: map,
               icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
               label: {
-                text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} sq ft`,
+                text: `${item.products.name} ${item.measurement_data.value.toLocaleString()} sq ft`,
                 color: color,
                 fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
                 fontWeight: 'bold',
@@ -250,7 +250,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
               map: map,
               icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
               label: {
-                text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} ft`,
+                text: `${item.products.name} ${item.measurement_data.value.toLocaleString()} ft`,
                 color: color,
                 fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
                 fontWeight: 'bold',
