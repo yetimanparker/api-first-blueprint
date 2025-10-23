@@ -115,3 +115,19 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+.map-label-with-bg {
+  background: rgba(0, 0, 0, 0.75);
+  padding: 4px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.map-leader-label {
+  transition: all 0.3s ease;
+}
+
+.map-leader-label:hover {
+  transform: translate(-50%, -100%) scale(1.05) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}

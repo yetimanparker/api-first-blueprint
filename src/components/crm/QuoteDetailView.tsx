@@ -6,6 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader } from '@googlemaps/js-api-loader';
 import { formatExactPrice, calculatePriceRange, formatPriceRange, displayQuoteTotal, displayLineItemPrice } from '@/lib/priceUtils';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
+import { SmartLabelPositioner } from '@/lib/mapLabelUtils';
+import { LabelOverlay } from '@/components/widget/MapLabelOverlay';
 
 interface QuoteItem {
   id: string;
@@ -43,6 +45,8 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
   const [quoteItems, setQuoteItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [currentZoom, setCurrentZoom] = useState<number>(18);
+  const labelOverlaysRef = useRef<LabelOverlay[]>([]);
   const mapRef = useRef<google.maps.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
@@ -141,10 +145,22 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
       });
 
       mapRef.current = map;
+      
+      // Add zoom change listener for responsive labels
+      google.maps.event.addListener(map, 'zoom_changed', () => {
+        const newZoom = map.getZoom();
+        if (newZoom) {
+          setCurrentZoom(newZoom);
+          labelOverlaysRef.current.forEach(overlay => overlay.updateZoom(newZoom));
+        }
+      });
 
       // Render all measurements
       const bounds = new google.maps.LatLngBounds();
       const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899'];
+      
+      // We'll initialize positioner after we have bounds
+      let positioner: SmartLabelPositioner | null = null;
 
       quoteItems.forEach((item, index) => {
         const hasCoordinates = item.measurement_data?.coordinates?.length > 0;
@@ -214,18 +230,28 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             });
             polygon.setMap(map);
 
+            // Initialize positioner with current bounds if not yet created
+            if (!positioner && !bounds.isEmpty()) {
+              positioner = new SmartLabelPositioner(bounds);
+            }
+            
             const center = bounds.getCenter();
-            new google.maps.Marker({
-              position: center,
-              map: map,
-              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-              label: {
-                text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} sq ft`,
+            const anchor = center;
+            
+            // Use leader line with smart positioning
+            if (positioner) {
+              const labelPosition = positioner.findOptimalPosition(anchor, 'NE');
+              const overlay = new LabelOverlay({
+                position: labelPosition,
+                anchor: anchor,
+                text: `${item.measurement_data.value.toLocaleString()} sq ft`,
+                productName: item.products.name,
                 color: color,
-                fontSize: '12px',
-                fontWeight: 'bold',
-              },
-            });
+                map: map,
+                zoomLevel: currentZoom,
+              });
+              labelOverlaysRef.current.push(overlay);
+            }
           } else if (item.measurement_data.type === 'linear') {
             const polyline = new google.maps.Polyline({
               path: latLngs,
@@ -235,17 +261,27 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             polyline.setMap(map);
 
             const midIndex = Math.floor(latLngs.length / 2);
-            new google.maps.Marker({
-              position: latLngs[midIndex],
-              map: map,
-              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-              label: {
-                text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} ft`,
+            const anchor = latLngs[midIndex];
+            
+            // Initialize positioner if we have bounds and haven't yet
+            if (!positioner && !bounds.isEmpty()) {
+              positioner = new SmartLabelPositioner(bounds);
+            }
+            
+            // Use leader line with smart positioning
+            if (positioner) {
+              const labelPosition = positioner.findOptimalPosition(new google.maps.LatLng(anchor), 'E');
+              const overlay = new LabelOverlay({
+                position: labelPosition,
+                anchor: new google.maps.LatLng(anchor),
+                text: `${item.measurement_data.value.toLocaleString()} ft`,
+                productName: item.products.name,
                 color: color,
-                fontSize: '12px',
-                fontWeight: 'bold',
-              },
-            });
+                map: map,
+                zoomLevel: currentZoom,
+              });
+              labelOverlaysRef.current.push(overlay);
+            }
           }
         }
       });

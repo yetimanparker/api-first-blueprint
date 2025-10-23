@@ -10,6 +10,8 @@ import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft } from 'l
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
+import { SmartLabelPositioner, getZoomScaleFactor } from '@/lib/mapLabelUtils';
+import { LabelOverlay } from '@/components/widget/MapLabelOverlay';
 
 interface MeasurementToolsProps {
   productId: string;
@@ -72,6 +74,8 @@ const MeasurementTools = ({
   const [searchAddress, setSearchAddress] = useState(customerAddress || '');
   const [pointLocations, setPointLocations] = useState<Array<{lat: number, lng: number}>>([]);
   const [pointMarkers, setPointMarkers] = useState<google.maps.Marker[]>([]);
+  const [currentZoom, setCurrentZoom] = useState<number>(18);
+  const [labelOverlays, setLabelOverlays] = useState<LabelOverlay[]>([]);
   
   // Dimensional product states
   const [dimensionalRotation, setDimensionalRotation] = useState(0);
@@ -226,6 +230,15 @@ const MeasurementTools = ({
 
       console.log('Map instance created successfully');
       mapRef.current = map;
+      
+      // Add zoom change listener for responsive labels
+      google.maps.event.addListener(map, 'zoom_changed', () => {
+        const newZoom = map.getZoom();
+        if (newZoom) {
+          setCurrentZoom(newZoom);
+          labelOverlays.forEach(overlay => overlay.updateZoom(newZoom));
+        }
+      });
       
       console.log('Setting up drawing manager');
       setupDrawingManager(map);
@@ -723,38 +736,41 @@ const MeasurementTools = ({
   ) => {
     if (!mapRef.current) return;
 
-    let center: google.maps.LatLng;
+    let anchor: google.maps.LatLng;
     
     if (shape instanceof google.maps.Polygon) {
       const bounds = new google.maps.LatLngBounds();
       shape.getPath().forEach((coord) => bounds.extend(coord));
-      center = bounds.getCenter();
+      anchor = bounds.getCenter();
     } else {
       const path = shape.getPath();
       const midIndex = Math.floor(path.getLength() / 2);
-      center = path.getAt(midIndex);
+      anchor = path.getAt(midIndex);
     }
 
+    // Clear old label
     if (measurementLabelRef.current) {
       measurementLabelRef.current.setMap(null);
     }
 
-    const marker = new google.maps.Marker({
-      position: center,
+    // Use smart positioning to avoid overlaps
+    const positioner = new SmartLabelPositioner(mapRef.current.getBounds()!);
+    const labelPosition = positioner.findOptimalPosition(anchor, 'N');
+    const color = getNextMeasurementColor();
+    const productName = selectedProduct?.name || 'Measurement';
+
+    // Create leader line label
+    const overlay = new LabelOverlay({
+      position: labelPosition,
+      anchor: anchor,
+      text: `${value.toLocaleString()} ${unit}`,
+      productName: productName,
+      color: color,
       map: mapRef.current,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 0,
-      },
-      label: {
-        text: `${value.toLocaleString()} ${unit}`,
-        color: getNextMeasurementColor(),
-        fontSize: '13px',
-        fontWeight: '600',
-      },
+      zoomLevel: currentZoom,
     });
 
-    measurementLabelRef.current = marker;
+    setLabelOverlays(prev => [...prev, overlay]);
   };
 
   const startDrawing = () => {
