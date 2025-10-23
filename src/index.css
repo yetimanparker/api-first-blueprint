@@ -115,3 +115,23 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Google Maps label text outline for better readability */
+.gm-style-iw,
+.gm-style div[style*="position: absolute"] > div,
+.gm-style-iw-c,
+.gm-style-iw-d {
+  text-shadow: 
+    -1px -1px 0 #fff,  
+     1px -1px 0 #fff,
+    -1px  1px 0 #fff,
+     1px  1px 0 #fff,
+    -1px  0   0 #fff,
+     1px  0   0 #fff,
+     0   -1px 0 #fff,
+     0    1px 0 #fff,
+    -2px  0   0 #fff,
+     2px  0   0 #fff,
+     0   -2px 0 #fff,
+     0    2px 0 #fff !important;
+}
