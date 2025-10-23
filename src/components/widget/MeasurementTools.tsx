@@ -327,6 +327,19 @@ const MeasurementTools = ({
     }
   }, [currentZoom]);
 
+  // Disable/enable shape editing based on configuration mode
+  useEffect(() => {
+    if (currentShapeRef.current) {
+      currentShapeRef.current.setEditable(!isConfigurationMode);
+    }
+    if (drawingManagerRef.current && isConfigurationMode) {
+      drawingManagerRef.current.setDrawingMode(null);
+      drawingManagerRef.current.setOptions({
+        drawingControl: false
+      });
+    }
+  }, [isConfigurationMode]);
+
   const fetchApiKey = async () => {
     try {
       // API key is now handled by the shared loader
