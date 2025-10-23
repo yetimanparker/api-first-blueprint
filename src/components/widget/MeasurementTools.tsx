@@ -1,5 +1,5 @@
 /// <reference types="@types/google.maps" />
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { Input } from '@/components/ui/input';
@@ -86,21 +86,12 @@ const MeasurementTools = ({
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const currentShapeRef = useRef<google.maps.Polygon | google.maps.Polyline | null>(null);
   const measurementLabelRef = useRef<google.maps.Marker | null>(null);
-  const intermediateLabelsRef = useRef<google.maps.Marker[]>([]); // Track segment distance labels
   const headerRef = useRef<HTMLDivElement>(null);
   const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
   const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
   const measurementTypeRef = useRef<'area' | 'linear' | 'point' | 'dimensional'>('area');
   const isDrawingRef = useRef(false);
   const pointCountRef = useRef(0); // Track point count for reliable sequential numbering
-  
-  // Refs for smooth drag and rotation
-  const dragListenerRef = useRef<google.maps.MapsEventListener | null>(null);
-  const rotateListenerRef = useRef<google.maps.MapsEventListener | null>(null);
-  const rotateDragStartListenerRef = useRef<google.maps.MapsEventListener | null>(null);
-  const initialRotationRef = useRef<number>(0);
-  const dragStartAngleRef = useRef<number>(0);
-  const dimensionalCenterRef = useRef<{lat: number, lng: number} | null>(null);
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -299,12 +290,12 @@ const MeasurementTools = ({
     // Map state is now automatically preserved via listeners
   }, [measurementType]);
 
-  // Update dimensional shape when rotation or center changes (only renders, doesn't recreate handles)
+  // Update dimensional shape when rotation or center changes
   useEffect(() => {
-    if (isDimensionalPlaced && dimensionalCenter && product?.default_width && product?.default_length && mapRef.current) {
-      renderDimensionalShape();
+    if (isDimensionalPlaced && dimensionalCenter && product?.default_width && product?.default_length) {
+      // Update shape with new rotation/position
     }
-  }, [dimensionalRotation, dimensionalCenter, isDimensionalPlaced]);
+  }, [dimensionalRotation, dimensionalCenter]);
 
   // Update isDrawing ref when state changes
   useEffect(() => {
@@ -546,217 +537,6 @@ const MeasurementTools = ({
     return MAP_COLORS[colorIndex];
   };
 
-  // Helper function to calculate rotated rectangle coordinates
-  const calculateRotatedRectangle = (
-    centerLat: number, centerLng: number, widthFeet: number, lengthFeet: number, rotationDeg: number
-  ) => {
-    const metersPerFoot = 0.3048;
-    const latPerMeter = 1 / 111320;
-    const lngPerMeter = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
-    
-    const halfWidth = (widthFeet * metersPerFoot / 2) * lngPerMeter;
-    const halfLength = (lengthFeet * metersPerFoot / 2) * latPerMeter;
-    
-    const corners = [
-      { x: -halfWidth, y: halfLength }, { x: halfWidth, y: halfLength },
-      { x: halfWidth, y: -halfLength }, { x: -halfWidth, y: -halfLength }
-    ];
-    
-    const angleRad = (rotationDeg * Math.PI) / 180;
-    return corners.map(c => ({
-      lat: centerLat + (c.x * Math.sin(angleRad) + c.y * Math.cos(angleRad)),
-      lng: centerLng + (c.x * Math.cos(angleRad) - c.y * Math.sin(angleRad))
-    }));
-  };
-
-  // Keep ref in sync with state for access in event listeners
-  useEffect(() => {
-    dimensionalCenterRef.current = dimensionalCenter;
-  }, [dimensionalCenter]);
-
-  // Render dimensional shape (updates polygon and handles)
-  const renderDimensionalShape = useCallback(() => {
-    if (!mapRef.current || !product || !dimensionalCenter) {
-      return;
-    }
-    
-    const width = product.default_width!;
-    const length = product.default_length!;
-    
-    // Calculate new corners
-    const corners = calculateRotatedRectangle(
-      dimensionalCenter.lat,
-      dimensionalCenter.lng,
-      width,
-      length,
-      dimensionalRotation
-    );
-    
-    // Update existing polygon or create new one
-    if (currentShapeRef.current && currentShapeRef.current instanceof google.maps.Polygon) {
-      currentShapeRef.current.setPath(corners);
-    } else {
-      // Clean up old shape if it exists
-      if (currentShapeRef.current) currentShapeRef.current.setMap(null);
-      
-      const color = getNextMeasurementColor();
-      const polygon = new google.maps.Polygon({
-        paths: corners,
-        fillColor: color,
-        fillOpacity: 0.3,
-        strokeColor: color,
-        strokeWeight: 2,
-        map: mapRef.current,
-        zIndex: 1
-      });
-      currentShapeRef.current = polygon;
-    }
-    
-    // CRITICAL: Always update handle positions to stay locked to shape
-    if (dragHandle) {
-      dragHandle.setPosition(dimensionalCenter);
-    }
-    
-    if (rotationHandle) {
-      rotationHandle.setPosition(corners[1]); // Top-right corner
-    }
-    
-    // If handles don't exist yet, set them up
-    if (!dragHandle || !rotationHandle) {
-      setupDimensionalHandles();
-    }
-  }, [dimensionalCenter, dimensionalRotation, product, dragHandle, rotationHandle]);
-
-  // Setup dimensional handles (only called once after placement)
-  const setupDimensionalHandles = useCallback(() => {
-    if (!mapRef.current || !product || !dimensionalCenter) {
-      return;
-    }
-    
-    const color = getNextMeasurementColor();
-    const corners = calculateRotatedRectangle(
-      dimensionalCenter.lat,
-      dimensionalCenter.lng,
-      product.default_width!,
-      product.default_length!,
-      dimensionalRotation
-    );
-    
-    // Clean up existing handles and listeners
-    if (dragListenerRef.current) google.maps.event.removeListener(dragListenerRef.current);
-    if (rotateListenerRef.current) google.maps.event.removeListener(rotateListenerRef.current);
-    if (rotateDragStartListenerRef.current) google.maps.event.removeListener(rotateDragStartListenerRef.current);
-    if (dragHandle) dragHandle.setMap(null);
-    if (rotationHandle) rotationHandle.setMap(null);
-    
-    // Create center drag handle
-    const drag = new google.maps.Marker({
-      position: dimensionalCenter,
-      map: mapRef.current,
-      draggable: true,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        fillColor: '#ffffff',
-        fillOpacity: 1,
-        strokeColor: color,
-        strokeWeight: 3,
-        scale: 10
-      },
-      label: {
-        text: '✥',
-        color: color,
-        fontSize: '16px',
-        fontWeight: 'bold'
-      },
-      title: 'Drag to move',
-      optimized: false // Important for smooth dragging
-    });
-    setDragHandle(drag);
-    
-    // Add drag listener with optimized updates
-    dragListenerRef.current = google.maps.event.addListener(drag, 'drag', (e: any) => {
-      const newCenter = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-      setDimensionalCenter(newCenter);
-      
-      // Immediately update position for smooth feedback (don't wait for re-render)
-      if (currentShapeRef.current instanceof google.maps.Polygon) {
-        const corners = calculateRotatedRectangle(
-          newCenter.lat,
-          newCenter.lng,
-          product.default_width!,
-          product.default_length!,
-          dimensionalRotation
-        );
-        currentShapeRef.current.setPath(corners);
-        if (rotationHandle) {
-          rotationHandle.setPosition(corners[1]);
-        }
-      }
-    });
-    
-    // Create rotation handle
-    const rotate = new google.maps.Marker({
-      position: corners[1],
-      map: mapRef.current,
-      draggable: true,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        fillColor: color,
-        fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 2,
-        scale: 8
-      },
-      title: 'Drag to rotate',
-      optimized: false // Important for smooth dragging
-    });
-    setRotationHandle(rotate);
-    
-    // Track initial angle for relative rotation
-    rotateDragStartListenerRef.current = google.maps.event.addListener(rotate, 'dragstart', (e: any) => {
-      const handleLat = e.latLng.lat();
-      const handleLng = e.latLng.lng();
-      const currentCenter = dimensionalCenterRef.current || dimensionalCenter;
-      dragStartAngleRef.current = Math.atan2(
-        handleLat - currentCenter.lat,
-        handleLng - currentCenter.lng
-      ) * (180 / Math.PI);
-      initialRotationRef.current = dimensionalRotation;
-    });
-    
-    // Add rotation drag listener with smooth updates
-    rotateListenerRef.current = google.maps.event.addListener(rotate, 'drag', (e: any) => {
-      const handleLat = e.latLng.lat();
-      const handleLng = e.latLng.lng();
-      const currentCenter = dimensionalCenterRef.current || dimensionalCenter;
-      
-      // Calculate current angle
-      const currentAngle = Math.atan2(
-        handleLat - currentCenter.lat,
-        handleLng - currentCenter.lng
-      ) * (180 / Math.PI);
-      
-      // Calculate relative rotation
-      const angleDelta = currentAngle - dragStartAngleRef.current;
-      const newRotation = initialRotationRef.current + angleDelta;
-      
-      setDimensionalRotation(newRotation);
-      
-      // Immediately update shape for smooth feedback
-      if (currentShapeRef.current instanceof google.maps.Polygon) {
-        const corners = calculateRotatedRectangle(
-          currentCenter.lat,
-          currentCenter.lng,
-          product.default_width!,
-          product.default_length!,
-          newRotation
-        );
-      currentShapeRef.current.setPath(corners);
-      // Update rotation handle to stay locked to corner
-      rotate.setPosition(corners[1]);
-    }
-  });
-  }, [dimensionalCenter, dimensionalRotation, product, dragHandle, rotationHandle]);
   const setupDrawingManager = (map: google.maps.Map) => {
     const nextColor = getNextMeasurementColor();
     
@@ -782,22 +562,8 @@ const MeasurementTools = ({
 
     drawingManager.setMap(map);
     drawingManagerRef.current = drawingManager;
-    
-    // Track polyline drawing progress for real-time segment distances
-    let activePolyline: google.maps.Polyline | null = null;
-    let polylinePathListener: google.maps.MapsEventListener | null = null;
-    
-    // Listen for polyline start
-    google.maps.event.addListener(drawingManager, 'polylinecomplete', () => {
-      // Clean up when drawing completes
-      if (polylinePathListener) {
-        google.maps.event.removeListener(polylinePathListener);
-        polylinePathListener = null;
-      }
-      activePolyline = null;
-    });
 
-    // Add map click listener for point placement mode and polyline tracking
+    // Add map click listener for point placement mode using refs
     google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
       console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current);
       
@@ -807,47 +573,8 @@ const MeasurementTools = ({
       } else if (measurementTypeRef.current === 'point' && isDrawingRef.current && event.latLng) {
         console.log('Adding point marker at:', event.latLng.lat(), event.latLng.lng());
         addPointMarker(event.latLng);
-      } else if (measurementTypeRef.current === 'linear' && drawingManager.getDrawingMode() === google.maps.drawing.OverlayType.POLYLINE) {
-        // For polyline, track the active drawing
-        setTimeout(() => {
-          // Get the polyline being drawn - it's added to the map but not yet in currentShapeRef
-          const overlays = map.get('overlays') as any;
-          if (!activePolyline) {
-            // Find newly created polyline on first click
-            const polylines = Array.from(document.querySelectorAll('.gm-style')).map(() => map);
-            // Access internal overlay manager to get the polyline being drawn
-            (drawingManager as any).overlayView?.polyline?.then((pl: google.maps.Polyline) => {
-              activePolyline = pl;
-              setupPolylineTracking(pl);
-            });
-          }
-        }, 50);
       }
     });
-    
-    // Helper to set up tracking on an active polyline
-    const setupPolylineTracking = (polyline: google.maps.Polyline) => {
-      const path = polyline.getPath();
-      
-      const updateSegmentLabels = () => {
-        const pathArray = path.getArray();
-        if (pathArray.length < 2) return;
-        
-        // Clear old intermediate labels
-        intermediateLabelsRef.current.forEach(label => label.setMap(null));
-        intermediateLabelsRef.current = [];
-        
-        // Add label for each segment
-        for (let i = 0; i < pathArray.length - 1; i++) {
-          const point1 = pathArray[i];
-          const point2 = pathArray[i + 1];
-          addSegmentDistanceLabel(point1, point2, nextColor);
-        }
-      };
-      
-      // Listen for path changes
-      polylinePathListener = google.maps.event.addListener(path, 'insert_at', updateSegmentLabels);
-    };
 
     google.maps.event.addListener(drawingManager, 'overlaycomplete', (event: any) => {
       setIsDrawing(false);
@@ -908,15 +635,9 @@ const MeasurementTools = ({
           const newFeet = Math.ceil(newLength * 3.28084);
           setMapMeasurement(newFeet);
           updateMeasurementLabel(polyline, newFeet, 'ft');
-          
-          // Update segment labels when path changes
-          updatePolylineSegmentLabels(polyline, nextColor);
         };
         
         updateMeasurementLabel(polyline, feet, 'ft');
-        
-        // Initial segment labels
-        updatePolylineSegmentLabels(polyline, nextColor);
         
         google.maps.event.addListener(path, 'set_at', updateMeasurement);
         google.maps.event.addListener(path, 'insert_at', updateMeasurement);
@@ -924,72 +645,75 @@ const MeasurementTools = ({
     });
   };
 
-  const addSegmentDistanceLabel = (point1: google.maps.LatLng, point2: google.maps.LatLng, color: string) => {
-    if (!mapRef.current) return;
-    
-    // Calculate distance between points
-    const distance = google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
-    const feet = Math.ceil(distance * 3.28084);
-    
-    // Calculate midpoint
-    const midLat = (point1.lat() + point2.lat()) / 2;
-    const midLng = (point1.lng() + point2.lng()) / 2;
-    const midpoint = new google.maps.LatLng(midLat, midLng);
-    
-    // Create label marker
-    const marker = new google.maps.Marker({
-      position: midpoint,
-      map: mapRef.current,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 0,
-      },
-      label: {
-        text: `${feet} ft`,
-        color: '#FFFFFF',
-        fontSize: '14px',
-        fontWeight: '700',
-        className: 'map-label-with-bg',
-      },
-      zIndex: 2,
-    });
-    
-    intermediateLabelsRef.current.push(marker);
-  };
-  
-  const updatePolylineSegmentLabels = (polyline: google.maps.Polyline, color: string) => {
-    // Clear existing intermediate labels
-    intermediateLabelsRef.current.forEach(label => label.setMap(null));
-    intermediateLabelsRef.current = [];
-    
-    const path = polyline.getPath();
-    const pathArray = path.getArray();
-    
-    // Add label for each segment
-    for (let i = 0; i < pathArray.length - 1; i++) {
-      const point1 = pathArray[i];
-      const point2 = pathArray[i + 1];
-      addSegmentDistanceLabel(point1, point2, color);
-    }
-  };
-
   const placeDimensionalProduct = (latLng: google.maps.LatLng) => {
     if (!product || !product.default_width || !product.default_length || !mapRef.current) return;
-    
+
     const center = { lat: latLng.lat(), lng: latLng.lng() };
-    const area = Math.ceil(product.default_width * product.default_length);
-    
     setDimensionalCenter(center);
-    setDimensionalRotation(0);
     setIsDimensionalPlaced(true);
     setIsDrawing(false);
+
+    const width = product.default_width;
+    const length = product.default_length;
+    const area = Math.ceil(width * length);
+    
     setMapMeasurement(area);
     
-    // Use requestAnimationFrame to ensure state is updated before rendering
-    requestAnimationFrame(() => {
-      setupDimensionalHandles();
-      renderDimensionalShape();
-    });
+    // Import helper functions inline for now
+    const calculateRotatedRectangle = (
+      centerLat: number, centerLng: number, widthFeet: number, lengthFeet: number, rotationDeg: number
+    ) => {
+      const metersPerFoot = 0.3048;
+      const latPerMeter = 1 / 111320;
+      const lngPerMeter = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
+      
+      const halfWidth = (widthFeet * metersPerFoot / 2) * lngPerMeter;
+      const halfLength = (lengthFeet * metersPerFoot / 2) * latPerMeter;
+      
+      const corners = [
+        { x: -halfWidth, y: halfLength }, { x: halfWidth, y: halfLength },
+        { x: halfWidth, y: -halfLength }, { x: -halfWidth, y: -halfLength }
+      ];
+      
+      const angleRad = (rotationDeg * Math.PI) / 180;
+      return corners.map(c => ({
+        lat: centerLat + (c.x * Math.sin(angleRad) + c.y * Math.cos(angleRad)),
+        lng: centerLng + (c.x * Math.cos(angleRad) - c.y * Math.sin(angleRad))
+      }));
+    };
+
+    const updateDimensionalShape = () => {
+      if (currentShapeRef.current) currentShapeRef.current.setMap(null);
+      if (rotationHandle) rotationHandle.setMap(null);
+      if (dragHandle) dragHandle.setMap(null);
+
+      const corners = calculateRotatedRectangle(
+        dimensionalCenter?.lat || center.lat,
+        dimensionalCenter?.lng || center.lng,
+        width, length, dimensionalRotation
+      );
+
+      const color = getNextMeasurementColor();
+      const polygon = new google.maps.Polygon({
+        paths: corners, fillColor: color, fillOpacity: 0.3,
+        strokeColor: color, strokeWeight: 2, map: mapRef.current, zIndex: 1
+      });
+      currentShapeRef.current = polygon;
+
+      const drag = new google.maps.Marker({
+        position: dimensionalCenter || center, map: mapRef.current, draggable: true,
+        icon: { path: google.maps.SymbolPath.CIRCLE, fillColor: '#fff', fillOpacity: 1,
+          strokeColor: color, strokeWeight: 3, scale: 10 },
+        label: { text: '✥', color: color, fontSize: '16px', fontWeight: 'bold' }
+      });
+      setDragHandle(drag);
+
+      google.maps.event.addListener(drag, 'drag', (e: any) => {
+        setDimensionalCenter({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+      });
+    };
+
+    updateDimensionalShape();
   };
 
   const updateMeasurementLabel = (
@@ -1024,10 +748,9 @@ const MeasurementTools = ({
       },
       label: {
         text: `${value.toLocaleString()} ${unit}`,
-        color: '#FFFFFF',
-        fontSize: '16px',
-        fontWeight: '700',
-        className: 'map-label-with-bg',
+        color: getNextMeasurementColor(),
+        fontSize: '13px',
+        fontWeight: '600',
       },
     });
 
@@ -1100,10 +823,6 @@ const MeasurementTools = ({
       measurementLabelRef.current.setMap(null);
       measurementLabelRef.current = null;
     }
-    
-    // Clear intermediate segment labels
-    intermediateLabelsRef.current.forEach(label => label.setMap(null));
-    intermediateLabelsRef.current = [];
     
     // Clear point markers
     if (measurementType === 'point') {

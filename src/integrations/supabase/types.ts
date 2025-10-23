@@ -42,7 +42,6 @@ export type Database = {
           service_area_method: string | null
           service_area_radius_miles: number | null
           service_area_zip_codes: string[] | null
-          show_markup_in_widget: boolean | null
           updated_at: string
           use_price_ranges: boolean
           widget_theme_color: string | null
@@ -74,7 +73,6 @@ export type Database = {
           service_area_method?: string | null
           service_area_radius_miles?: number | null
           service_area_zip_codes?: string[] | null
-          show_markup_in_widget?: boolean | null
           updated_at?: string
           use_price_ranges?: boolean
           widget_theme_color?: string | null
@@ -106,7 +104,6 @@ export type Database = {
           service_area_method?: string | null
           service_area_radius_miles?: number | null
           service_area_zip_codes?: string[] | null
-          show_markup_in_widget?: boolean | null
           updated_at?: string
           use_price_ranges?: boolean
           widget_theme_color?: string | null

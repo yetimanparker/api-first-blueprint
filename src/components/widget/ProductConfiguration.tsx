@@ -613,7 +613,7 @@ const ProductConfiguration = ({
                               {displayQuantity} {displayUnit} × {formatExactPrice(addon.price_value, {
                                 currency_symbol: settings.currency_symbol,
                                 decimal_precision: settings.decimal_precision
-                              })}/{displayUnit}{addonQuantity > 1 ? ` × ${addonQuantity}` : ''} = <span className="font-bold">{formatExactPrice(addonTotal, {
+                              })}/{displayUnit} = <span className="font-bold">{formatExactPrice(addonTotal, {
                                 currency_symbol: settings.currency_symbol,
                                 decimal_precision: settings.decimal_precision
                               })}</span>

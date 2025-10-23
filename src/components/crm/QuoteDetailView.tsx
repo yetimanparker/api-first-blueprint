@@ -177,7 +177,6 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                 color: '#FFFFFF',
                 fontSize: '12px',
                 fontWeight: 'bold',
-                className: 'map-label-with-bg',
               },
               icon: {
                 path: google.maps.SymbolPath.CIRCLE,
@@ -216,35 +215,16 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             polygon.setMap(map);
 
             const center = bounds.getCenter();
-            
-            // Product name label (above center)
-            new google.maps.Marker({
-              position: { lat: center.lat() + 0.00003, lng: center.lng() },
-              map: map,
-              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-              label: {
-                text: item.products.name,
-                color: '#FFFFFF',
-                fontSize: '16px',
-                fontWeight: '700',
-                className: 'map-label-with-bg',
-              },
-              zIndex: 1000,
-            });
-            
-            // Measurement value label (at center)
             new google.maps.Marker({
               position: center,
               map: map,
               icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
               label: {
-                text: `${item.measurement_data.value.toLocaleString()} sq ft`,
-                color: '#FFFFFF',
-                fontSize: '14px',
-                fontWeight: '700',
-                className: 'map-label-with-bg',
+                text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} sq ft`,
+                color: color,
+                fontSize: '12px',
+                fontWeight: 'bold',
               },
-              zIndex: 999,
             });
           } else if (item.measurement_data.type === 'linear') {
             const polyline = new google.maps.Polyline({
@@ -255,36 +235,16 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             polyline.setMap(map);
 
             const midIndex = Math.floor(latLngs.length / 2);
-            const midpoint = latLngs[midIndex];
-            
-            // Product name label (offset from midpoint)
             new google.maps.Marker({
-              position: { lat: midpoint.lat + 0.00003, lng: midpoint.lng },
+              position: latLngs[midIndex],
               map: map,
               icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
               label: {
-                text: item.products.name,
-                color: '#FFFFFF',
-                fontSize: '16px',
-                fontWeight: '700',
-                className: 'map-label-with-bg',
+                text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} ft`,
+                color: color,
+                fontSize: '12px',
+                fontWeight: 'bold',
               },
-              zIndex: 1000,
-            });
-            
-            // Measurement value label (at midpoint)
-            new google.maps.Marker({
-              position: midpoint,
-              map: map,
-              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-              label: {
-                text: `${item.measurement_data.value.toLocaleString()} ft`,
-                color: '#FFFFFF',
-                fontSize: '14px',
-                fontWeight: '700',
-                className: 'map-label-with-bg',
-              },
-              zIndex: 999,
             });
           }
         }

@@ -115,13 +115,3 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
-
-@layer components {
-  .map-label-with-bg {
-    background-color: rgba(0, 0, 0, 0.85) !important;
-    padding: 4px 8px !important;
-    border-radius: 4px !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
-    white-space: nowrap !important;
-  }
-}

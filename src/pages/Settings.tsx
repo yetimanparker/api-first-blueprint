@@ -45,7 +45,6 @@ const settingsSchema = z.object({
   default_unit_type: z.enum(["sq_ft", "linear_ft", "sq_m", "linear_m", "each", "hour"]),
   global_markup_percentage: z.number().min(0).max(100),
   global_tax_rate: z.number().min(0).max(100),
-  show_markup_in_widget: z.boolean(),
   require_product_photos: z.boolean(),
   auto_activate_products: z.boolean(),
   service_area_enabled: z.boolean(),
@@ -116,7 +115,6 @@ const Settings = () => {
       default_unit_type: "sq_ft",
       global_markup_percentage: 0,
       global_tax_rate: 0,
-      show_markup_in_widget: false,
       require_product_photos: false,
       auto_activate_products: true,
       service_area_enabled: false,
@@ -191,7 +189,6 @@ const Settings = () => {
             default_unit_type: (settings.default_unit_type as "sq_ft" | "linear_ft" | "sq_m" | "linear_m" | "each" | "hour") || "sq_ft",
             global_markup_percentage: settings.global_markup_percentage || 0,
             global_tax_rate: settings.global_tax_rate || 0,
-            show_markup_in_widget: settings.show_markup_in_widget || false,
             require_product_photos: settings.require_product_photos || false,
             auto_activate_products: settings.auto_activate_products ?? true,
             service_area_enabled: settings.service_area_enabled || false,
@@ -986,27 +983,6 @@ const Settings = () => {
                           )}
                         />
                       </div>
-                      
-                      <FormField
-                        control={settingsForm.control}
-                        name="show_markup_in_widget"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base">Show Markup as Separate Line Item</FormLabel>
-                              <FormDescription>
-                                Display markup as a separate line item in the widget quote review
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
                     </div>
 
                     <Separator />

@@ -233,16 +233,9 @@ const QuoteReview = ({
       return;
     }
 
-    // Check if required fields are missing
-    const missingRequiredFields = 
-      !customerInfo.firstName || 
-      !customerInfo.lastName || 
-      (settings.require_email !== false && !customerInfo.email) ||
-      (settings.require_phone !== false && !customerInfo.phone) ||
-      (settings.require_address !== false && !customerInfo.address);
-
-    // If required contact info is missing, show dialog
-    if (missingRequiredFields) {
+    // If contact info is missing and timing requires capture on submit, show dialog
+    if ((!customerInfo.firstName || !customerInfo.lastName || !customerInfo.email) && 
+        (settings.contact_capture_timing === 'on_submit' || settings.contact_capture_timing === 'after_quote')) {
       setDialogCustomerInfo(customerInfo);
       setShowContactDialog(true);
       return;
