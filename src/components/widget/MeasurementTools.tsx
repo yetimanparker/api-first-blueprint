@@ -86,11 +86,7 @@ const MeasurementTools = ({
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const currentShapeRef = useRef<google.maps.Polygon | google.maps.Polyline | null>(null);
   const measurementLabelRef = useRef<google.maps.Marker | null>(null);
-  const intermediateLabelsRef = useRef<google.maps.OverlayView[]>([]); // Track segment distance labels
-  const activePathPointsRef = useRef<google.maps.LatLng[]>([]); // Track points during active drawing
-  const customPolylineRef = useRef<google.maps.Polyline | null>(null); // Custom polyline for linear measurements
-  const customVertexMarkersRef = useRef<google.maps.Marker[]>([]); // Vertex markers for custom polyline
-  const currentMeasurementColorRef = useRef<string>(''); // Store color for current measurement
+  const intermediateLabelsRef = useRef<google.maps.Marker[]>([]); // Track segment distance labels
   const headerRef = useRef<HTMLDivElement>(null);
   const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
   const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
@@ -786,94 +782,75 @@ const MeasurementTools = ({
 
     drawingManager.setMap(map);
     drawingManagerRef.current = drawingManager;
+    
+    // Track polyline drawing progress for real-time segment distances
+    let activePolyline: google.maps.Polyline | null = null;
+    let polylinePathListener: google.maps.MapsEventListener | null = null;
+    
+    // Listen for polyline start
+    google.maps.event.addListener(drawingManager, 'polylinecomplete', () => {
+      // Clean up when drawing completes
+      if (polylinePathListener) {
+        google.maps.event.removeListener(polylinePathListener);
+        polylinePathListener = null;
+      }
+      activePolyline = null;
+    });
 
-    // Add map click listener for custom linear drawing, dimensional, and point placement modes
+    // Add map click listener for point placement mode and polyline tracking
     google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
-      if (!event.latLng) return;
-      
       console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current);
       
-      // Handle custom linear drawing (bypasses DrawingManager)
-      if (measurementTypeRef.current === 'linear' && isDrawingRef.current) {
-        console.log('Custom polyline click:', activePathPointsRef.current.length + 1);
-        
-        if (!customPolylineRef.current) {
-          console.error('Custom polyline ref is null!');
-          return;
-        }
-        
-        const point = event.latLng;
-        activePathPointsRef.current.push(point);
-        
-        // Update polyline path
-        customPolylineRef.current.setPath(activePathPointsRef.current);
-        console.log('Polyline path updated, now has', activePathPointsRef.current.length, 'points');
-        
-        // Get color from ref instead of undefined variable
-        const color = currentMeasurementColorRef.current || '#FF0000';
-        
-        // Add vertex marker
-        const marker = new google.maps.Marker({
-          position: point,
-          map: mapRef.current,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 6,
-            fillColor: color,
-            fillOpacity: 1,
-            strokeColor: '#fff',
-            strokeWeight: 2,
-          },
-          zIndex: 101,
-        });
-        customVertexMarkersRef.current.push(marker);
-        console.log('Vertex marker added at point', activePathPointsRef.current.length);
-        
-        // Show segment distance if we have 2+ points
-        if (activePathPointsRef.current.length >= 2) {
-          const len = activePathPointsRef.current.length;
-          const point1 = activePathPointsRef.current[len - 2];
-          const point2 = activePathPointsRef.current[len - 1];
-          console.log('Creating segment label between points', len - 1, 'and', len);
-          addSegmentDistanceLabel(point1, point2, color);
-        }
-        
-        return; // Don't process other click handlers
-      }
-      
-      // Handle dimensional product placement
-      if (measurementTypeRef.current === 'dimensional' && isDrawingRef.current) {
+      if (measurementTypeRef.current === 'dimensional' && isDrawingRef.current && event.latLng) {
         console.log('Placing dimensional product at:', event.latLng.lat(), event.latLng.lng());
         placeDimensionalProduct(event.latLng);
-        return;
-      }
-      
-      // Handle point marker placement
-      if (measurementTypeRef.current === 'point' && isDrawingRef.current) {
+      } else if (measurementTypeRef.current === 'point' && isDrawingRef.current && event.latLng) {
         console.log('Adding point marker at:', event.latLng.lat(), event.latLng.lng());
         addPointMarker(event.latLng);
-        return;
+      } else if (measurementTypeRef.current === 'linear' && drawingManager.getDrawingMode() === google.maps.drawing.OverlayType.POLYLINE) {
+        // For polyline, track the active drawing
+        setTimeout(() => {
+          // Get the polyline being drawn - it's added to the map but not yet in currentShapeRef
+          const overlays = map.get('overlays') as any;
+          if (!activePolyline) {
+            // Find newly created polyline on first click
+            const polylines = Array.from(document.querySelectorAll('.gm-style')).map(() => map);
+            // Access internal overlay manager to get the polyline being drawn
+            (drawingManager as any).overlayView?.polyline?.then((pl: google.maps.Polyline) => {
+              activePolyline = pl;
+              setupPolylineTracking(pl);
+            });
+          }
+        }, 50);
       }
     });
     
-    // Add double-click listener to finish custom polyline
-    google.maps.event.addListener(map, 'dblclick', (event: google.maps.MapMouseEvent) => {
-      console.log('Map double-clicked, linear mode:', measurementTypeRef.current === 'linear', 'isDrawing:', isDrawingRef.current);
+    // Helper to set up tracking on an active polyline
+    const setupPolylineTracking = (polyline: google.maps.Polyline) => {
+      const path = polyline.getPath();
       
-      if (measurementTypeRef.current === 'linear' && isDrawingRef.current) {
-        if (event.stop) event.stop();
-        console.log('Finishing polyline via double-click');
-        finishCustomPolyline();
-      }
-    });
+      const updateSegmentLabels = () => {
+        const pathArray = path.getArray();
+        if (pathArray.length < 2) return;
+        
+        // Clear old intermediate labels
+        intermediateLabelsRef.current.forEach(label => label.setMap(null));
+        intermediateLabelsRef.current = [];
+        
+        // Add label for each segment
+        for (let i = 0; i < pathArray.length - 1; i++) {
+          const point1 = pathArray[i];
+          const point2 = pathArray[i + 1];
+          addSegmentDistanceLabel(point1, point2, nextColor);
+        }
+      };
+      
+      // Listen for path changes
+      polylinePathListener = google.maps.event.addListener(path, 'insert_at', updateSegmentLabels);
+    };
 
     google.maps.event.addListener(drawingManager, 'overlaycomplete', (event: any) => {
       setIsDrawing(false);
-      
-      // Clear active path tracking and intermediate labels
-      activePathPointsRef.current = [];
-      intermediateLabelsRef.current.forEach(label => label.setMap(null));
-      intermediateLabelsRef.current = [];
       
       if (currentShapeRef.current) {
         currentShapeRef.current.setMap(null);
@@ -931,9 +908,15 @@ const MeasurementTools = ({
           const newFeet = Math.ceil(newLength * 3.28084);
           setMapMeasurement(newFeet);
           updateMeasurementLabel(polyline, newFeet, 'ft');
+          
+          // Update segment labels when path changes
+          updatePolylineSegmentLabels(polyline, nextColor);
         };
         
         updateMeasurementLabel(polyline, feet, 'ft');
+        
+        // Initial segment labels
+        updatePolylineSegmentLabels(polyline, nextColor);
         
         google.maps.event.addListener(path, 'set_at', updateMeasurement);
         google.maps.event.addListener(path, 'insert_at', updateMeasurement);
@@ -942,94 +925,51 @@ const MeasurementTools = ({
   };
 
   const addSegmentDistanceLabel = (point1: google.maps.LatLng, point2: google.maps.LatLng, color: string) => {
-    if (!mapRef.current) {
-      console.log('Cannot add segment label: map not ready');
-      return;
-    }
+    if (!mapRef.current) return;
     
     // Calculate distance between points
     const distance = google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
     const feet = Math.round(distance * 3.28084);
-    
-    console.log(`Creating segment label: ${feet} ft`);
     
     // Calculate midpoint
     const midLat = (point1.lat() + point2.lat()) / 2;
     const midLng = (point1.lng() + point2.lng()) / 2;
     const midpoint = new google.maps.LatLng(midLat, midLng);
     
-    // Create custom HTML label for better visibility with white text outline
-    const labelDiv = document.createElement('div');
-    labelDiv.style.cssText = `
-      background: rgba(255, 255, 255, 0.95);
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 18px;
-      font-weight: 700;
-      color: #1a1a1a;
-      border: 3px solid ${color};
-      box-shadow: 0 3px 12px rgba(0,0,0,0.4);
-      white-space: nowrap;
-      pointer-events: none;
-      z-index: 1000;
-      text-shadow: 
-        -1px -1px 0 #fff,
-        1px -1px 0 #fff,
-        -1px 1px 0 #fff,
-        1px 1px 0 #fff,
-        -2px 0 0 #fff,
-        2px 0 0 #fff,
-        0 -2px 0 #fff,
-        0 2px 0 #fff;
-    `;
-    labelDiv.textContent = `${feet} ft`;
+    // Create label marker
+    const marker = new google.maps.Marker({
+      position: midpoint,
+      map: mapRef.current,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 0,
+      },
+      label: {
+        text: `${feet} ft`,
+        color: color,
+        fontSize: '11px',
+        fontWeight: '500',
+      },
+      zIndex: 2,
+    });
     
-    // Create custom overlay class
-    class CustomLabel extends google.maps.OverlayView {
-      position: google.maps.LatLng;
-      div: HTMLDivElement;
-      
-      constructor(position: google.maps.LatLng, div: HTMLDivElement) {
-        super();
-        this.position = position;
-        this.div = div;
-      }
-      
-      onAdd() {
-        const panes = this.getPanes();
-        if (panes) {
-          panes.overlayLayer.appendChild(this.div);
-          console.log('Segment label added to map');
-        }
-      }
-      
-      draw() {
-        const projection = this.getProjection();
-        if (!projection) return;
-        
-        const point = projection.fromLatLngToDivPixel(this.position);
-        if (point) {
-          requestAnimationFrame(() => {
-            const width = this.div.offsetWidth || 100;
-            const height = this.div.offsetHeight || 40;
-            this.div.style.position = 'absolute';
-            this.div.style.left = (point.x - width / 2) + 'px';
-            this.div.style.top = (point.y - height / 2) + 'px';
-          });
-        }
-      }
-      
-      onRemove() {
-        if (this.div.parentNode) {
-          this.div.parentNode.removeChild(this.div);
-          console.log('Segment label removed from map');
-        }
-      }
+    intermediateLabelsRef.current.push(marker);
+  };
+  
+  const updatePolylineSegmentLabels = (polyline: google.maps.Polyline, color: string) => {
+    // Clear existing intermediate labels
+    intermediateLabelsRef.current.forEach(label => label.setMap(null));
+    intermediateLabelsRef.current = [];
+    
+    const path = polyline.getPath();
+    const pathArray = path.getArray();
+    
+    // Add label for each segment
+    for (let i = 0; i < pathArray.length - 1; i++) {
+      const point1 = pathArray[i];
+      const point2 = pathArray[i + 1];
+      addSegmentDistanceLabel(point1, point2, color);
     }
-    
-    const overlay = new CustomLabel(midpoint, labelDiv);
-    overlay.setMap(mapRef.current);
-    intermediateLabelsRef.current.push(overlay);
   };
 
   const placeDimensionalProduct = (latLng: google.maps.LatLng) => {
@@ -1074,133 +1014,22 @@ const MeasurementTools = ({
       measurementLabelRef.current.setMap(null);
     }
 
-    // Create custom HTML label for total measurement with better visibility and white text outline
-    const labelDiv = document.createElement('div');
-    const color = shape.get('strokeColor') || getNextMeasurementColor();
-    labelDiv.style.cssText = `
-      background: rgba(255, 255, 255, 0.95);
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-size: 20px;
-      font-weight: 700;
-      color: #1a1a1a;
-      border: 3px solid ${color};
-      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-      white-space: nowrap;
-      pointer-events: none;
-      z-index: 1001;
-      text-shadow: 
-        -1px -1px 0 #fff,
-        1px -1px 0 #fff,
-        -1px 1px 0 #fff,
-        1px 1px 0 #fff,
-        -2px 0 0 #fff,
-        2px 0 0 #fff,
-        0 -2px 0 #fff,
-        0 2px 0 #fff;
-    `;
-    labelDiv.textContent = `${value.toLocaleString()} ${unit}`;
-    
-    // Create custom overlay for total measurement
-    class TotalLabel extends google.maps.OverlayView {
-      position: google.maps.LatLng;
-      div: HTMLDivElement;
-      
-      constructor(position: google.maps.LatLng, div: HTMLDivElement) {
-        super();
-        this.position = position;
-        this.div = div;
-      }
-      
-      onAdd() {
-        const panes = this.getPanes();
-        if (panes) {
-          panes.overlayLayer.appendChild(this.div);
-        }
-      }
-      
-      draw() {
-        const projection = this.getProjection();
-        if (!projection) return;
-        
-        const point = projection.fromLatLngToDivPixel(this.position);
-        if (point) {
-          requestAnimationFrame(() => {
-            const width = this.div.offsetWidth || 100;
-            const height = this.div.offsetHeight || 40;
-            this.div.style.position = 'absolute';
-            this.div.style.left = (point.x - width / 2) + 'px';
-            this.div.style.top = (point.y - height / 2) + 'px';
-          });
-        }
-      }
-      
-      onRemove() {
-        if (this.div.parentNode) {
-          this.div.parentNode.removeChild(this.div);
-        }
-      }
-    }
-    
-    const overlay = new TotalLabel(center, labelDiv);
-    overlay.setMap(mapRef.current);
-    measurementLabelRef.current = overlay as any;
-  };
-
-  const finishCustomPolyline = () => {
-    if (activePathPointsRef.current.length < 2) {
-      console.log('Need at least 2 points to finish polyline');
-      return;
-    }
-    
-    console.log('Finishing custom polyline with', activePathPointsRef.current.length, 'points');
-    
-    // Calculate total distance
-    let totalDistance = 0;
-    for (let i = 1; i < activePathPointsRef.current.length; i++) {
-      const segment = google.maps.geometry.spherical.computeDistanceBetween(
-        activePathPointsRef.current[i - 1],
-        activePathPointsRef.current[i]
-      );
-      totalDistance += segment;
-    }
-    
-    const feet = Math.round(totalDistance * 3.28084);
-    console.log('Total distance:', feet, 'ft');
-    
-    // Get the color from the custom polyline
-    const color = customPolylineRef.current?.get('strokeColor') || getNextMeasurementColor();
-    
-    // Create total measurement label at midpoint
-    const bounds = new google.maps.LatLngBounds();
-    activePathPointsRef.current.forEach(p => bounds.extend(p));
-    const center = bounds.getCenter();
-    
-    // Store the shape for later
-    if (customPolylineRef.current) {
-      currentShapeRef.current = customPolylineRef.current;
-      previousShapesRef.current.push(customPolylineRef.current);
-      
-      // Create total measurement label
-      updateMeasurementLabel(customPolylineRef.current, feet, 'ft');
-    }
-    
-    // Update measurement state
-    setMapMeasurement(feet);
-    const unitType = product?.unit_type || 'linear_ft';
-    setCurrentMeasurement({
-      type: 'linear',
-      value: feet,
-      unit: unitType === 'linear_ft' ? 'ft' : 'linear',
-      coordinates: activePathPointsRef.current.map(p => [p.lat(), p.lng()]),
-      mapColor: color,
+    const marker = new google.maps.Marker({
+      position: center,
+      map: mapRef.current,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 0,
+      },
+      label: {
+        text: `${value.toLocaleString()} ${unit}`,
+        color: getNextMeasurementColor(),
+        fontSize: '13px',
+        fontWeight: '600',
+      },
     });
-    
-    // Finish drawing
-    setIsDrawing(false);
-    isDrawingRef.current = false;
-    
-    console.log('Custom polyline complete:', feet, 'ft');
+
+    measurementLabelRef.current = marker;
   };
 
   const startDrawing = () => {
@@ -1216,9 +1045,6 @@ const MeasurementTools = ({
     // Set drawing state AFTER clearing to avoid it being reset
     setIsDrawing(true);
     isDrawingRef.current = true; // Update ref immediately
-    
-    // Clear active path for new measurement
-    activePathPointsRef.current = [];
 
     const nextColor = getNextMeasurementColor();
     
@@ -1233,34 +1059,8 @@ const MeasurementTools = ({
       // For point mode, just enable clicking (no drawing manager needed)
       drawingManagerRef.current.setDrawingMode(null);
       console.log('Point placement mode activated - click to place markers');
-      return;
-    }
-    
-    if (measurementType === 'linear') {
-      // Use CUSTOM polyline drawing, NOT Drawing Manager
-      drawingManagerRef.current.setDrawingMode(null);
-      console.log('Custom linear drawing mode activated');
-      
-      const nextColor = getNextMeasurementColor();
-      currentMeasurementColorRef.current = nextColor;
-      
-      // Initialize empty polyline
-      const polyline = new google.maps.Polyline({
-        strokeColor: nextColor,
-        strokeWeight: 4,
-        map: mapRef.current,
-        path: [],
-        clickable: false,
-        editable: false,
-        zIndex: 100,
-      });
-      customPolylineRef.current = polyline;
-      console.log('Custom polyline created with color:', nextColor);
-      return;
-    }
-    
-    // For area measurements, use Drawing Manager
-    if (measurementType === 'area') {
+    } else {
+      // Update drawing manager colors to match the next measurement color
       drawingManagerRef.current.setOptions({
         polygonOptions: {
           fillColor: nextColor,
@@ -1271,16 +1071,24 @@ const MeasurementTools = ({
           editable: true,
           zIndex: 1,
         },
+        polylineOptions: {
+          strokeColor: nextColor,
+          strokeWeight: 2,
+          clickable: true,
+          editable: true,
+        },
       });
+
+      const mode = measurementType === 'area' 
+        ? google.maps.drawing.OverlayType.POLYGON 
+        : google.maps.drawing.OverlayType.POLYLINE;
       
-      drawingManagerRef.current.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
-      console.log('Drawing mode activated: POLYGON');
+      drawingManagerRef.current.setDrawingMode(mode);
+      console.log('Drawing mode activated:', mode);
     }
   };
 
   const clearMapDrawing = () => {
-    console.log('Clearing map drawing, active path had', activePathPointsRef.current.length, 'points, intermediate labels:', intermediateLabelsRef.current.length);
-    
     if (currentShapeRef.current) {
       currentShapeRef.current.setMap(null);
       currentShapeRef.current = null;
@@ -1291,23 +1099,9 @@ const MeasurementTools = ({
       measurementLabelRef.current = null;
     }
     
-    // Clear intermediate segment labels and active path tracking
+    // Clear intermediate segment labels
     intermediateLabelsRef.current.forEach(label => label.setMap(null));
     intermediateLabelsRef.current = [];
-    activePathPointsRef.current = [];
-    
-    // Clear custom polyline and vertex markers
-    if (customPolylineRef.current) {
-      customPolylineRef.current.setMap(null);
-      customPolylineRef.current = null;
-      console.log('Custom polyline removed');
-    }
-    customVertexMarkersRef.current.forEach(m => m.setMap(null));
-    customVertexMarkersRef.current = [];
-    console.log('Vertex markers removed');
-    
-    // Clear color ref
-    currentMeasurementColorRef.current = '';
     
     // Clear point markers
     if (measurementType === 'point') {
@@ -1323,7 +1117,6 @@ const MeasurementTools = ({
     
     setMapMeasurement(null);
     setIsDrawing(false);
-    isDrawingRef.current = false;
   };
 
   const handleUndo = () => {
@@ -1671,29 +1464,6 @@ const MeasurementTools = ({
               className="bg-green-600 text-white hover:bg-green-700"
             >
               Done ({pointLocations.length})
-            </Button>
-          </div>
-        )}
-        
-        {/* Linear Measurement Controls */}
-        {measurementType === 'linear' && isDrawing && activePathPointsRef.current.length >= 2 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-background border rounded-lg shadow-lg p-4 flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleUndo}
-            >
-              <Undo2 className="mr-2 h-4 w-4" />
-              Start Over
-            </Button>
-            
-            <Button
-              variant="default"
-              size="sm"
-              onClick={finishCustomPolyline}
-              className="bg-green-600 text-white hover:bg-green-700"
-            >
-              Finish Measurement ({activePathPointsRef.current.length} points)
             </Button>
           </div>
         )}
