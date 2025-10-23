@@ -17,8 +17,6 @@ import { formatExactPrice, calculatePriceRange, formatPriceRange, calculateAddon
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
-import { SmartLabelPositioner } from '@/lib/mapLabelUtils';
-import { createLabelOverlay, type LabelOverlay } from '@/components/widget/MapLabelOverlay';
 
 interface QuoteSuccessProps {
   quoteNumber: string;
@@ -51,8 +49,6 @@ const QuoteSuccess = ({
 }: QuoteSuccessProps) => {
   const [contractorInfo, setContractorInfo] = useState<ContractorInfo | null>(null);
   const [items, setItems] = useState<QuoteItem[]>(quoteItems);
-  const [currentZoom, setCurrentZoom] = useState<number>(18);
-  const labelOverlaysRef = useRef<LabelOverlay[]>([]);
   const mapRef = useRef<google.maps.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
@@ -141,15 +137,6 @@ const QuoteSuccess = ({
 
       mapRef.current = map;
 
-      // Add zoom change listener for responsive labels
-      google.maps.event.addListener(map, 'zoom_changed', () => {
-        const newZoom = map.getZoom();
-        if (newZoom) {
-          setCurrentZoom(newZoom);
-          labelOverlaysRef.current.forEach(overlay => overlay.updateZoom(newZoom));
-        }
-      });
-
       // Fit bounds if we have coordinates
       if (hasAnyCoordinates) {
         map.fitBounds(bounds);
@@ -163,9 +150,6 @@ const QuoteSuccess = ({
       }
 
       console.log('🎨 Starting to render measurements...');
-
-      // Initialize smart label positioner
-      const positioner = new SmartLabelPositioner(map.getBounds()!);
 
       // Render all measurements
       quoteItems.forEach((item, index) => {
@@ -219,21 +203,19 @@ const QuoteSuccess = ({
 
           const areaBounds = new google.maps.LatLngBounds();
           latLngs.forEach(coord => areaBounds.extend(coord));
-          const anchor = areaBounds.getCenter();
+          const areaCenter = areaBounds.getCenter();
           
-          // Use leader line with smart positioning
-          const labelPosition = positioner.findOptimalPosition(anchor, 'NE');
-          const LabelOverlayClass = createLabelOverlay();
-          const overlay = new LabelOverlayClass({
-            position: labelPosition,
-            anchor: anchor,
-            text: `${item.measurement.value.toLocaleString()} sq ft`,
-            productName: item.productName,
-            color: color,
+          new google.maps.Marker({
+            position: areaCenter,
             map: map,
-            zoomLevel: currentZoom,
+            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+            label: {
+              text: `${item.productName}\n${item.measurement.value.toLocaleString()} sq ft`,
+              color: color,
+              fontSize: '12px',
+              fontWeight: 'bold',
+            },
           });
-          labelOverlaysRef.current.push(overlay);
         } else if (item.measurement.type === 'linear' && item.measurement.coordinates) {
           const latLngs = item.measurement.coordinates.map(coord => ({
             lat: coord[0],
@@ -250,21 +232,17 @@ const QuoteSuccess = ({
           polyline.setMap(map);
 
           const midIndex = Math.floor(latLngs.length / 2);
-          const anchor = latLngs[midIndex];
-          
-          // Use leader line with smart positioning
-          const labelPosition = positioner.findOptimalPosition(new google.maps.LatLng(anchor), 'E');
-          const LabelOverlayClass = createLabelOverlay();
-          const overlay = new LabelOverlayClass({
-            position: labelPosition,
-            anchor: new google.maps.LatLng(anchor),
-            text: `${item.measurement.value.toLocaleString()} ft`,
-            productName: item.productName,
-            color: color,
+          new google.maps.Marker({
+            position: latLngs[midIndex],
             map: map,
-            zoomLevel: currentZoom,
+            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+            label: {
+              text: `${item.productName}\n${item.measurement.value.toLocaleString()} ft`,
+              color: color,
+              fontSize: '12px',
+              fontWeight: 'bold',
+            },
           });
-          labelOverlaysRef.current.push(overlay);
         }
       });
 
