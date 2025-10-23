@@ -11,7 +11,7 @@ import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 import { SmartLabelPositioner, getZoomScaleFactor } from '@/lib/mapLabelUtils';
-import { LabelOverlay } from '@/components/widget/MapLabelOverlay';
+import { createLabelOverlay, type LabelOverlay } from '@/components/widget/MapLabelOverlay';
 
 interface MeasurementToolsProps {
   productId: string;
@@ -759,8 +759,9 @@ const MeasurementTools = ({
     const color = getNextMeasurementColor();
     const productName = selectedProduct?.name || 'Measurement';
 
-    // Create leader line label
-    const overlay = new LabelOverlay({
+    // Create leader line label using factory
+    const LabelOverlayClass = createLabelOverlay();
+    const overlay = new LabelOverlayClass({
       position: labelPosition,
       anchor: anchor,
       text: `${value.toLocaleString()} ${unit}`,

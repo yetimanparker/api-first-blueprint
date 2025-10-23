@@ -7,7 +7,7 @@ import { Loader } from '@googlemaps/js-api-loader';
 import { formatExactPrice, calculatePriceRange, formatPriceRange, displayQuoteTotal, displayLineItemPrice } from '@/lib/priceUtils';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
 import { SmartLabelPositioner } from '@/lib/mapLabelUtils';
-import { LabelOverlay } from '@/components/widget/MapLabelOverlay';
+import { createLabelOverlay, type LabelOverlay } from '@/components/widget/MapLabelOverlay';
 
 interface QuoteItem {
   id: string;
@@ -241,7 +241,8 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             // Use leader line with smart positioning
             if (positioner) {
               const labelPosition = positioner.findOptimalPosition(anchor, 'NE');
-              const overlay = new LabelOverlay({
+              const LabelOverlayClass = createLabelOverlay();
+              const overlay = new LabelOverlayClass({
                 position: labelPosition,
                 anchor: anchor,
                 text: `${item.measurement_data.value.toLocaleString()} sq ft`,
@@ -271,7 +272,8 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             // Use leader line with smart positioning
             if (positioner) {
               const labelPosition = positioner.findOptimalPosition(new google.maps.LatLng(anchor), 'E');
-              const overlay = new LabelOverlay({
+              const LabelOverlayClass = createLabelOverlay();
+              const overlay = new LabelOverlayClass({
                 position: labelPosition,
                 anchor: new google.maps.LatLng(anchor),
                 text: `${item.measurement_data.value.toLocaleString()} ft`,

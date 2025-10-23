@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 import { SmartLabelPositioner } from '@/lib/mapLabelUtils';
-import { LabelOverlay } from '@/components/widget/MapLabelOverlay';
+import { createLabelOverlay, type LabelOverlay } from '@/components/widget/MapLabelOverlay';
 
 interface QuoteSuccessProps {
   quoteNumber: string;
@@ -223,7 +223,8 @@ const QuoteSuccess = ({
           
           // Use leader line with smart positioning
           const labelPosition = positioner.findOptimalPosition(anchor, 'NE');
-          const overlay = new LabelOverlay({
+          const LabelOverlayClass = createLabelOverlay();
+          const overlay = new LabelOverlayClass({
             position: labelPosition,
             anchor: anchor,
             text: `${item.measurement.value.toLocaleString()} sq ft`,
@@ -253,7 +254,8 @@ const QuoteSuccess = ({
           
           // Use leader line with smart positioning
           const labelPosition = positioner.findOptimalPosition(new google.maps.LatLng(anchor), 'E');
-          const overlay = new LabelOverlay({
+          const LabelOverlayClass = createLabelOverlay();
+          const overlay = new LabelOverlayClass({
             position: labelPosition,
             anchor: new google.maps.LatLng(anchor),
             text: `${item.measurement.value.toLocaleString()} ft`,

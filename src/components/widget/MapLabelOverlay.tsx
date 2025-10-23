@@ -10,26 +10,28 @@ interface MapLabelOverlayProps {
   zoomLevel: number;
 }
 
-export class LabelOverlay extends google.maps.OverlayView {
-  private position: google.maps.LatLng;
-  private anchor: google.maps.LatLng;
-  private text: string;
-  private productName: string;
-  private color: string;
-  private div: HTMLDivElement | null = null;
-  private leaderLine: google.maps.Polyline | null = null;
-  private zoomLevel: number;
+// Factory function to create LabelOverlay class after Google Maps is loaded
+export function createLabelOverlay() {
+  return class LabelOverlay extends google.maps.OverlayView {
+    private position: google.maps.LatLng;
+    private anchor: google.maps.LatLng;
+    private text: string;
+    private productName: string;
+    private color: string;
+    private div: HTMLDivElement | null = null;
+    private leaderLine: google.maps.Polyline | null = null;
+    private zoomLevel: number;
 
-  constructor(props: MapLabelOverlayProps) {
-    super();
-    this.position = props.position;
-    this.anchor = props.anchor;
-    this.text = props.text;
-    this.productName = props.productName;
-    this.color = props.color;
-    this.zoomLevel = props.zoomLevel;
-    this.setMap(props.map);
-  }
+    constructor(props: MapLabelOverlayProps) {
+      super();
+      this.position = props.position;
+      this.anchor = props.anchor;
+      this.text = props.text;
+      this.productName = props.productName;
+      this.color = props.color;
+      this.zoomLevel = props.zoomLevel;
+      this.setMap(props.map);
+    }
 
   onAdd() {
     const div = document.createElement('div');
@@ -105,11 +107,15 @@ export class LabelOverlay extends google.maps.OverlayView {
     this.draw();
   }
 
-  updatePosition(position: google.maps.LatLng) {
-    this.position = position;
-    if (this.leaderLine) {
-      this.leaderLine.setPath([this.anchor, this.position]);
+    updatePosition(position: google.maps.LatLng) {
+      this.position = position;
+      if (this.leaderLine) {
+        this.leaderLine.setPath([this.anchor, this.position]);
+      }
+      this.draw();
     }
-    this.draw();
-  }
+  };
 }
+
+// Export type for convenience
+export type LabelOverlay = ReturnType<typeof createLabelOverlay>['prototype'];
