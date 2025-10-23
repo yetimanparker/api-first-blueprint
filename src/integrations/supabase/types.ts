@@ -42,6 +42,7 @@ export type Database = {
           service_area_method: string | null
           service_area_radius_miles: number | null
           service_area_zip_codes: string[] | null
+          show_markup_in_widget: boolean | null
           updated_at: string
           use_price_ranges: boolean
           widget_theme_color: string | null
@@ -73,6 +74,7 @@ export type Database = {
           service_area_method?: string | null
           service_area_radius_miles?: number | null
           service_area_zip_codes?: string[] | null
+          show_markup_in_widget?: boolean | null
           updated_at?: string
           use_price_ranges?: boolean
           widget_theme_color?: string | null
@@ -104,6 +106,7 @@ export type Database = {
           service_area_method?: string | null
           service_area_radius_miles?: number | null
           service_area_zip_codes?: string[] | null
+          show_markup_in_widget?: boolean | null
           updated_at?: string
           use_price_ranges?: boolean
           widget_theme_color?: string | null
@@ -884,18 +887,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_quote_access_token: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_quote_number: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_contractor_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_quote_access_token: { Args: never; Returns: string }
+      generate_quote_number: { Args: never; Returns: string }
+      get_current_contractor_id: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
