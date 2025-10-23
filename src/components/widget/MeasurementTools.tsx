@@ -626,12 +626,31 @@ const MeasurementTools = ({
           const newSqFt = Math.ceil(newArea * 10.764);
           setMapMeasurement(newSqFt);
           updateMeasurementLabel(polygon, newSqFt, 'sq ft');
+          
+          // Update currentMeasurement with new coordinates and value
+          const newCoordinates: number[][] = [];
+          path.forEach((latLng) => {
+            newCoordinates.push([latLng.lat(), latLng.lng()]);
+          });
+          
+          const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
+          const mapColor = MAP_COLORS[colorIndex];
+          
+          setCurrentMeasurement({
+            type: 'area',
+            value: newSqFt,
+            unit: 'sq_ft',
+            coordinates: newCoordinates,
+            manualEntry: false,
+            mapColor: mapColor
+          });
         };
         
         updateMeasurementLabel(polygon, sqFt, 'sq ft');
         
         google.maps.event.addListener(path, 'set_at', updateMeasurement);
         google.maps.event.addListener(path, 'insert_at', updateMeasurement);
+        google.maps.event.addListener(path, 'remove_at', updateMeasurement);
         
       } else if (event.type === google.maps.drawing.OverlayType.POLYLINE) {
         const polyline = event.overlay as google.maps.Polyline;
@@ -652,12 +671,31 @@ const MeasurementTools = ({
           const newFeet = Math.ceil(newLength * 3.28084);
           setMapMeasurement(newFeet);
           updateMeasurementLabel(polyline, newFeet, 'ft');
+          
+          // Update currentMeasurement with new coordinates and value
+          const newCoordinates: number[][] = [];
+          path.forEach((latLng) => {
+            newCoordinates.push([latLng.lat(), latLng.lng()]);
+          });
+          
+          const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
+          const mapColor = MAP_COLORS[colorIndex];
+          
+          setCurrentMeasurement({
+            type: 'linear',
+            value: newFeet,
+            unit: 'linear_ft',
+            coordinates: newCoordinates,
+            manualEntry: false,
+            mapColor: mapColor
+          });
         };
         
         updateMeasurementLabel(polyline, feet, 'ft');
         
         google.maps.event.addListener(path, 'set_at', updateMeasurement);
         google.maps.event.addListener(path, 'insert_at', updateMeasurement);
+        google.maps.event.addListener(path, 'remove_at', updateMeasurement);
       }
     });
   };
