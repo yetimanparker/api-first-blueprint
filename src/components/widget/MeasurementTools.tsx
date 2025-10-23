@@ -86,6 +86,7 @@ const MeasurementTools = ({
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const currentShapeRef = useRef<google.maps.Polygon | google.maps.Polyline | null>(null);
   const measurementLabelRef = useRef<google.maps.Marker | null>(null);
+  const intermediateLabelsRef = useRef<google.maps.Marker[]>([]); // Track segment distance labels
   const headerRef = useRef<HTMLDivElement>(null);
   const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
   const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
@@ -781,8 +782,22 @@ const MeasurementTools = ({
 
     drawingManager.setMap(map);
     drawingManagerRef.current = drawingManager;
+    
+    // Track polyline drawing progress for real-time segment distances
+    let activePolyline: google.maps.Polyline | null = null;
+    let polylinePathListener: google.maps.MapsEventListener | null = null;
+    
+    // Listen for polyline start
+    google.maps.event.addListener(drawingManager, 'polylinecomplete', () => {
+      // Clean up when drawing completes
+      if (polylinePathListener) {
+        google.maps.event.removeListener(polylinePathListener);
+        polylinePathListener = null;
+      }
+      activePolyline = null;
+    });
 
-    // Add map click listener for point placement mode using refs
+    // Add map click listener for point placement mode and polyline tracking
     google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
       console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current);
       
@@ -792,8 +807,47 @@ const MeasurementTools = ({
       } else if (measurementTypeRef.current === 'point' && isDrawingRef.current && event.latLng) {
         console.log('Adding point marker at:', event.latLng.lat(), event.latLng.lng());
         addPointMarker(event.latLng);
+      } else if (measurementTypeRef.current === 'linear' && drawingManager.getDrawingMode() === google.maps.drawing.OverlayType.POLYLINE) {
+        // For polyline, track the active drawing
+        setTimeout(() => {
+          // Get the polyline being drawn - it's added to the map but not yet in currentShapeRef
+          const overlays = map.get('overlays') as any;
+          if (!activePolyline) {
+            // Find newly created polyline on first click
+            const polylines = Array.from(document.querySelectorAll('.gm-style')).map(() => map);
+            // Access internal overlay manager to get the polyline being drawn
+            (drawingManager as any).overlayView?.polyline?.then((pl: google.maps.Polyline) => {
+              activePolyline = pl;
+              setupPolylineTracking(pl);
+            });
+          }
+        }, 50);
       }
     });
+    
+    // Helper to set up tracking on an active polyline
+    const setupPolylineTracking = (polyline: google.maps.Polyline) => {
+      const path = polyline.getPath();
+      
+      const updateSegmentLabels = () => {
+        const pathArray = path.getArray();
+        if (pathArray.length < 2) return;
+        
+        // Clear old intermediate labels
+        intermediateLabelsRef.current.forEach(label => label.setMap(null));
+        intermediateLabelsRef.current = [];
+        
+        // Add label for each segment
+        for (let i = 0; i < pathArray.length - 1; i++) {
+          const point1 = pathArray[i];
+          const point2 = pathArray[i + 1];
+          addSegmentDistanceLabel(point1, point2, nextColor);
+        }
+      };
+      
+      // Listen for path changes
+      polylinePathListener = google.maps.event.addListener(path, 'insert_at', updateSegmentLabels);
+    };
 
     google.maps.event.addListener(drawingManager, 'overlaycomplete', (event: any) => {
       setIsDrawing(false);
@@ -854,14 +908,68 @@ const MeasurementTools = ({
           const newFeet = Math.ceil(newLength * 3.28084);
           setMapMeasurement(newFeet);
           updateMeasurementLabel(polyline, newFeet, 'ft');
+          
+          // Update segment labels when path changes
+          updatePolylineSegmentLabels(polyline, nextColor);
         };
         
         updateMeasurementLabel(polyline, feet, 'ft');
+        
+        // Initial segment labels
+        updatePolylineSegmentLabels(polyline, nextColor);
         
         google.maps.event.addListener(path, 'set_at', updateMeasurement);
         google.maps.event.addListener(path, 'insert_at', updateMeasurement);
       }
     });
+  };
+
+  const addSegmentDistanceLabel = (point1: google.maps.LatLng, point2: google.maps.LatLng, color: string) => {
+    if (!mapRef.current) return;
+    
+    // Calculate distance between points
+    const distance = google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
+    const feet = Math.round(distance * 3.28084);
+    
+    // Calculate midpoint
+    const midLat = (point1.lat() + point2.lat()) / 2;
+    const midLng = (point1.lng() + point2.lng()) / 2;
+    const midpoint = new google.maps.LatLng(midLat, midLng);
+    
+    // Create label marker
+    const marker = new google.maps.Marker({
+      position: midpoint,
+      map: mapRef.current,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 0,
+      },
+      label: {
+        text: `${feet} ft`,
+        color: color,
+        fontSize: '11px',
+        fontWeight: '500',
+      },
+      zIndex: 2,
+    });
+    
+    intermediateLabelsRef.current.push(marker);
+  };
+  
+  const updatePolylineSegmentLabels = (polyline: google.maps.Polyline, color: string) => {
+    // Clear existing intermediate labels
+    intermediateLabelsRef.current.forEach(label => label.setMap(null));
+    intermediateLabelsRef.current = [];
+    
+    const path = polyline.getPath();
+    const pathArray = path.getArray();
+    
+    // Add label for each segment
+    for (let i = 0; i < pathArray.length - 1; i++) {
+      const point1 = pathArray[i];
+      const point2 = pathArray[i + 1];
+      addSegmentDistanceLabel(point1, point2, color);
+    }
   };
 
   const placeDimensionalProduct = (latLng: google.maps.LatLng) => {
@@ -990,6 +1098,10 @@ const MeasurementTools = ({
       measurementLabelRef.current.setMap(null);
       measurementLabelRef.current = null;
     }
+    
+    // Clear intermediate segment labels
+    intermediateLabelsRef.current.forEach(label => label.setMap(null));
+    intermediateLabelsRef.current = [];
     
     // Clear point markers
     if (measurementType === 'point') {
