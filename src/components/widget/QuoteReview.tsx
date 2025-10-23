@@ -233,10 +233,25 @@ const QuoteReview = ({
       return;
     }
 
-    // If contact info is missing and timing requires capture on submit, show dialog
-    if ((!customerInfo.firstName || !customerInfo.lastName || !customerInfo.email) && 
-        (settings.contact_capture_timing === 'on_submit' || settings.contact_capture_timing === 'after_quote')) {
+    // Always validate required fields before submission (database requires these)
+    const missingRequiredFields = 
+      !customerInfo.firstName?.trim() || 
+      !customerInfo.lastName?.trim() || 
+      (settings.require_email !== false && !customerInfo.email?.trim());
+
+    if (missingRequiredFields) {
       setDialogCustomerInfo(customerInfo);
+      setShowContactDialog(true);
+      return;
+    }
+
+    // Validate email format if provided
+    if (customerInfo.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerInfo.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please provide a valid email address",
+        variant: "destructive",
+      });
       setShowContactDialog(true);
       return;
     }

@@ -24,6 +24,15 @@ serve(async (req) => {
       throw new Error('Missing required data');
     }
 
+    // Validate required customer fields
+    if (!customerInfo.firstName?.trim() || !customerInfo.lastName?.trim()) {
+      throw new Error('Customer first name and last name are required');
+    }
+
+    if (!customerInfo.email?.trim()) {
+      throw new Error('Customer email is required');
+    }
+
     // Check if customer exists by email
     const { data: existingCustomers, error: customerLookupError } = await supabaseClient
       .from('customers')
