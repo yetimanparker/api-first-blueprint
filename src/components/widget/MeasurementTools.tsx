@@ -566,19 +566,27 @@ const MeasurementTools = ({
         strokeColor: nextColor,
         strokeWeight: 2,
         clickable: true,
-        editable: true,
+        editable: !isConfigurationMode,
         zIndex: 1,
       },
       polylineOptions: {
         strokeColor: nextColor,
         strokeWeight: 2,
         clickable: true,
-        editable: true,
+        editable: !isConfigurationMode,
       },
     });
 
     drawingManager.setMap(map);
     drawingManagerRef.current = drawingManager;
+    
+    // Disable drawing manager if in configuration mode
+    if (isConfigurationMode) {
+      drawingManager.setDrawingMode(null);
+      drawingManager.setOptions({
+        drawingControl: false
+      });
+    }
 
     // Add map click listener for point placement mode using refs
     google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
@@ -648,9 +656,12 @@ const MeasurementTools = ({
         
         updateMeasurementLabel(polygon, sqFt, 'sq ft');
         
-        google.maps.event.addListener(path, 'set_at', updateMeasurement);
-        google.maps.event.addListener(path, 'insert_at', updateMeasurement);
-        google.maps.event.addListener(path, 'remove_at', updateMeasurement);
+        // Only add edit listeners if not in configuration mode
+        if (!isConfigurationMode) {
+          google.maps.event.addListener(path, 'set_at', updateMeasurement);
+          google.maps.event.addListener(path, 'insert_at', updateMeasurement);
+          google.maps.event.addListener(path, 'remove_at', updateMeasurement);
+        }
         
       } else if (event.type === google.maps.drawing.OverlayType.POLYLINE) {
         const polyline = event.overlay as google.maps.Polyline;
@@ -693,9 +704,12 @@ const MeasurementTools = ({
         
         updateMeasurementLabel(polyline, feet, 'ft');
         
-        google.maps.event.addListener(path, 'set_at', updateMeasurement);
-        google.maps.event.addListener(path, 'insert_at', updateMeasurement);
-        google.maps.event.addListener(path, 'remove_at', updateMeasurement);
+        // Only add edit listeners if not in configuration mode
+        if (!isConfigurationMode) {
+          google.maps.event.addListener(path, 'set_at', updateMeasurement);
+          google.maps.event.addListener(path, 'insert_at', updateMeasurement);
+          google.maps.event.addListener(path, 'remove_at', updateMeasurement);
+        }
       }
     });
   };
@@ -1292,31 +1306,46 @@ const MeasurementTools = ({
       </div>
 
       {/* Action Buttons Row */}
-      {!mapLoading && !mapError && !isConfigurationMode && (
+      {!mapLoading && !mapError && (
         <div id="action-buttons-row" className="bg-background border-t px-3 sm:px-6 py-2">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-row justify-center gap-2 sm:gap-3">
-              <Button
-                variant="outline"
-                size="default"
-                onClick={onChangeProduct}
-                className="w-full sm:w-auto gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Switch Product
-              </Button>
-              <Button
-                variant="outline"
-                size="default"
-                onClick={() => {
-                  setShowManualEntry(true);
-                  clearMapDrawing();
-                }}
-                className="w-full sm:w-auto gap-2 text-orange-600 hover:text-orange-700"
-              >
-                <PencilRuler className="h-4 w-4" />
-                Enter Manually
-              </Button>
+              {!isConfigurationMode && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={onChangeProduct}
+                    className="w-full sm:w-auto gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Switch Product
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={() => {
+                      setShowManualEntry(true);
+                      clearMapDrawing();
+                    }}
+                    className="w-full sm:w-auto gap-2 text-orange-600 hover:text-orange-700"
+                  >
+                    <PencilRuler className="h-4 w-4" />
+                    Enter Manually
+                  </Button>
+                </>
+              )}
+              {isConfigurationMode && currentMeasurement && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={handleUndo}
+                  className="w-full sm:w-auto px-4 sm:px-6 shadow-lg gap-2"
+                >
+                  <Undo2 className="h-4 w-4" />
+                  Remeasure
+                </Button>
+              )}
             </div>
           </div>
         </div>
