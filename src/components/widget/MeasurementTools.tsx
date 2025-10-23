@@ -786,7 +786,8 @@ const MeasurementTools = ({
 
     // Add map click listener for point placement mode and real-time polyline segment tracking
     google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
-      console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current);
+      const currentDrawingMode = drawingManager.getDrawingMode();
+      console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current, 'drawingMode:', currentDrawingMode);
       
       if (measurementTypeRef.current === 'dimensional' && isDrawingRef.current && event.latLng) {
         console.log('Placing dimensional product at:', event.latLng.lat(), event.latLng.lng());
@@ -795,8 +796,9 @@ const MeasurementTools = ({
         console.log('Adding point marker at:', event.latLng.lat(), event.latLng.lng());
         addPointMarker(event.latLng);
       } else if (measurementTypeRef.current === 'linear' && 
-                 drawingManager.getDrawingMode() === google.maps.drawing.OverlayType.POLYLINE && 
+                 currentDrawingMode === google.maps.drawing.OverlayType.POLYLINE && 
                  event.latLng) {
+        console.log('Adding polyline point, total points:', activePathPointsRef.current.length + 1);
         // Track clicked points for real-time segment distance display
         activePathPointsRef.current.push(event.latLng);
         
@@ -805,6 +807,7 @@ const MeasurementTools = ({
           const len = activePathPointsRef.current.length;
           const point1 = activePathPointsRef.current[len - 2];
           const point2 = activePathPointsRef.current[len - 1];
+          console.log('Creating segment label between points', len - 1, 'and', len);
           addSegmentDistanceLabel(point1, point2, nextColor);
         }
       }
@@ -885,11 +888,16 @@ const MeasurementTools = ({
   };
 
   const addSegmentDistanceLabel = (point1: google.maps.LatLng, point2: google.maps.LatLng, color: string) => {
-    if (!mapRef.current) return;
+    if (!mapRef.current) {
+      console.log('Cannot add segment label: map not ready');
+      return;
+    }
     
     // Calculate distance between points
     const distance = google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
     const feet = Math.round(distance * 3.28084);
+    
+    console.log(`Creating segment label: ${feet} ft`);
     
     // Calculate midpoint
     const midLat = (point1.lat() + point2.lat()) / 2;
@@ -900,15 +908,16 @@ const MeasurementTools = ({
     const labelDiv = document.createElement('div');
     labelDiv.style.cssText = `
       background: rgba(255, 255, 255, 0.95);
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 16px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 18px;
       font-weight: 700;
       color: #1a1a1a;
-      border: 2px solid ${color};
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      border: 3px solid ${color};
+      box-shadow: 0 3px 12px rgba(0,0,0,0.4);
       white-space: nowrap;
       pointer-events: none;
+      z-index: 1000;
     `;
     labelDiv.textContent = `${feet} ft`;
     
@@ -925,7 +934,10 @@ const MeasurementTools = ({
       
       onAdd() {
         const panes = this.getPanes();
-        panes?.overlayLayer.appendChild(this.div);
+        if (panes) {
+          panes.overlayLayer.appendChild(this.div);
+          console.log('Segment label added to map');
+        }
       }
       
       draw() {
@@ -941,6 +953,7 @@ const MeasurementTools = ({
       onRemove() {
         if (this.div.parentNode) {
           this.div.parentNode.removeChild(this.div);
+          console.log('Segment label removed from map');
         }
       }
     }
@@ -992,22 +1005,61 @@ const MeasurementTools = ({
       measurementLabelRef.current.setMap(null);
     }
 
-    const marker = new google.maps.Marker({
-      position: center,
-      map: mapRef.current,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 0,
-      },
-      label: {
-        text: `${value.toLocaleString()} ${unit}`,
-        color: '#1a1a1a',
-        fontSize: '18px',
-        fontWeight: '700',
-      },
-    });
-
-    measurementLabelRef.current = marker;
+    // Create custom HTML label for total measurement with better visibility
+    const labelDiv = document.createElement('div');
+    labelDiv.style.cssText = `
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a1a1a;
+      border: 3px solid ${getNextMeasurementColor()};
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 1001;
+    `;
+    labelDiv.textContent = `${value.toLocaleString()} ${unit}`;
+    
+    // Create custom overlay for total measurement
+    class TotalLabel extends google.maps.OverlayView {
+      position: google.maps.LatLng;
+      div: HTMLDivElement;
+      
+      constructor(position: google.maps.LatLng, div: HTMLDivElement) {
+        super();
+        this.position = position;
+        this.div = div;
+      }
+      
+      onAdd() {
+        const panes = this.getPanes();
+        if (panes) {
+          panes.overlayLayer.appendChild(this.div);
+        }
+      }
+      
+      draw() {
+        const projection = this.getProjection();
+        const point = projection.fromLatLngToDivPixel(this.position);
+        if (point) {
+          this.div.style.position = 'absolute';
+          this.div.style.left = point.x - this.div.offsetWidth / 2 + 'px';
+          this.div.style.top = point.y - this.div.offsetHeight / 2 + 'px';
+        }
+      }
+      
+      onRemove() {
+        if (this.div.parentNode) {
+          this.div.parentNode.removeChild(this.div);
+        }
+      }
+    }
+    
+    const overlay = new TotalLabel(center, labelDiv);
+    overlay.setMap(mapRef.current);
+    measurementLabelRef.current = overlay as any;
   };
 
   const startDrawing = () => {
@@ -1023,6 +1075,9 @@ const MeasurementTools = ({
     // Set drawing state AFTER clearing to avoid it being reset
     setIsDrawing(true);
     isDrawingRef.current = true; // Update ref immediately
+    
+    // Clear active path for new measurement
+    activePathPointsRef.current = [];
 
     const nextColor = getNextMeasurementColor();
     
@@ -1067,6 +1122,8 @@ const MeasurementTools = ({
   };
 
   const clearMapDrawing = () => {
+    console.log('Clearing map drawing, active path had', activePathPointsRef.current.length, 'points, intermediate labels:', intermediateLabelsRef.current.length);
+    
     if (currentShapeRef.current) {
       currentShapeRef.current.setMap(null);
       currentShapeRef.current = null;
@@ -1096,6 +1153,7 @@ const MeasurementTools = ({
     
     setMapMeasurement(null);
     setIsDrawing(false);
+    isDrawingRef.current = false;
   };
 
   const handleUndo = () => {
