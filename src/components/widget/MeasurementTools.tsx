@@ -10,6 +10,7 @@ import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft } from 'l
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
+import { getZoomBasedFontSize } from '@/lib/mapLabelUtils';
 
 interface MeasurementToolsProps {
   productId: string;
@@ -72,6 +73,7 @@ const MeasurementTools = ({
   const [searchAddress, setSearchAddress] = useState(customerAddress || '');
   const [pointLocations, setPointLocations] = useState<Array<{lat: number, lng: number}>>([]);
   const [pointMarkers, setPointMarkers] = useState<google.maps.Marker[]>([]);
+  const [currentZoom, setCurrentZoom] = useState(19);
   
   // Dimensional product states
   const [dimensionalRotation, setDimensionalRotation] = useState(0);
@@ -226,6 +228,14 @@ const MeasurementTools = ({
 
       console.log('Map instance created successfully');
       mapRef.current = map;
+      
+      // Track zoom changes for dynamic font sizing
+      map.addListener('zoom_changed', () => {
+        const newZoom = map.getZoom();
+        if (newZoom) {
+          setCurrentZoom(newZoom);
+        }
+      });
       
       console.log('Setting up drawing manager');
       setupDrawingManager(map);
@@ -463,7 +473,7 @@ const MeasurementTools = ({
           label: {
             text: `${item.customName || item.productName}\n${item.measurement.value.toLocaleString()} sq ft`,
             color: color,
-            fontSize: '16px',
+            fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
             fontWeight: 'bold',
           },
         });
@@ -494,7 +504,7 @@ const MeasurementTools = ({
           label: {
             text: `${item.customName || item.productName}\n${item.measurement.value.toLocaleString()} ft`,
             color: color,
-            fontSize: '16px',
+            fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
             fontWeight: 'bold',
           },
         });
@@ -749,7 +759,7 @@ const MeasurementTools = ({
       label: {
         text: `${value.toLocaleString()} ${unit}`,
         color: getNextMeasurementColor(),
-        fontSize: '13px',
+        fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
         fontWeight: '600',
       },
     });

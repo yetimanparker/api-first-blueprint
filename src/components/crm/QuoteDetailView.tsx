@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader } from '@googlemaps/js-api-loader';
 import { formatExactPrice, calculatePriceRange, formatPriceRange, displayQuoteTotal, displayLineItemPrice } from '@/lib/priceUtils';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
+import { getZoomBasedFontSize } from '@/lib/mapLabelUtils';
 
 interface QuoteItem {
   id: string;
@@ -45,6 +46,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
   const [apiKey, setApiKey] = useState<string | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [currentZoom, setCurrentZoom] = useState(19);
 
   useEffect(() => {
     fetchQuoteItems();
@@ -142,6 +144,14 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
 
       mapRef.current = map;
 
+      // Track zoom changes for dynamic font sizing
+      map.addListener('zoom_changed', () => {
+        const newZoom = map.getZoom();
+        if (newZoom) {
+          setCurrentZoom(newZoom);
+        }
+      });
+
       // Render all measurements
       const bounds = new google.maps.LatLngBounds();
       const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899'];
@@ -175,7 +185,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
               label: {
                 text: (pointIndex + 1).toString(),
                 color: '#FFFFFF',
-                fontSize: '12px',
+                fontSize: `${Math.max(10, getZoomBasedFontSize(currentZoom) - 2)}px`,
                 fontWeight: 'bold',
               },
               icon: {
@@ -222,7 +232,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
               label: {
                 text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} sq ft`,
                 color: color,
-                fontSize: '16px',
+                fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
                 fontWeight: 'bold',
               },
             });
@@ -242,7 +252,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
               label: {
                 text: `${item.products.name}\n${item.measurement_data.value.toLocaleString()} ft`,
                 color: color,
-                fontSize: '16px',
+                fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
                 fontWeight: 'bold',
               },
             });

@@ -17,6 +17,7 @@ import { formatExactPrice, calculatePriceRange, formatPriceRange, calculateAddon
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
+import { getZoomBasedFontSize } from '@/lib/mapLabelUtils';
 
 interface QuoteSuccessProps {
   quoteNumber: string;
@@ -51,6 +52,7 @@ const QuoteSuccess = ({
   const [items, setItems] = useState<QuoteItem[]>(quoteItems);
   const mapRef = useRef<google.maps.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [currentZoom, setCurrentZoom] = useState(19);
 
   useEffect(() => {
     fetchContractorInfo();
@@ -137,6 +139,14 @@ const QuoteSuccess = ({
 
       mapRef.current = map;
 
+      // Track zoom changes for dynamic font sizing
+      map.addListener('zoom_changed', () => {
+        const newZoom = map.getZoom();
+        if (newZoom) {
+          setCurrentZoom(newZoom);
+        }
+      });
+
       // Fit bounds if we have coordinates
       if (hasAnyCoordinates) {
         map.fitBounds(bounds);
@@ -176,7 +186,7 @@ const QuoteSuccess = ({
               label: {
                 text: `${idx + 1}`,
                 color: '#ffffff',
-                fontSize: '12px',
+                fontSize: `${Math.max(10, getZoomBasedFontSize(currentZoom) - 2)}px`,
                 fontWeight: 'bold',
               },
               title: `${item.productName} - Location ${idx + 1}`,
@@ -212,7 +222,7 @@ const QuoteSuccess = ({
             label: {
               text: `${item.productName}\n${item.measurement.value.toLocaleString()} sq ft`,
               color: color,
-              fontSize: '16px',
+              fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
               fontWeight: 'bold',
             },
           });
@@ -239,7 +249,7 @@ const QuoteSuccess = ({
             label: {
               text: `${item.productName}\n${item.measurement.value.toLocaleString()} ft`,
               color: color,
-              fontSize: '16px',
+              fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
               fontWeight: 'bold',
             },
           });
