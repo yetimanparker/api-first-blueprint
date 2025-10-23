@@ -80,3 +80,6 @@ verify_jwt = false
 
 [functions.submit-widget-quote]
 verify_jwt = false
+
+[functions.copy-default-product-images]
+verify_jwt = true
