@@ -90,6 +90,7 @@ const MeasurementTools = ({
   const activePathPointsRef = useRef<google.maps.LatLng[]>([]); // Track points during active drawing
   const customPolylineRef = useRef<google.maps.Polyline | null>(null); // Custom polyline for linear measurements
   const customVertexMarkersRef = useRef<google.maps.Marker[]>([]); // Vertex markers for custom polyline
+  const currentMeasurementColorRef = useRef<string>(''); // Store color for current measurement
   const headerRef = useRef<HTMLDivElement>(null);
   const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
   const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
@@ -796,14 +797,20 @@ const MeasurementTools = ({
       if (measurementTypeRef.current === 'linear' && isDrawingRef.current) {
         console.log('Custom polyline click:', activePathPointsRef.current.length + 1);
         
-        // Add point to path
+        if (!customPolylineRef.current) {
+          console.error('Custom polyline ref is null!');
+          return;
+        }
+        
         const point = event.latLng;
         activePathPointsRef.current.push(point);
         
         // Update polyline path
-        if (customPolylineRef.current) {
-          customPolylineRef.current.setPath(activePathPointsRef.current);
-        }
+        customPolylineRef.current.setPath(activePathPointsRef.current);
+        console.log('Polyline path updated, now has', activePathPointsRef.current.length, 'points');
+        
+        // Get color from ref instead of undefined variable
+        const color = currentMeasurementColorRef.current || '#FF0000';
         
         // Add vertex marker
         const marker = new google.maps.Marker({
@@ -811,14 +818,16 @@ const MeasurementTools = ({
           map: mapRef.current,
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: 5,
-            fillColor: nextColor,
+            scale: 6,
+            fillColor: color,
             fillOpacity: 1,
             strokeColor: '#fff',
             strokeWeight: 2,
           },
+          zIndex: 101,
         });
         customVertexMarkersRef.current.push(marker);
+        console.log('Vertex marker added at point', activePathPointsRef.current.length);
         
         // Show segment distance if we have 2+ points
         if (activePathPointsRef.current.length >= 2) {
@@ -826,7 +835,7 @@ const MeasurementTools = ({
           const point1 = activePathPointsRef.current[len - 2];
           const point2 = activePathPointsRef.current[len - 1];
           console.log('Creating segment label between points', len - 1, 'and', len);
-          addSegmentDistanceLabel(point1, point2, nextColor);
+          addSegmentDistanceLabel(point1, point2, color);
         }
         
         return; // Don't process other click handlers
@@ -849,8 +858,11 @@ const MeasurementTools = ({
     
     // Add double-click listener to finish custom polyline
     google.maps.event.addListener(map, 'dblclick', (event: google.maps.MapMouseEvent) => {
+      console.log('Map double-clicked, linear mode:', measurementTypeRef.current === 'linear', 'isDrawing:', isDrawingRef.current);
+      
       if (measurementTypeRef.current === 'linear' && isDrawingRef.current) {
-        event.stop(); // Prevent zoom
+        if (event.stop) event.stop();
+        console.log('Finishing polyline via double-click');
         finishCustomPolyline();
       }
     });
@@ -993,11 +1005,17 @@ const MeasurementTools = ({
       
       draw() {
         const projection = this.getProjection();
+        if (!projection) return;
+        
         const point = projection.fromLatLngToDivPixel(this.position);
         if (point) {
-          this.div.style.position = 'absolute';
-          this.div.style.left = point.x - this.div.offsetWidth / 2 + 'px';
-          this.div.style.top = point.y - this.div.offsetHeight / 2 + 'px';
+          requestAnimationFrame(() => {
+            const width = this.div.offsetWidth || 100;
+            const height = this.div.offsetHeight || 40;
+            this.div.style.position = 'absolute';
+            this.div.style.left = (point.x - width / 2) + 'px';
+            this.div.style.top = (point.y - height / 2) + 'px';
+          });
         }
       }
       
@@ -1103,11 +1121,17 @@ const MeasurementTools = ({
       
       draw() {
         const projection = this.getProjection();
+        if (!projection) return;
+        
         const point = projection.fromLatLngToDivPixel(this.position);
         if (point) {
-          this.div.style.position = 'absolute';
-          this.div.style.left = point.x - this.div.offsetWidth / 2 + 'px';
-          this.div.style.top = point.y - this.div.offsetHeight / 2 + 'px';
+          requestAnimationFrame(() => {
+            const width = this.div.offsetWidth || 100;
+            const height = this.div.offsetHeight || 40;
+            this.div.style.position = 'absolute';
+            this.div.style.left = (point.x - width / 2) + 'px';
+            this.div.style.top = (point.y - height / 2) + 'px';
+          });
         }
       }
       
@@ -1217,17 +1241,21 @@ const MeasurementTools = ({
       drawingManagerRef.current.setDrawingMode(null);
       console.log('Custom linear drawing mode activated');
       
+      const nextColor = getNextMeasurementColor();
+      currentMeasurementColorRef.current = nextColor;
+      
       // Initialize empty polyline
       const polyline = new google.maps.Polyline({
         strokeColor: nextColor,
-        strokeWeight: 3,
+        strokeWeight: 4,
         map: mapRef.current,
         path: [],
         clickable: false,
         editable: false,
-        zIndex: 1,
+        zIndex: 100,
       });
       customPolylineRef.current = polyline;
+      console.log('Custom polyline created with color:', nextColor);
       return;
     }
     
@@ -1272,9 +1300,14 @@ const MeasurementTools = ({
     if (customPolylineRef.current) {
       customPolylineRef.current.setMap(null);
       customPolylineRef.current = null;
+      console.log('Custom polyline removed');
     }
     customVertexMarkersRef.current.forEach(m => m.setMap(null));
     customVertexMarkersRef.current = [];
+    console.log('Vertex markers removed');
+    
+    // Clear color ref
+    currentMeasurementColorRef.current = '';
     
     // Clear point markers
     if (measurementType === 'point') {
