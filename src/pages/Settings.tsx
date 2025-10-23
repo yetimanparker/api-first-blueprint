@@ -77,7 +77,6 @@ const Settings = () => {
   const [geocodingAddress, setGeocodingAddress] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedEmbed, setCopiedEmbed] = useState(false);
-  const [initializingImages, setInitializingImages] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -329,38 +328,6 @@ const Settings = () => {
     }
   };
 
-  const initializeDefaultImages = async () => {
-    setInitializingImages(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
-      const { data, error } = await supabase.functions.invoke('copy-default-product-images', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.success) {
-        toast({
-          title: "Success",
-          description: "Default product images initialized successfully!",
-        });
-      } else {
-        throw new Error(data?.message || "Failed to initialize images");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to initialize default images",
-        variant: "destructive",
-      });
-    } finally {
-      setInitializingImages(false);
-    }
-  };
 
   const geocodeServiceAddress = async () => {
     setGeocodingAddress(true);
@@ -461,30 +428,6 @@ const Settings = () => {
         </div>
 
         <div className="space-y-8">
-          {/* Default Images Setup Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Default Product Images Setup</CardTitle>
-              <CardDescription>
-                Initialize default product images for sample products (one-time setup)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Click the button below to copy default product images to your storage. This will make the sample products (Sod, Topsoil, Fence, Tree) display with images.
-                </p>
-                <Button
-                  onClick={initializeDefaultImages}
-                  disabled={initializingImages}
-                  variant="default"
-                >
-                  {initializingImages ? "Initializing..." : "Initialize Default Images"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Business Information Card */}
           <Card>
             <CardHeader>
