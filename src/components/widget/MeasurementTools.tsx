@@ -86,7 +86,8 @@ const MeasurementTools = ({
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const currentShapeRef = useRef<google.maps.Polygon | google.maps.Polyline | null>(null);
   const measurementLabelRef = useRef<google.maps.Marker | null>(null);
-  const intermediateLabelsRef = useRef<google.maps.Marker[]>([]); // Track segment distance labels
+  const intermediateLabelsRef = useRef<google.maps.OverlayView[]>([]); // Track segment distance labels
+  const activePathPointsRef = useRef<google.maps.LatLng[]>([]); // Track points during active drawing
   const headerRef = useRef<HTMLDivElement>(null);
   const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
   const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
@@ -782,22 +783,8 @@ const MeasurementTools = ({
 
     drawingManager.setMap(map);
     drawingManagerRef.current = drawingManager;
-    
-    // Track polyline drawing progress for real-time segment distances
-    let activePolyline: google.maps.Polyline | null = null;
-    let polylinePathListener: google.maps.MapsEventListener | null = null;
-    
-    // Listen for polyline start
-    google.maps.event.addListener(drawingManager, 'polylinecomplete', () => {
-      // Clean up when drawing completes
-      if (polylinePathListener) {
-        google.maps.event.removeListener(polylinePathListener);
-        polylinePathListener = null;
-      }
-      activePolyline = null;
-    });
 
-    // Add map click listener for point placement mode and polyline tracking
+    // Add map click listener for point placement mode and real-time polyline segment tracking
     google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
       console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current);
       
@@ -807,50 +794,29 @@ const MeasurementTools = ({
       } else if (measurementTypeRef.current === 'point' && isDrawingRef.current && event.latLng) {
         console.log('Adding point marker at:', event.latLng.lat(), event.latLng.lng());
         addPointMarker(event.latLng);
-      } else if (measurementTypeRef.current === 'linear' && drawingManager.getDrawingMode() === google.maps.drawing.OverlayType.POLYLINE) {
-        // For polyline, track the active drawing
-        setTimeout(() => {
-          // Get the polyline being drawn - it's added to the map but not yet in currentShapeRef
-          const overlays = map.get('overlays') as any;
-          if (!activePolyline) {
-            // Find newly created polyline on first click
-            const polylines = Array.from(document.querySelectorAll('.gm-style')).map(() => map);
-            // Access internal overlay manager to get the polyline being drawn
-            (drawingManager as any).overlayView?.polyline?.then((pl: google.maps.Polyline) => {
-              activePolyline = pl;
-              setupPolylineTracking(pl);
-            });
-          }
-        }, 50);
-      }
-    });
-    
-    // Helper to set up tracking on an active polyline
-    const setupPolylineTracking = (polyline: google.maps.Polyline) => {
-      const path = polyline.getPath();
-      
-      const updateSegmentLabels = () => {
-        const pathArray = path.getArray();
-        if (pathArray.length < 2) return;
+      } else if (measurementTypeRef.current === 'linear' && 
+                 drawingManager.getDrawingMode() === google.maps.drawing.OverlayType.POLYLINE && 
+                 event.latLng) {
+        // Track clicked points for real-time segment distance display
+        activePathPointsRef.current.push(event.latLng);
         
-        // Clear old intermediate labels
-        intermediateLabelsRef.current.forEach(label => label.setMap(null));
-        intermediateLabelsRef.current = [];
-        
-        // Add label for each segment
-        for (let i = 0; i < pathArray.length - 1; i++) {
-          const point1 = pathArray[i];
-          const point2 = pathArray[i + 1];
+        // After second point onwards, show segment distance immediately
+        if (activePathPointsRef.current.length >= 2) {
+          const len = activePathPointsRef.current.length;
+          const point1 = activePathPointsRef.current[len - 2];
+          const point2 = activePathPointsRef.current[len - 1];
           addSegmentDistanceLabel(point1, point2, nextColor);
         }
-      };
-      
-      // Listen for path changes
-      polylinePathListener = google.maps.event.addListener(path, 'insert_at', updateSegmentLabels);
-    };
+      }
+    });
 
     google.maps.event.addListener(drawingManager, 'overlaycomplete', (event: any) => {
       setIsDrawing(false);
+      
+      // Clear active path tracking and intermediate labels
+      activePathPointsRef.current = [];
+      intermediateLabelsRef.current.forEach(label => label.setMap(null));
+      intermediateLabelsRef.current = [];
       
       if (currentShapeRef.current) {
         currentShapeRef.current.setMap(null);
@@ -908,15 +874,9 @@ const MeasurementTools = ({
           const newFeet = Math.ceil(newLength * 3.28084);
           setMapMeasurement(newFeet);
           updateMeasurementLabel(polyline, newFeet, 'ft');
-          
-          // Update segment labels when path changes
-          updatePolylineSegmentLabels(polyline, nextColor);
         };
         
         updateMeasurementLabel(polyline, feet, 'ft');
-        
-        // Initial segment labels
-        updatePolylineSegmentLabels(polyline, nextColor);
         
         google.maps.event.addListener(path, 'set_at', updateMeasurement);
         google.maps.event.addListener(path, 'insert_at', updateMeasurement);
@@ -936,40 +896,58 @@ const MeasurementTools = ({
     const midLng = (point1.lng() + point2.lng()) / 2;
     const midpoint = new google.maps.LatLng(midLat, midLng);
     
-    // Create label marker
-    const marker = new google.maps.Marker({
-      position: midpoint,
-      map: mapRef.current,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 0,
-      },
-      label: {
-        text: `${feet} ft`,
-        color: color,
-        fontSize: '11px',
-        fontWeight: '500',
-      },
-      zIndex: 2,
-    });
+    // Create custom HTML label for better visibility
+    const labelDiv = document.createElement('div');
+    labelDiv.style.cssText = `
+      background: rgba(255, 255, 255, 0.95);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a1a1a;
+      border: 2px solid ${color};
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      white-space: nowrap;
+      pointer-events: none;
+    `;
+    labelDiv.textContent = `${feet} ft`;
     
-    intermediateLabelsRef.current.push(marker);
-  };
-  
-  const updatePolylineSegmentLabels = (polyline: google.maps.Polyline, color: string) => {
-    // Clear existing intermediate labels
-    intermediateLabelsRef.current.forEach(label => label.setMap(null));
-    intermediateLabelsRef.current = [];
-    
-    const path = polyline.getPath();
-    const pathArray = path.getArray();
-    
-    // Add label for each segment
-    for (let i = 0; i < pathArray.length - 1; i++) {
-      const point1 = pathArray[i];
-      const point2 = pathArray[i + 1];
-      addSegmentDistanceLabel(point1, point2, color);
+    // Create custom overlay class
+    class CustomLabel extends google.maps.OverlayView {
+      position: google.maps.LatLng;
+      div: HTMLDivElement;
+      
+      constructor(position: google.maps.LatLng, div: HTMLDivElement) {
+        super();
+        this.position = position;
+        this.div = div;
+      }
+      
+      onAdd() {
+        const panes = this.getPanes();
+        panes?.overlayLayer.appendChild(this.div);
+      }
+      
+      draw() {
+        const projection = this.getProjection();
+        const point = projection.fromLatLngToDivPixel(this.position);
+        if (point) {
+          this.div.style.position = 'absolute';
+          this.div.style.left = point.x - this.div.offsetWidth / 2 + 'px';
+          this.div.style.top = point.y - this.div.offsetHeight / 2 + 'px';
+        }
+      }
+      
+      onRemove() {
+        if (this.div.parentNode) {
+          this.div.parentNode.removeChild(this.div);
+        }
+      }
     }
+    
+    const overlay = new CustomLabel(midpoint, labelDiv);
+    overlay.setMap(mapRef.current);
+    intermediateLabelsRef.current.push(overlay);
   };
 
   const placeDimensionalProduct = (latLng: google.maps.LatLng) => {
@@ -1023,9 +1001,9 @@ const MeasurementTools = ({
       },
       label: {
         text: `${value.toLocaleString()} ${unit}`,
-        color: getNextMeasurementColor(),
-        fontSize: '13px',
-        fontWeight: '600',
+        color: '#1a1a1a',
+        fontSize: '18px',
+        fontWeight: '700',
       },
     });
 
@@ -1099,9 +1077,10 @@ const MeasurementTools = ({
       measurementLabelRef.current = null;
     }
     
-    // Clear intermediate segment labels
+    // Clear intermediate segment labels and active path tracking
     intermediateLabelsRef.current.forEach(label => label.setMap(null));
     intermediateLabelsRef.current = [];
+    activePathPointsRef.current = [];
     
     // Clear point markers
     if (measurementType === 'point') {
