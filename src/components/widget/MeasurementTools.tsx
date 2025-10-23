@@ -946,9 +946,9 @@ const MeasurementTools = ({
       },
       label: {
         text: `${feet} ft`,
-        color: color,
-        fontSize: '11px',
-        fontWeight: '500',
+        color: '#FFFFFF',
+        fontSize: '14px',
+        fontWeight: '700',
       },
       zIndex: 2,
     });
@@ -1023,9 +1023,9 @@ const MeasurementTools = ({
       },
       label: {
         text: `${value.toLocaleString()} ${unit}`,
-        color: getNextMeasurementColor(),
-        fontSize: '13px',
-        fontWeight: '600',
+        color: '#FFFFFF',
+        fontSize: '16px',
+        fontWeight: '700',
       },
     });
 
