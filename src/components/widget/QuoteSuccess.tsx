@@ -205,7 +205,7 @@ const QuoteSuccess = ({
           latLngs.forEach(coord => areaBounds.extend(coord));
           const areaCenter = areaBounds.getCenter();
           
-          // Product name label with better visibility
+          // Product name label with dark background for visibility
           new google.maps.Marker({
             position: areaCenter,
             map: map,
@@ -213,14 +213,15 @@ const QuoteSuccess = ({
             label: {
               text: item.productName,
               color: '#FFFFFF',
-              fontSize: '18px',
+              fontSize: '16px',
               fontWeight: '700',
+              className: 'map-label-with-bg'
             },
             zIndex: 1000,
           });
           
           // Measurement value label offset slightly
-          const offsetLat = areaCenter.lat() - 0.00002;
+          const offsetLat = areaCenter.lat() - 0.00003;
           new google.maps.Marker({
             position: { lat: offsetLat, lng: areaCenter.lng() },
             map: map,
@@ -228,8 +229,9 @@ const QuoteSuccess = ({
             label: {
               text: `${item.measurement.value.toLocaleString()} sq ft`,
               color: '#FFFFFF',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: '700',
+              className: 'map-label-with-bg'
             },
             zIndex: 999,
           });
@@ -251,8 +253,8 @@ const QuoteSuccess = ({
           const midIndex = Math.floor(latLngs.length / 2);
           const midPoint = latLngs[midIndex];
           
-          // Product name label with better visibility, offset above the line
-          const offsetLat = midPoint.lat + 0.00002;
+          // Product name label with dark background, offset above the line
+          const offsetLat = midPoint.lat + 0.00003;
           new google.maps.Marker({
             position: { lat: offsetLat, lng: midPoint.lng },
             map: map,
@@ -260,8 +262,9 @@ const QuoteSuccess = ({
             label: {
               text: item.productName,
               color: '#FFFFFF',
-              fontSize: '18px',
+              fontSize: '16px',
               fontWeight: '700',
+              className: 'map-label-with-bg'
             },
             zIndex: 1000,
           });
@@ -274,8 +277,9 @@ const QuoteSuccess = ({
             label: {
               text: `${item.measurement.value.toLocaleString()} ft`,
               color: '#FFFFFF',
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: '700',
+              className: 'map-label-with-bg'
             },
             zIndex: 999,
           });
