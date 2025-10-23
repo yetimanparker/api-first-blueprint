@@ -205,16 +205,34 @@ const QuoteSuccess = ({
           latLngs.forEach(coord => areaBounds.extend(coord));
           const areaCenter = areaBounds.getCenter();
           
+          // Product name label (above center)
+          new google.maps.Marker({
+            position: { lat: areaCenter.lat() + 0.00003, lng: areaCenter.lng() },
+            map: map,
+            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+            label: {
+              text: item.productName,
+              color: '#FFFFFF',
+              fontSize: '16px',
+              fontWeight: '700',
+              className: 'map-label-with-bg',
+            },
+            zIndex: 1000,
+          });
+          
+          // Measurement value label (at center)
           new google.maps.Marker({
             position: areaCenter,
             map: map,
             icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
             label: {
-              text: `${item.productName}\n${item.measurement.value.toLocaleString()} sq ft`,
-              color: color,
-              fontSize: '12px',
-              fontWeight: 'bold',
+              text: `${item.measurement.value.toLocaleString()} sq ft`,
+              color: '#FFFFFF',
+              fontSize: '14px',
+              fontWeight: '700',
+              className: 'map-label-with-bg',
             },
+            zIndex: 999,
           });
         } else if (item.measurement.type === 'linear' && item.measurement.coordinates) {
           const latLngs = item.measurement.coordinates.map(coord => ({
@@ -232,16 +250,36 @@ const QuoteSuccess = ({
           polyline.setMap(map);
 
           const midIndex = Math.floor(latLngs.length / 2);
+          const midpoint = latLngs[midIndex];
+          
+          // Product name label (offset from midpoint)
           new google.maps.Marker({
-            position: latLngs[midIndex],
+            position: { lat: midpoint.lat + 0.00003, lng: midpoint.lng },
             map: map,
             icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
             label: {
-              text: `${item.productName}\n${item.measurement.value.toLocaleString()} ft`,
-              color: color,
-              fontSize: '12px',
-              fontWeight: 'bold',
+              text: item.productName,
+              color: '#FFFFFF',
+              fontSize: '16px',
+              fontWeight: '700',
+              className: 'map-label-with-bg',
             },
+            zIndex: 1000,
+          });
+          
+          // Measurement value label (at midpoint)
+          new google.maps.Marker({
+            position: midpoint,
+            map: map,
+            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+            label: {
+              text: `${item.measurement.value.toLocaleString()} ft`,
+              color: '#FFFFFF',
+              fontSize: '14px',
+              fontWeight: '700',
+              className: 'map-label-with-bg',
+            },
+            zIndex: 999,
           });
         }
       });

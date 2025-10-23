@@ -929,7 +929,7 @@ const MeasurementTools = ({
     
     // Calculate distance between points
     const distance = google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
-    const feet = Math.round(distance * 3.28084);
+    const feet = Math.ceil(distance * 3.28084);
     
     // Calculate midpoint
     const midLat = (point1.lat() + point2.lat()) / 2;
@@ -949,6 +949,7 @@ const MeasurementTools = ({
         color: '#FFFFFF',
         fontSize: '14px',
         fontWeight: '700',
+        className: 'map-label-with-bg',
       },
       zIndex: 2,
     });
@@ -1026,6 +1027,7 @@ const MeasurementTools = ({
         color: '#FFFFFF',
         fontSize: '16px',
         fontWeight: '700',
+        className: 'map-label-with-bg',
       },
     });
 
