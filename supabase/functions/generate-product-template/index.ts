@@ -93,6 +93,27 @@ serve(async (req) => {
     const subcategoryMap = new Map(subcategories?.map(s => [s.id, s.name]) || []);
     const categoryNames = categories?.map(c => c.name) || [];
     const subcategoryNames = subcategories?.map(s => s.name) || [];
+    
+    // Helper function to resolve category/subcategory (handles both UUID and text names)
+    const resolveCategoryName = (value: any) => {
+      if (!value) return '';
+      // Check if it's a UUID
+      if (typeof value === 'string' && value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        return categoryMap.get(value) || '';
+      }
+      // Otherwise assume it's already a name
+      return value;
+    };
+    
+    const resolveSubcategoryName = (value: any) => {
+      if (!value) return '';
+      // Check if it's a UUID
+      if (typeof value === 'string' && value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        return subcategoryMap.get(value) || '';
+      }
+      // Otherwise assume it's already a name
+      return value;
+    };
 
     console.log(`Found ${products?.length || 0} products for template`);
 
@@ -128,8 +149,8 @@ serve(async (req) => {
         if (products && products.length > 0) {
           products.forEach((product, index) => {
             const shortId = (index + 1).toString();
-            const categoryName = categoryMap.get(product.category) || '';
-            const subcategoryName = subcategoryMap.get(product.subcategory) || '';
+            const categoryName = resolveCategoryName(product.category);
+            const subcategoryName = resolveSubcategoryName(product.subcategory);
             
             worksheet.addRow({
               productId: shortId,
@@ -182,8 +203,8 @@ serve(async (req) => {
         if (products && products.length > 0) {
           products.forEach((product, index) => {
             const shortId = (index + 1).toString();
-            const categoryName = categoryMap.get(product.category) || '';
-            const subcategoryName = subcategoryMap.get(product.subcategory) || '';
+            const categoryName = resolveCategoryName(product.category);
+            const subcategoryName = resolveSubcategoryName(product.subcategory);
             
             worksheet.addRow({
               productId: shortId,
@@ -313,8 +334,8 @@ serve(async (req) => {
       if (products && products.length > 0) {
         products.forEach((product, index) => {
           const shortId = (index + 1).toString();
-          const categoryName = categoryMap.get(product.category) || '';
-          const subcategoryName = subcategoryMap.get(product.subcategory) || '';
+          const categoryName = resolveCategoryName(product.category);
+          const subcategoryName = resolveSubcategoryName(product.subcategory);
           csvContent += `${shortId},"${product.name}","${categoryName}","${subcategoryName}",${product.unit_type},${product.unit_price},${product.unit_price}\n`;
         });
       } else {
@@ -337,8 +358,8 @@ serve(async (req) => {
       if (products && products.length > 0) {
         products.forEach((product, index) => {
           const shortId = (index + 1).toString();
-          const categoryName = categoryMap.get(product.category) || '';
-          const subcategoryName = subcategoryMap.get(product.subcategory) || '';
+          const categoryName = resolveCategoryName(product.category);
+          const subcategoryName = resolveSubcategoryName(product.subcategory);
           
           csvContent += [
             shortId,
