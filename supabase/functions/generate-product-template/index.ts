@@ -265,6 +265,9 @@ serve(async (req) => {
             type: 'list',
             allowBlank: false,
             formulae: [`Dropdowns!$A$2:$A$${unitTypes.length + 1}`],
+            showInputMessage: true,
+            promptTitle: 'Unit Type',
+            prompt: 'Start typing to search, or click the dropdown arrow to see all options',
             showErrorMessage: true,
             errorTitle: 'Invalid Unit Type',
             error: 'Please select a valid unit type from the dropdown'
@@ -278,6 +281,9 @@ serve(async (req) => {
               type: 'list',
               allowBlank: true,
               formulae: [`Dropdowns!$B$2:$B$${categoryNames.length + 1}`],
+              showInputMessage: true,
+              promptTitle: 'Category',
+              prompt: 'Start typing to search, or click the dropdown arrow to see all options',
               showErrorMessage: true,
               errorTitle: 'Invalid Category',
               error: 'Please select a valid category from the dropdown'
@@ -292,6 +298,9 @@ serve(async (req) => {
               type: 'list',
               allowBlank: true,
               formulae: [`Dropdowns!$C$2:$C$${subcategoryNames.length + 1}`],
+              showInputMessage: true,
+              promptTitle: 'Subcategory',
+              prompt: 'Start typing to search, or click the dropdown arrow to see all options',
               showErrorMessage: true,
               errorTitle: 'Invalid Subcategory',
               error: 'Please select a valid subcategory from the dropdown'
@@ -305,6 +314,9 @@ serve(async (req) => {
             type: 'list',
             allowBlank: false,
             formulae: ['Dropdowns!$D$2:$D$3'],
+            showInputMessage: true,
+            promptTitle: 'Active Status',
+            prompt: 'Type T for TRUE or F for FALSE, or use the dropdown',
             showErrorMessage: true,
             errorTitle: 'Invalid Active Value',
             error: 'Please select TRUE or FALSE from the dropdown'
