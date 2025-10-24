@@ -176,28 +176,46 @@ serve(async (req) => {
 
           // Handle subcategory if provided
           if (update.subcategory && categoryId) {
-            const { data: existingSubcategory } = await supabaseClient
-              .from('product_subcategories')
-              .select('id')
-              .eq('name', update.subcategory)
-              .eq('category_id', categoryId)
-              .single();
-
-            if (existingSubcategory) {
-              subcategoryId = existingSubcategory.id;
-            } else {
-              // Create new subcategory
-              const { data: newSubcategory, error: subcategoryError } = await supabaseClient
+            // Check if it's already a UUID
+            if (update.subcategory.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+              // It's a UUID - verify it exists and belongs to the category
+              const { data: existingSubcategory } = await supabaseClient
                 .from('product_subcategories')
-                .insert({
-                  name: update.subcategory,
-                  category_id: categoryId
-                })
                 .select('id')
+                .eq('id', update.subcategory)
+                .eq('category_id', categoryId)
                 .single();
 
-              if (!subcategoryError) {
-                subcategoryId = newSubcategory.id;
+              if (existingSubcategory) {
+                subcategoryId = existingSubcategory.id;
+              } else {
+                console.warn(`Subcategory UUID ${update.subcategory} not found or doesn't belong to category`);
+              }
+            } else {
+              // It's a name - look it up by name
+              const { data: existingSubcategory } = await supabaseClient
+                .from('product_subcategories')
+                .select('id')
+                .eq('name', update.subcategory)
+                .eq('category_id', categoryId)
+                .single();
+
+              if (existingSubcategory) {
+                subcategoryId = existingSubcategory.id;
+              } else {
+                // Create new subcategory
+                const { data: newSubcategory, error: subcategoryError } = await supabaseClient
+                  .from('product_subcategories')
+                  .insert({
+                    name: update.subcategory,
+                    category_id: categoryId
+                  })
+                  .select('id')
+                  .single();
+
+                if (!subcategoryError) {
+                  subcategoryId = newSubcategory.id;
+                }
               }
             }
           }
