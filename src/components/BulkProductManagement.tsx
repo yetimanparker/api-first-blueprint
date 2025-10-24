@@ -74,27 +74,50 @@ export function BulkProductManagement() {
 
   const downloadTemplate = async (mode: ManagementMode) => {
     try {
-      const response = await supabase.functions.invoke('generate-product-template', {
-        body: { mode, format: 'excel' }
-      });
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
-      if (response.error) throw response.error;
+      // Use fetch directly for binary responses
+      const SUPABASE_URL = "https://aiwwquousyzdkagporcy.supabase.co";
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/generate-product-template`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ mode, format: 'excel' }),
+        }
+      );
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate template');
+      }
+
+      // Check content type to determine if it's Excel or JSON
+      const contentType = response.headers.get('content-type');
       let blob: Blob;
       let fileName: string;
-      
-      // Check if response is binary (Excel) or JSON (CSV fallback)
-      if (response.data instanceof ArrayBuffer || response.data instanceof Blob) {
-        blob = new Blob([response.data], { 
+
+      if (contentType?.includes('spreadsheet') || contentType?.includes('excel')) {
+        // Binary Excel response
+        const arrayBuffer = await response.arrayBuffer();
+        blob = new Blob([arrayBuffer], { 
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
         });
         fileName = mode === 'pricing_only' ? 'bulk-pricing-template.xlsx' : 'bulk-product-template.xlsx';
-      } else if (response.data.csvContent) {
-        // Fallback to CSV
-        blob = new Blob([response.data.csvContent], { type: 'text/csv' });
-        fileName = mode === 'pricing_only' ? 'bulk-pricing-template.csv' : 'bulk-product-template.csv';
       } else {
-        throw new Error('Invalid response format');
+        // JSON response with CSV fallback
+        const data = await response.json();
+        if (data.csvContent) {
+          blob = new Blob([data.csvContent], { type: 'text/csv' });
+          fileName = mode === 'pricing_only' ? 'bulk-pricing-template.csv' : 'bulk-product-template.csv';
+        } else {
+          throw new Error('Invalid response format');
+        }
       }
       
       const url = window.URL.createObjectURL(blob);
