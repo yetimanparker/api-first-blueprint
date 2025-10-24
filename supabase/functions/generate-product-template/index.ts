@@ -110,6 +110,9 @@ serve(async (req) => {
         worksheet.columns = [
           { header: 'Product ID', key: 'productId', width: 12 },
           { header: 'Product Name', key: 'productName', width: 30 },
+          { header: 'Category', key: 'category', width: 20 },
+          { header: 'Subcategory', key: 'subcategory', width: 20 },
+          { header: 'Unit Type', key: 'unitType', width: 15 },
           { header: 'Current Price', key: 'currentPrice', width: 15 },
           { header: 'New Price', key: 'newPrice', width: 15 }
         ];
@@ -125,9 +128,15 @@ serve(async (req) => {
         if (products && products.length > 0) {
           products.forEach((product, index) => {
             const shortId = (index + 1).toString();
+            const categoryName = categoryMap.get(product.category) || '';
+            const subcategoryName = subcategoryMap.get(product.subcategory) || '';
+            
             worksheet.addRow({
               productId: shortId,
               productName: product.name,
+              category: categoryName,
+              subcategory: subcategoryName,
+              unitType: product.unit_type,
               currentPrice: product.unit_price,
               newPrice: product.unit_price
             });
@@ -136,6 +145,9 @@ serve(async (req) => {
           worksheet.addRow({
             productId: '1',
             productName: 'Sample Product',
+            category: 'Fencing',
+            subcategory: '',
+            unitType: 'linearft',
             currentPrice: 10.00,
             newPrice: 12.00
           });
@@ -296,15 +308,17 @@ serve(async (req) => {
     let csvContent = '';
     
     if (mode === 'pricing_only') {
-      csvContent = 'Product ID,Product Name,Current Price,New Price\n';
+      csvContent = 'Product ID,Product Name,Category,Subcategory,Unit Type,Current Price,New Price\n';
       
       if (products && products.length > 0) {
         products.forEach((product, index) => {
           const shortId = (index + 1).toString();
-          csvContent += `${shortId},"${product.name}",${product.unit_price},${product.unit_price}\n`;
+          const categoryName = categoryMap.get(product.category) || '';
+          const subcategoryName = subcategoryMap.get(product.subcategory) || '';
+          csvContent += `${shortId},"${product.name}","${categoryName}","${subcategoryName}",${product.unit_type},${product.unit_price},${product.unit_price}\n`;
         });
       } else {
-        csvContent += '1,"Sample Product",10.00,12.00\n';
+        csvContent += '1,"Sample Product","Fencing","",linearft,10.00,12.00\n';
       }
     } else {
       csvContent = [
