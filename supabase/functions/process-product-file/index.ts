@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as XLSX from "https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -103,8 +104,22 @@ serve(async (req) => {
       throw new Error('No file uploaded');
     }
 
-    const csvText = await file.text();
-    const lines = csvText.split('\n').filter(line => line.trim());
+    let lines: string[] = [];
+    const fileName = file.name.toLowerCase();
+    
+    // Check if file is Excel
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const csvText = XLSX.utils.sheet_to_csv(worksheet);
+      lines = csvText.split('\n').filter(line => line.trim());
+    } else {
+      // Process as CSV
+      const csvText = await file.text();
+      lines = csvText.split('\n').filter(line => line.trim());
+    }
 
     if (lines.length < 2) {
       throw new Error('File must contain at least a header row and one data row');
@@ -267,9 +282,19 @@ serve(async (req) => {
           rowErrors.push({ row: i, field: 'Unit Price', message: 'Must be a valid positive number' });
         }
 
-        const validUnitTypes = ['sq_ft', 'linear_ft', 'cubic_yard', 'each', 'hour', 'yard', 'ton'];
-        if (!validUnitTypes.includes(unitType)) {
-          rowErrors.push({ row: i, field: 'Unit Type', message: `Must be one of: ${validUnitTypes.join(', ')}` });
+        // Support both underscore and non-underscore formats
+        const validUnitTypes = [
+          'sqft', 'sq_ft',
+          'linearft', 'linear_ft',
+          'cubicyard', 'cubic_yard',
+          'each',
+          'hour',
+          'pound',
+          'ton',
+          'pallet'
+        ];
+        if (!validUnitTypes.includes(unitType.toLowerCase())) {
+          rowErrors.push({ row: i, field: 'Unit Type', message: `Must be one of: sqft, linearft, cubicyard, each, hour, pound, ton, pallet` });
         }
 
         if (rowErrors.length === 0) {

@@ -74,18 +74,34 @@ export function BulkProductManagement() {
 
   const downloadTemplate = async (mode: ManagementMode) => {
     try {
-      const { data, error } = await supabase.functions.invoke('generate-product-template', {
-        body: { mode }
+      const response = await supabase.functions.invoke('generate-product-template', {
+        body: { mode, format: 'excel' }
       });
 
-      if (error) throw error;
+      if (response.error) throw response.error;
 
-      const blob = new Blob([data.csvContent], { type: 'text/csv' });
+      let blob: Blob;
+      let fileName: string;
+      
+      // Check if response is binary (Excel) or JSON (CSV fallback)
+      if (response.data instanceof ArrayBuffer || response.data instanceof Blob) {
+        blob = new Blob([response.data], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        });
+        fileName = mode === 'pricing_only' ? 'bulk-pricing-template.xlsx' : 'bulk-product-template.xlsx';
+      } else if (response.data.csvContent) {
+        // Fallback to CSV
+        blob = new Blob([response.data.csvContent], { type: 'text/csv' });
+        fileName = mode === 'pricing_only' ? 'bulk-pricing-template.csv' : 'bulk-product-template.csv';
+      } else {
+        throw new Error('Invalid response format');
+      }
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = mode === 'pricing_only' ? 'bulk-pricing-template.csv' : 'bulk-product-template.csv';
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -93,7 +109,7 @@ export function BulkProductManagement() {
 
       toast({
         title: "Template Downloaded",
-        description: `${mode === 'pricing_only' ? 'Pricing' : 'Product management'} template ready for editing.`,
+        description: `${mode === 'pricing_only' ? 'Pricing' : 'Product management'} template with dropdown validation ready for editing.`,
       });
     } catch (error: any) {
       toast({
@@ -358,10 +374,12 @@ export function BulkProductManagement() {
                   </>
                 ) : (
                   <>
+                    <li>• <strong>Excel template recommended</strong> - includes dropdown validation</li>
                     <li>• Required columns: Name, Unit Price, Unit Type</li>
-                    <li>• Optional: Description, Category, Subcategory, Color, Photo URL, etc.</li>
+                    <li>• Dropdowns: Unit Type, Category, Subcategory, Active status</li>
+                    <li>• Optional: Description, Photo URL, Display Order</li>
                     <li>• Maximum 500 products per file</li>
-                    <li>• Categories will be auto-created if they don't exist</li>
+                    <li>• CSV format also supported (without dropdowns)</li>
                   </>
                 )}
               </ul>
