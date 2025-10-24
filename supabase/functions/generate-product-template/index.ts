@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as XLSX from "https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs";
+import ExcelJS from "https://esm.sh/exceljs@4.4.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -98,169 +98,193 @@ serve(async (req) => {
 
     // Generate Excel file if format is excel
     if (format === 'excel') {
-      const workbook = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Bulk Product Management';
+      workbook.created = new Date();
       
       if (mode === 'pricing_only') {
         // Pricing-only template
-        const data = [
-          ['Product ID', 'Product Name', 'Current Price', 'New Price']
+        const worksheet = workbook.addWorksheet('Products');
+        
+        // Add headers
+        worksheet.columns = [
+          { header: 'Product ID', key: 'productId', width: 12 },
+          { header: 'Product Name', key: 'productName', width: 30 },
+          { header: 'Current Price', key: 'currentPrice', width: 15 },
+          { header: 'New Price', key: 'newPrice', width: 15 }
         ];
+        
+        // Style header row
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE0E0E0' }
+        };
         
         if (products && products.length > 0) {
           products.forEach((product, index) => {
             const shortId = (index + 1).toString();
-            data.push([shortId, product.name, product.unit_price, product.unit_price]);
+            worksheet.addRow({
+              productId: shortId,
+              productName: product.name,
+              currentPrice: product.unit_price,
+              newPrice: product.unit_price
+            });
           });
         } else {
-          data.push(['1', 'Sample Product', 10.00, 12.00]);
+          worksheet.addRow({
+            productId: '1',
+            productName: 'Sample Product',
+            currentPrice: 10.00,
+            newPrice: 12.00
+          });
         }
-        
-        const worksheet = XLSX.utils.aoa_to_sheet(data);
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
       } else {
         // Full management template with dropdowns
-        const data = [
-          ['Product ID', 'Product Name', 'Description', 'Unit Price', 'Unit Type', 'Category', 'Subcategory', 'Photo URL', 'Active', 'Display Order']
+        const worksheet = workbook.addWorksheet('Products');
+        
+        // Define columns with proper widths
+        worksheet.columns = [
+          { header: 'Product ID', key: 'productId', width: 12 },
+          { header: 'Product Name', key: 'productName', width: 30 },
+          { header: 'Description', key: 'description', width: 40 },
+          { header: 'Unit Price', key: 'unitPrice', width: 12 },
+          { header: 'Unit Type', key: 'unitType', width: 15 },
+          { header: 'Category', key: 'category', width: 20 },
+          { header: 'Subcategory', key: 'subcategory', width: 20 },
+          { header: 'Photo URL', key: 'photoUrl', width: 30 },
+          { header: 'Active', key: 'active', width: 10 },
+          { header: 'Display Order', key: 'displayOrder', width: 15 }
         ];
         
+        // Style header row
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE0E0E0' }
+        };
+        
+        // Add data rows
         if (products && products.length > 0) {
           products.forEach((product, index) => {
             const shortId = (index + 1).toString();
             const categoryName = categoryMap.get(product.category) || '';
             const subcategoryName = subcategoryMap.get(product.subcategory) || '';
             
-            data.push([
-              shortId,
-              product.name,
-              product.description || '',
-              product.unit_price,
-              product.unit_type,
-              categoryName,
-              subcategoryName,
-              product.photo_url || '',
-              product.is_active ? 'TRUE' : 'FALSE',
-              product.display_order || 0
-            ]);
+            worksheet.addRow({
+              productId: shortId,
+              productName: product.name,
+              description: product.description || '',
+              unitPrice: product.unit_price,
+              unitType: product.unit_type,
+              category: categoryName,
+              subcategory: subcategoryName,
+              photoUrl: product.photo_url || '',
+              active: product.is_active ? 'TRUE' : 'FALSE',
+              displayOrder: product.display_order || 0
+            });
           });
         } else {
           // Sample rows
           const sampleCategories = categoryNames.length > 0 ? categoryNames.slice(0, 3) : ['Fencing', 'Decking', 'Landscaping'];
           sampleCategories.forEach((category, index) => {
-            data.push([
-              '',
-              `Sample ${category} Product`,
-              `Description for ${category.toLowerCase()} service`,
-              (15 + index * 5).toFixed(2),
-              index === 0 ? 'linearft' : index === 1 ? 'sqft' : 'each',
-              category,
-              '',
-              '',
-              'TRUE',
-              index
-            ]);
+            worksheet.addRow({
+              productId: '',
+              productName: `Sample ${category} Product`,
+              description: `Description for ${category.toLowerCase()} service`,
+              unitPrice: (15 + index * 5).toFixed(2),
+              unitType: index === 0 ? 'linearft' : index === 1 ? 'sqft' : 'each',
+              category: category,
+              subcategory: '',
+              photoUrl: '',
+              active: 'TRUE',
+              displayOrder: index
+            });
           });
         }
         
-        const worksheet = XLSX.utils.aoa_to_sheet(data);
+        // Create Dropdowns reference sheet
+        const dropdownSheet = workbook.addWorksheet('Dropdowns');
+        dropdownSheet.state = 'hidden'; // Hide the dropdown sheet
         
-        // Set column widths for better readability
-        worksheet['!cols'] = [
-          { wch: 12 }, // Product ID
-          { wch: 30 }, // Product Name
-          { wch: 40 }, // Description
-          { wch: 12 }, // Unit Price
-          { wch: 15 }, // Unit Type
-          { wch: 20 }, // Category
-          { wch: 20 }, // Subcategory
-          { wch: 30 }, // Photo URL
-          { wch: 10 }, // Active
-          { wch: 15 }  // Display Order
-        ];
+        // Add dropdown values
+        dropdownSheet.addRow(['Unit Types', 'Categories', 'Subcategories', 'Active Values']);
+        const maxRows = Math.max(unitTypes.length, categoryNames.length, subcategoryNames.length, 2);
         
-        // Create Dropdowns reference sheet first
-        const dropdownData = [
-          ['Unit Types', 'Categories', 'Subcategories', 'Active Values'],
-          ...Array.from({ length: Math.max(unitTypes.length, categoryNames.length, subcategoryNames.length, 2) }, (_, i) => [
+        for (let i = 0; i < maxRows; i++) {
+          dropdownSheet.addRow([
             unitTypes[i] || '',
             categoryNames[i] || '',
             subcategoryNames[i] || '',
             i < 2 ? (i === 0 ? 'TRUE' : 'FALSE') : ''
-          ])
-        ];
+          ]);
+        }
         
-        const dropdownSheet = XLSX.utils.aoa_to_sheet(dropdownData);
-        XLSX.utils.book_append_sheet(workbook, dropdownSheet, 'Dropdowns');
+        // Add data validation to columns
+        const dataRowCount = worksheet.rowCount;
+        const validationRows = Math.max(dataRowCount, 100);
         
-        // Add data validation using sheet references
-        const rowCount = data.length;
-        const maxRows = Math.max(rowCount, 100);
-        
-        // Calculate range sizes for dropdown references
-        const unitTypeRange = `Dropdowns!$A$2:$A$${1 + unitTypes.length}`;
-        const categoryRange = categoryNames.length > 0 ? `Dropdowns!$B$2:$B$${1 + categoryNames.length}` : null;
-        const subcategoryRange = subcategoryNames.length > 0 ? `Dropdowns!$C$2:$C$${1 + subcategoryNames.length}` : null;
-        const activeRange = `Dropdowns!$D$2:$D$3`;
-        
-        // Create data validation array
-        worksheet['!dataValidation'] = [];
-        
-        // Unit Type dropdown (column E) - using sheet reference
-        for (let i = 2; i <= maxRows; i++) {
-          worksheet['!dataValidation'].push({
-            sqref: `E${i}`,
+        // Unit Type dropdown (column E)
+        for (let i = 2; i <= validationRows; i++) {
+          worksheet.getCell(`E${i}`).dataValidation = {
             type: 'list',
             allowBlank: false,
-            showDropDown: true,
-            formulae: [unitTypeRange]
-          });
+            formulae: [`Dropdowns!$A$2:$A$${unitTypes.length + 1}`],
+            showErrorMessage: true,
+            errorTitle: 'Invalid Unit Type',
+            error: 'Please select a valid unit type from the dropdown'
+          };
         }
         
         // Category dropdown (column F)
-        if (categoryRange) {
-          for (let i = 2; i <= maxRows; i++) {
-            worksheet['!dataValidation'].push({
-              sqref: `F${i}`,
+        if (categoryNames.length > 0) {
+          for (let i = 2; i <= validationRows; i++) {
+            worksheet.getCell(`F${i}`).dataValidation = {
               type: 'list',
               allowBlank: true,
-              showDropDown: true,
-              formulae: [categoryRange]
-            });
+              formulae: [`Dropdowns!$B$2:$B$${categoryNames.length + 1}`],
+              showErrorMessage: true,
+              errorTitle: 'Invalid Category',
+              error: 'Please select a valid category from the dropdown'
+            };
           }
         }
         
         // Subcategory dropdown (column G)
-        if (subcategoryRange) {
-          for (let i = 2; i <= maxRows; i++) {
-            worksheet['!dataValidation'].push({
-              sqref: `G${i}`,
+        if (subcategoryNames.length > 0) {
+          for (let i = 2; i <= validationRows; i++) {
+            worksheet.getCell(`G${i}`).dataValidation = {
               type: 'list',
               allowBlank: true,
-              showDropDown: true,
-              formulae: [subcategoryRange]
-            });
+              formulae: [`Dropdowns!$C$2:$C$${subcategoryNames.length + 1}`],
+              showErrorMessage: true,
+              errorTitle: 'Invalid Subcategory',
+              error: 'Please select a valid subcategory from the dropdown'
+            };
           }
         }
         
         // Active dropdown (column I)
-        for (let i = 2; i <= maxRows; i++) {
-          worksheet['!dataValidation'].push({
-            sqref: `I${i}`,
+        for (let i = 2; i <= validationRows; i++) {
+          worksheet.getCell(`I${i}`).dataValidation = {
             type: 'list',
             allowBlank: false,
-            showDropDown: true,
-            formulae: [activeRange]
-          });
+            formulae: ['Dropdowns!$D$2:$D$3'],
+            showErrorMessage: true,
+            errorTitle: 'Invalid Active Value',
+            error: 'Please select TRUE or FALSE from the dropdown'
+          };
         }
-        
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
       }
       
       // Write workbook to buffer
-      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      const buffer = await workbook.xlsx.writeBuffer();
       
       console.log('Excel template generated successfully');
       
-      return new Response(excelBuffer, {
+      return new Response(buffer, {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
