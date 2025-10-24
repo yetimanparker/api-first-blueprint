@@ -163,81 +163,94 @@ serve(async (req) => {
         
         const worksheet = XLSX.utils.aoa_to_sheet(data);
         
-        // Add data validation for dropdowns
-        const rowCount = data.length;
+        // Set column widths for better readability
+        worksheet['!cols'] = [
+          { wch: 12 }, // Product ID
+          { wch: 30 }, // Product Name
+          { wch: 40 }, // Description
+          { wch: 12 }, // Unit Price
+          { wch: 15 }, // Unit Type
+          { wch: 20 }, // Category
+          { wch: 20 }, // Subcategory
+          { wch: 30 }, // Photo URL
+          { wch: 10 }, // Active
+          { wch: 15 }  // Display Order
+        ];
         
-        // Unit Type dropdown (column E, index 4)
-        for (let i = 2; i <= Math.max(rowCount, 100); i++) {
-          const cellRef = `E${i}`;
-          if (!worksheet[cellRef]) worksheet[cellRef] = { t: 's', v: '' };
-          worksheet[cellRef].s = {
-            validation: {
-              type: 'list',
-              operator: 'equal',
-              formula1: `"${unitTypes.join(',')}"`,
-              showDropDown: true
-            }
-          };
-        }
-        
-        // Category dropdown (column F, index 5)
-        if (categoryNames.length > 0) {
-          for (let i = 2; i <= Math.max(rowCount, 100); i++) {
-            const cellRef = `F${i}`;
-            if (!worksheet[cellRef]) worksheet[cellRef] = { t: 's', v: '' };
-            worksheet[cellRef].s = {
-              validation: {
-                type: 'list',
-                operator: 'equal',
-                formula1: `"${categoryNames.join(',')}"`,
-                showDropDown: true
-              }
-            };
-          }
-        }
-        
-        // Subcategory dropdown (column G, index 6)
-        if (subcategoryNames.length > 0) {
-          for (let i = 2; i <= Math.max(rowCount, 100); i++) {
-            const cellRef = `G${i}`;
-            if (!worksheet[cellRef]) worksheet[cellRef] = { t: 's', v: '' };
-            worksheet[cellRef].s = {
-              validation: {
-                type: 'list',
-                operator: 'equal',
-                formula1: `"${subcategoryNames.join(',')}"`,
-                showDropDown: true
-              }
-            };
-          }
-        }
-        
-        // Active dropdown (column I, index 8)
-        for (let i = 2; i <= Math.max(rowCount, 100); i++) {
-          const cellRef = `I${i}`;
-          if (!worksheet[cellRef]) worksheet[cellRef] = { t: 's', v: '' };
-          worksheet[cellRef].s = {
-            validation: {
-              type: 'list',
-              operator: 'equal',
-              formula1: '"TRUE,FALSE"',
-              showDropDown: true
-            }
-          };
-        }
-        
-        // Create hidden Dropdowns sheet with reference data
+        // Create Dropdowns reference sheet first
         const dropdownData = [
-          ['Unit Types', 'Categories', 'Subcategories'],
-          ...Array.from({ length: Math.max(unitTypes.length, categoryNames.length, subcategoryNames.length) }, (_, i) => [
+          ['Unit Types', 'Categories', 'Subcategories', 'Active Values'],
+          ...Array.from({ length: Math.max(unitTypes.length, categoryNames.length, subcategoryNames.length, 2) }, (_, i) => [
             unitTypes[i] || '',
             categoryNames[i] || '',
-            subcategoryNames[i] || ''
+            subcategoryNames[i] || '',
+            i < 2 ? (i === 0 ? 'TRUE' : 'FALSE') : ''
           ])
         ];
         
         const dropdownSheet = XLSX.utils.aoa_to_sheet(dropdownData);
         XLSX.utils.book_append_sheet(workbook, dropdownSheet, 'Dropdowns');
+        
+        // Add data validation using sheet references
+        const rowCount = data.length;
+        const maxRows = Math.max(rowCount, 100);
+        
+        // Calculate range sizes for dropdown references
+        const unitTypeRange = `Dropdowns!$A$2:$A$${1 + unitTypes.length}`;
+        const categoryRange = categoryNames.length > 0 ? `Dropdowns!$B$2:$B$${1 + categoryNames.length}` : null;
+        const subcategoryRange = subcategoryNames.length > 0 ? `Dropdowns!$C$2:$C$${1 + subcategoryNames.length}` : null;
+        const activeRange = `Dropdowns!$D$2:$D$3`;
+        
+        // Create data validation array
+        worksheet['!dataValidation'] = [];
+        
+        // Unit Type dropdown (column E) - using sheet reference
+        for (let i = 2; i <= maxRows; i++) {
+          worksheet['!dataValidation'].push({
+            sqref: `E${i}`,
+            type: 'list',
+            allowBlank: false,
+            showDropDown: true,
+            formulae: [unitTypeRange]
+          });
+        }
+        
+        // Category dropdown (column F)
+        if (categoryRange) {
+          for (let i = 2; i <= maxRows; i++) {
+            worksheet['!dataValidation'].push({
+              sqref: `F${i}`,
+              type: 'list',
+              allowBlank: true,
+              showDropDown: true,
+              formulae: [categoryRange]
+            });
+          }
+        }
+        
+        // Subcategory dropdown (column G)
+        if (subcategoryRange) {
+          for (let i = 2; i <= maxRows; i++) {
+            worksheet['!dataValidation'].push({
+              sqref: `G${i}`,
+              type: 'list',
+              allowBlank: true,
+              showDropDown: true,
+              formulae: [subcategoryRange]
+            });
+          }
+        }
+        
+        // Active dropdown (column I)
+        for (let i = 2; i <= maxRows; i++) {
+          worksheet['!dataValidation'].push({
+            sqref: `I${i}`,
+            type: 'list',
+            allowBlank: false,
+            showDropDown: true,
+            formulae: [activeRange]
+          });
+        }
         
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
       }
