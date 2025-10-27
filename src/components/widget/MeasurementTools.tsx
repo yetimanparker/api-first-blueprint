@@ -76,6 +76,7 @@ const MeasurementTools = ({
   const [pointLocations, setPointLocations] = useState<Array<{lat: number, lng: number}>>([]);
   const [pointMarkers, setPointMarkers] = useState<google.maps.Marker[]>([]);
   const [currentZoom, setCurrentZoom] = useState(19);
+  const [debouncedZoom, setDebouncedZoom] = useState(19);
   
   // Dimensional product states
   const [dimensionalRotation, setDimensionalRotation] = useState(0);
@@ -96,6 +97,7 @@ const MeasurementTools = ({
   const measurementTypeRef = useRef<'area' | 'linear' | 'point' | 'dimensional'>('area');
   const isDrawingRef = useRef(false);
   const pointCountRef = useRef(0); // Track point count for reliable sequential numbering
+  const isRenderingRef = useRef(false); // Guard against concurrent renders
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -320,20 +322,22 @@ const MeasurementTools = ({
     isDrawingRef.current = isDrawing;
   }, [isDrawing]);
 
-  // Re-render existing measurements when quote items change
+  // Debounce zoom changes to prevent excessive re-renders
   useEffect(() => {
-    console.log('🗑️ Quote items changed, updating map. Count:', existingQuoteItems.length);
-    if (mapRef.current) {
-      renderExistingMeasurements(mapRef.current);
-    }
-  }, [existingQuoteItems]);
+    const timer = setTimeout(() => {
+      setDebouncedZoom(currentZoom);
+    }, 150); // 150ms debounce
+    
+    return () => clearTimeout(timer);
+  }, [currentZoom]);
 
-  // Re-render existing measurements when zoom changes (to update label font sizes)
+  // Consolidated effect for re-rendering measurements (triggered by quote items or zoom changes)
   useEffect(() => {
+    console.log('🗑️ Render trigger - Items:', existingQuoteItems.length, 'Zoom:', debouncedZoom);
     if (mapRef.current && existingQuoteItems.length > 0) {
       renderExistingMeasurements(mapRef.current);
     }
-  }, [currentZoom]);
+  }, [existingQuoteItems, debouncedZoom]);
 
   // Disable/enable shape editing based on configuration mode
   useEffect(() => {
@@ -432,15 +436,41 @@ const MeasurementTools = ({
     return null;
   };
 
-  const renderExistingMeasurements = (map: google.maps.Map) => {
+  const renderExistingMeasurements = async (map: google.maps.Map) => {
+    // Prevent concurrent renders
+    if (isRenderingRef.current) {
+      console.log('⏸️ Render already in progress, skipping...');
+      return;
+    }
+    
+    isRenderingRef.current = true;
     console.log('🗺️ MeasurementTools - Rendering existing measurements. Items:', existingQuoteItems.length);
     
     // Clear any existing previous shapes and labels
-    console.log('🧹 Clearing previous shapes:', previousShapesRef.current.length);
-    previousShapesRef.current.forEach(shape => shape.setMap(null));
+    console.log('🧹 Clearing previous shapes:', previousShapesRef.current.length, 'labels:', previousLabelsRef.current.length);
+    
+    // Clear shapes
+    previousShapesRef.current.forEach(shape => {
+      try {
+        shape.setMap(null);
+      } catch (e) {
+        console.warn('Failed to remove shape:', e);
+      }
+    });
     previousShapesRef.current = [];
-    previousLabelsRef.current.forEach(label => label.setMap(null));
+    
+    // Clear labels/markers
+    previousLabelsRef.current.forEach(label => {
+      try {
+        label.setMap(null);
+      } catch (e) {
+        console.warn('Failed to remove label:', e);
+      }
+    });
     previousLabelsRef.current = [];
+    
+    // Add a small delay to ensure Google Maps API processes the removals
+    await new Promise(resolve => setTimeout(resolve, 10));
 
     existingQuoteItems.forEach((item, index) => {
       console.log(`📍 Rendering item ${index} (${item.productName}):`, {
@@ -541,7 +571,8 @@ const MeasurementTools = ({
         // Render point measurements
         console.log(`  ➡️ Rendering ${item.measurement.pointLocations.length} point markers with color ${color}`);
         item.measurement.pointLocations.forEach((point, idx) => {
-          console.log(`    • Point ${idx + 1}:`, point);
+          const markerId = `${item.id}-point-${idx}`;
+          console.log(`    • Point ${idx + 1}:`, point, 'ID:', markerId);
           const marker = new google.maps.Marker({
             position: point, // Already in {lat, lng} format
             map: map,
@@ -562,12 +593,16 @@ const MeasurementTools = ({
             title: `${item.customName || item.productName} - Point ${idx + 1}`
           });
           
+          // Store custom ID for debugging
+          (marker as any).customId = markerId;
+          
           previousLabelsRef.current.push(marker);
         });
       }
     });
     
     console.log('✅ MeasurementTools - Rendering complete. Shapes:', previousShapesRef.current.length, 'Labels:', previousLabelsRef.current.length);
+    isRenderingRef.current = false;
   };
 
   const getNextMeasurementColor = () => {
