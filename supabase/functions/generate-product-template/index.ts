@@ -283,10 +283,8 @@ serve(async (req) => {
               formulae: [`Dropdowns!$B$2:$B$${categoryNames.length + 1}`],
               showInputMessage: true,
               promptTitle: 'Category',
-              prompt: 'Start typing to search, or click the dropdown arrow to see all options',
-              showErrorMessage: true,
-              errorTitle: 'Invalid Category',
-              error: 'Please select a valid category from the dropdown'
+              prompt: 'Select from dropdown or type a new category name',
+              showErrorMessage: false
             };
           }
         }
@@ -300,10 +298,8 @@ serve(async (req) => {
               formulae: [`Dropdowns!$C$2:$C$${subcategoryNames.length + 1}`],
               showInputMessage: true,
               promptTitle: 'Subcategory',
-              prompt: 'Start typing to search, or click the dropdown arrow to see all options',
-              showErrorMessage: true,
-              errorTitle: 'Invalid Subcategory',
-              error: 'Please select a valid subcategory from the dropdown'
+              prompt: 'Select from dropdown or type a new subcategory name',
+              showErrorMessage: false
             };
           }
         }
