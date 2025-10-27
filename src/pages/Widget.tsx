@@ -12,6 +12,7 @@ import ContactForm from '@/components/widget/ContactForm';
 import ProductSelector from '@/components/widget/ProductSelector';
 import MeasurementTools from '@/components/widget/MeasurementTools';
 import QuantityInput from '@/components/widget/QuantityInput';
+import QuantityMethodDialog from '@/components/widget/QuantityMethodDialog';
 import ProductConfiguration from '@/components/widget/ProductConfiguration';
 import QuoteReview from '@/components/widget/QuoteReview';
 import QuoteSuccess from '@/components/widget/QuoteSuccess';
@@ -37,6 +38,7 @@ const Widget = () => {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [submittedQuoteNumber, setSubmittedQuoteNumber] = useState<string | null>(null);
   const [submittedProjectComments, setSubmittedProjectComments] = useState<string>('');
+  const [showMethodDialog, setShowMethodDialog] = useState(false);
 
   // Use debounced service area validation
   const { isServiceAreaValid, isValidating, manualValidate } = useDebouncedServiceArea({
@@ -272,15 +274,33 @@ const Widget = () => {
     
     setSelectedProduct(productData);
     
-    // Products sold by count/weight/time go to quantity input
-    const manualInputUnits = ['each', 'ton', 'pound', 'pallet', 'hour'];
-    const requiresManualInput = manualInputUnits.includes(productData.unit_type);
-    
-    const nextStep = requiresManualInput ? 'quantity-input' : 'measurement';
-    
     setWidgetState(prev => ({
       ...prev,
       currentProductId: productId,
+    }));
+    
+    // For 'each' products, show method selection dialog
+    if (productData.unit_type === 'each') {
+      setShowMethodDialog(true);
+    } else {
+      // Other manual input products go straight to quantity input
+      const manualInputUnits = ['ton', 'pound', 'pallet', 'hour'];
+      const requiresManualInput = manualInputUnits.includes(productData.unit_type);
+      
+      const nextStep = requiresManualInput ? 'quantity-input' : 'measurement';
+      
+      setWidgetState(prev => ({
+        ...prev,
+        currentStep: nextStep
+      }));
+    }
+  };
+
+  const handleMethodSelect = (method: 'manual' | 'map') => {
+    setShowMethodDialog(false);
+    const nextStep = method === 'manual' ? 'quantity-input' : 'measurement';
+    setWidgetState(prev => ({
+      ...prev,
       currentStep: nextStep
     }));
   };
@@ -596,6 +616,15 @@ const Widget = () => {
           </div>
         )}
       </div>
+
+      {/* Method Selection Dialog for 'each' products */}
+      {selectedProduct && (
+        <QuantityMethodDialog
+          open={showMethodDialog}
+          productName={selectedProduct.name}
+          onMethodSelect={handleMethodSelect}
+        />
+      )}
     </div>
   );
 };
