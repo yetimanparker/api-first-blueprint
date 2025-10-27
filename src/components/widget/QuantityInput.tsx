@@ -90,9 +90,16 @@ const QuantityInput = ({
 
           {/* Quantity Input */}
           <div className="space-y-3">
-            <Label htmlFor="quantity" className="text-base font-semibold">
-              Quantity
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="quantity" className="text-base font-semibold">
+                Quantity ({unitType})
+              </Label>
+              {minQuantity > 1 && (
+                <span className="text-sm text-muted-foreground">
+                  Min: {minQuantity} {unitType}
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-4">
               <Button
                 size="lg"
@@ -122,11 +129,6 @@ const QuantityInput = ({
                 <Plus className="h-6 w-6" />
               </Button>
             </div>
-            {minQuantity > 1 && (
-              <p className="text-xs text-muted-foreground">
-                Minimum order quantity: {minQuantity}
-              </p>
-            )}
           </div>
 
           {/* Action Buttons */}
