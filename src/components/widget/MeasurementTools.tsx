@@ -580,7 +580,7 @@ const MeasurementTools = ({
               text: `${idx + 1}`,
               color: 'white',
               fontSize: `${Math.max(8, getZoomBasedFontSize(currentZoom) - 2)}px`,
-              fontWeight: 'bold'
+              fontWeight: 'normal'
             },
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
@@ -1004,7 +1004,7 @@ const MeasurementTools = ({
         text: `${markerNumber}`,
         color: 'white',
         fontSize: '14px',
-        fontWeight: 'bold'
+        fontWeight: 'normal'
       },
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
@@ -1056,7 +1056,7 @@ const MeasurementTools = ({
         text: `${idx + 1}`,
         color: 'white',
         fontSize: '14px',
-        fontWeight: 'bold'
+        fontWeight: 'normal'
       });
     });
   };
