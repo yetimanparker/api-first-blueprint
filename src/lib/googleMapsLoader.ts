@@ -29,7 +29,7 @@ export const getGoogleMapsLoader = async (): Promise<Loader> => {
   loaderInstance = new Loader({
     apiKey,
     version: 'weekly',
-    libraries: ['places', 'drawing', 'geometry', 'marker'], // All libraries needed across the app
+    libraries: ['places', 'drawing', 'geometry'], // All libraries needed across the app
   });
 
   return loaderInstance;
