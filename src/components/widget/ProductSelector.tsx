@@ -333,8 +333,8 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
               className="group cursor-pointer hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 hover:scale-[1.02] rounded-xl overflow-hidden"
               onClick={() => onProductSelect(product.id)}
             >
-              {product.photo_url && (
-                <div className="relative overflow-hidden bg-muted h-48">
+              <div className="relative overflow-hidden bg-muted h-48">
+                {product.photo_url ? (
                   <img
                     src={product.photo_url}
                     alt={product.name}
@@ -343,8 +343,12 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
                       e.currentTarget.style.display = 'none';
                     }}
                   />
-                </div>
-              )}
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="h-16 w-16 text-muted-foreground/30" />
+                  </div>
+                )}
+              </div>
               
               <CardContent className="p-5">
                 <div className="mb-3">
