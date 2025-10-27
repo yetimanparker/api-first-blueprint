@@ -966,7 +966,7 @@ const Settings = () => {
                                   type="number" 
                                   min="0" 
                                   max="100" 
-                                  step="0.1"
+                                  step="0.01"
                                   {...field} 
                                   onChange={(e) => field.onChange(parseFloat(e.target.value))}
                                 />
