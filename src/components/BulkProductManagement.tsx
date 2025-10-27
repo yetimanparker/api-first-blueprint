@@ -39,6 +39,13 @@ interface ValidationError {
   message: string;
 }
 
+interface FailedProduct {
+  productName: string;
+  productId?: string;
+  error: string;
+  rowNumber?: number;
+}
+
 type ManagementPhase = "upload" | "preview" | "processing" | "complete";
 type ManagementMode = "pricing_only" | "full_management";
 
@@ -47,6 +54,8 @@ export function BulkProductManagement() {
   const [managementMode, setManagementMode] = useState<ManagementMode>("pricing_only");
   const [previewItems, setPreviewItems] = useState<ProductManagementItem[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [failedProducts, setFailedProducts] = useState<FailedProduct[]>([]);
+  const [successCount, setSuccessCount] = useState(0);
   const [progress, setProgress] = useState(0);
   const [batchId, setBatchId] = useState<string>("");
   const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
@@ -226,13 +235,37 @@ export function BulkProductManagement() {
 
       if (error) throw error;
 
+      // Parse results to identify failures
+      const failed: FailedProduct[] = [];
+      data.results?.forEach((result: any, index: number) => {
+        if (!result.success) {
+          const item = selectedItems[index];
+          failed.push({
+            productName: item.name,
+            productId: item.productId,
+            error: result.error || 'Unknown error',
+            rowNumber: index + 2 // Account for header row
+          });
+        }
+      });
+
+      setFailedProducts(failed);
+      setSuccessCount(data.successCount || 0);
       setUploadPhase("complete");
       setProgress(100);
 
-      toast({
-        title: "Changes Applied Successfully",
-        description: `${managementMode === 'pricing_only' ? 'Updated pricing for' : 'Processed'} ${data.successCount} products.`,
-      });
+      if (failed.length === 0) {
+        toast({
+          title: "All Changes Applied Successfully",
+          description: `${managementMode === 'pricing_only' ? 'Updated pricing for' : 'Processed'} ${data.successCount} products.`,
+        });
+      } else {
+        toast({
+          title: "Partial Success",
+          description: `${data.successCount} products succeeded, ${failed.length} failed. See details below.`,
+          variant: "destructive",
+        });
+      }
     } catch (error: any) {
       setUploadPhase("preview");
       toast({
@@ -270,8 +303,40 @@ export function BulkProductManagement() {
     setUploadPhase("upload");
     setPreviewItems([]);
     setValidationErrors([]);
+    setFailedProducts([]);
+    setSuccessCount(0);
     setProgress(0);
     setBatchId("");
+  };
+
+  const exportFailedProducts = () => {
+    if (failedProducts.length === 0) return;
+
+    const csvContent = [
+      ['Product Name', 'Product ID', 'Error', 'Row Number'].join(','),
+      ...failedProducts.map(p => [
+        `"${p.productName}"`,
+        p.productId || '',
+        `"${p.error}"`,
+        p.rowNumber || ''
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = 'failed-products.csv';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    toast({
+      title: "Export Complete",
+      description: "Failed products exported to CSV.",
+    });
   };
 
   const toggleItemSelection = (index: number) => {
@@ -592,25 +657,84 @@ export function BulkProductManagement() {
       {uploadPhase === "complete" && (
         <Card>
           <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <div className="flex justify-center">
-                <CheckCircle className="h-12 w-12 text-success" />
+            <div className="space-y-6">
+              <div className="text-center space-y-4">
+                <div className="flex justify-center">
+                  {failedProducts.length === 0 ? (
+                    <CheckCircle className="h-12 w-12 text-green-600" />
+                  ) : (
+                    <AlertCircle className="h-12 w-12 text-orange-500" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    {failedProducts.length === 0 ? 'All Changes Applied Successfully!' : 'Batch Processing Complete'}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {successCount} of {successCount + failedProducts.length} products processed successfully
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold">Changes Applied Successfully!</h3>
-                <p className="text-muted-foreground">
-                  Your {managementMode === 'pricing_only' ? 'pricing updates' : 'product changes'} have been processed.
-                </p>
-              </div>
+
+              {/* Failed Products Section */}
+              {failedProducts.length > 0 && (
+                <div className="border border-destructive/20 rounded-lg bg-destructive/5 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-destructive" />
+                      <h4 className="font-semibold text-destructive">
+                        {failedProducts.length} Product{failedProducts.length > 1 ? 's' : ''} Failed
+                      </h4>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportFailedProducts}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Export Failed Products
+                    </Button>
+                  </div>
+                  
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {failedProducts.map((failed, index) => (
+                      <div key={index} className="bg-background p-3 rounded border border-destructive/10">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{failed.productName}</p>
+                            {failed.productId && (
+                              <p className="text-xs text-muted-foreground">ID: {failed.productId}</p>
+                            )}
+                            <p className="text-xs text-destructive mt-1">{failed.error}</p>
+                          </div>
+                          {failed.rowNumber && (
+                            <Badge variant="outline" className="text-xs">
+                              Row {failed.rowNumber}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    Export the failed products, fix the errors, and re-upload to complete the process.
+                  </p>
+                </div>
+              )}
+
               <div className="flex justify-center gap-2">
                 <Button onClick={resetUpload}>
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Another File
                 </Button>
-                <Button variant="outline" onClick={undoLastUpdate}>
-                  <Undo className="h-4 w-4 mr-2" />
-                  Undo Changes
-                </Button>
+                {failedProducts.length === 0 && (
+                  <Button variant="outline" onClick={undoLastUpdate}>
+                    <Undo className="h-4 w-4 mr-2" />
+                    Undo Changes
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>

@@ -335,7 +335,13 @@ serve(async (req) => {
 
         results.push(result);
       } catch (error: any) {
-        results.push({ success: false, error: error.message });
+        console.error(`Failed to process product "${update.name}" (ID: ${update.productId || 'N/A'}):`, error.message);
+        results.push({ 
+          success: false, 
+          error: error.message,
+          productName: update.name,
+          productId: update.productId
+        });
       }
     }
 

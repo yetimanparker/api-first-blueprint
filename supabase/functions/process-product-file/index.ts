@@ -277,11 +277,22 @@ serve(async (req) => {
 
         if (!unitPriceStr) {
           rowErrors.push({ row: i, field: 'Unit Price', message: 'Unit price is required' });
+        } else {
+          const unitPrice = parseFloat(unitPriceStr);
+          if (isNaN(unitPrice)) {
+            rowErrors.push({ row: i, field: 'Unit Price', message: 'Must be a valid number' });
+          } else if (unitPrice < 0) {
+            rowErrors.push({ row: i, field: 'Unit Price', message: 'Must be a positive number' });
+          }
+        }
+
+        if (!unitType) {
+          rowErrors.push({ row: i, field: 'Unit Type', message: 'Unit type is required' });
         }
 
         const unitPrice = parseFloat(unitPriceStr);
         if (isNaN(unitPrice) || unitPrice < 0) {
-          rowErrors.push({ row: i, field: 'Unit Price', message: 'Must be a valid positive number' });
+          // Already handled above, skip duplicate
         }
 
         // Support both underscore and non-underscore formats
@@ -295,8 +306,14 @@ serve(async (req) => {
           'ton',
           'pallet'
         ];
-        if (!validUnitTypes.includes(unitType.toLowerCase())) {
+        if (unitType && !validUnitTypes.includes(unitType.toLowerCase())) {
           rowErrors.push({ row: i, field: 'Unit Type', message: `Must be one of: sqft, linearft, cubicyard, each, hour, pound, ton, pallet` });
+        }
+
+        // Validate display order is a number
+        const displayOrder = parseInt(displayOrderStr);
+        if (displayOrderStr && isNaN(displayOrder)) {
+          rowErrors.push({ row: i, field: 'Display Order', message: 'Must be a valid number' });
         }
 
         if (rowErrors.length === 0) {
