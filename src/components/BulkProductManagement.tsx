@@ -27,6 +27,8 @@ interface ProductManagementItem {
   displayOrder: number;
   selected: boolean;
   isNew?: boolean;
+  isNewCategory?: boolean;
+  isNewSubcategory?: boolean;
   variations?: any[];
   addons?: any[];
 }
@@ -475,51 +477,73 @@ export function BulkProductManagement() {
                     onCheckedChange={() => toggleItemSelection(index)}
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-medium truncate">{item.name}</h4>
-                      {item.isNew && <Badge variant="secondary">NEW</Badge>}
+                      {item.isNew && <Badge variant="secondary">NEW PRODUCT</Badge>}
+                      {item.isNewCategory && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          NEW CATEGORY
+                        </Badge>
+                      )}
+                      {item.isNewSubcategory && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          NEW SUBCATEGORY
+                        </Badge>
+                      )}
                     </div>
                     {managementMode === 'full_management' && (
                       <div className="grid grid-cols-3 gap-2 mt-2">
                         <div>
                           <Label className="text-xs">Category</Label>
-                          <Select
-                            value={item.category || ''}
-                            onValueChange={(value) => updateItemCategory(index, value)}
-                          >
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {categories.map(cat => (
-                                <SelectItem key={cat.id} value={cat.id}>
-                                  {cat.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {item.isNewCategory ? (
+                            <div className="h-8 px-3 py-1 border rounded-md bg-blue-50 flex items-center text-xs">
+                              {item.category} (will be created)
+                            </div>
+                          ) : (
+                            <Select
+                              value={item.category || ''}
+                              onValueChange={(value) => updateItemCategory(index, value)}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories.map(cat => (
+                                  <SelectItem key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
                         </div>
                         
                         <div>
                           <Label className="text-xs">Subcategory</Label>
-                          <Select
-                            value={item.subcategory || ''}
-                            onValueChange={(value) => updateItemSubcategory(index, value)}
-                            disabled={!item.category}
-                          >
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue placeholder="Select subcategory" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {subcategories
-                                .filter(sub => sub.category_id === item.category)
-                                .map(sub => (
-                                  <SelectItem key={sub.id} value={sub.id}>
-                                    {sub.name}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
+                          {item.isNewSubcategory ? (
+                            <div className="h-8 px-3 py-1 border rounded-md bg-green-50 flex items-center text-xs">
+                              {item.subcategory} (will be created)
+                            </div>
+                          ) : (
+                            <Select
+                              value={item.subcategory || ''}
+                              onValueChange={(value) => updateItemSubcategory(index, value)}
+                              disabled={!item.category}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Select subcategory" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {subcategories
+                                  .filter(sub => sub.category_id === item.category)
+                                  .map(sub => (
+                                    <SelectItem key={sub.id} value={sub.id}>
+                                      {sub.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          )}
                         </div>
                         
                         <div>

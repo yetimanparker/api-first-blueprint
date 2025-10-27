@@ -26,6 +26,8 @@ interface ProductManagementItem {
   isActive: boolean;
   displayOrder: number;
   isNew?: boolean;
+  isNewCategory?: boolean;
+  isNewSubcategory?: boolean;
 }
 
 function parseCSVLine(line: string): string[] {
@@ -311,43 +313,53 @@ serve(async (req) => {
           
           const isExisting = !!existingProduct;
           
-          // Convert category and subcategory to IDs, but validate they exist
-          let categoryId = undefined;
-          let subcategoryId = undefined;
+          // Convert category and subcategory to IDs, allow new categories/subcategories
+          let categoryValue = undefined;
+          let subcategoryValue = undefined;
+          let isNewCategory = false;
+          let isNewSubcategory = false;
 
           if (category) {
             // Check if it's a UUID
             if (category.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
               // Verify the UUID exists in our category map
               if (categoryMap.has(category)) {
-                categoryId = category;
+                categoryValue = category;
               } else {
                 rowErrors.push({ row: i, field: 'Category', message: `Category UUID "${category}" not found` });
               }
             } else {
-              // It's a name, look it up
-              categoryId = categoryNameToIdMap.get(category.toLowerCase());
-              if (!categoryId) {
-                rowErrors.push({ row: i, field: 'Category', message: `Category "${category}" not found` });
+              // It's a name, look it up or mark as new
+              const existingCategoryId = categoryNameToIdMap.get(category.toLowerCase());
+              if (existingCategoryId) {
+                categoryValue = existingCategoryId;
+              } else {
+                // New category - use the name, will be created during apply
+                categoryValue = category;
+                isNewCategory = true;
               }
             }
           }
 
-          if (subcategory && categoryId) {
+          if (subcategory) {
             // Check if it's a UUID
             if (subcategory.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-              // Verify the UUID exists and belongs to the selected category
-              const subcat = subcategoryMap.get(subcategory);
-              if (subcat && subcat.category_id === categoryId) {
-                subcategoryId = subcategory;
+              // Verify the UUID exists
+              const subcat = Array.from(subcategoryMap.values()).find(s => s.id === subcategory);
+              if (subcat) {
+                subcategoryValue = subcategory;
               } else {
-                rowErrors.push({ row: i, field: 'Subcategory', message: `Subcategory UUID "${subcategory}" not found or doesn't belong to selected category` });
+                rowErrors.push({ row: i, field: 'Subcategory', message: `Subcategory UUID "${subcategory}" not found` });
               }
             } else {
-              // It's a name, look it up
-              subcategoryId = subcategoryNameToIdMap.get(subcategory.toLowerCase());
-              if (!subcategoryId) {
-                rowErrors.push({ row: i, field: 'Subcategory', message: `Subcategory "${subcategory}" not found` });
+              // It's a name, look it up or mark as new
+              const existingSubcategoryId = subcategoryNameToIdMap.get(subcategory.toLowerCase());
+              if (existingSubcategoryId) {
+                subcategoryValue = existingSubcategoryId;
+              } else {
+                // New subcategory - use the name, will be created during apply
+                subcategoryValue = subcategory;
+                isNewSubcategory = true;
               }
             }
           }
@@ -359,12 +371,14 @@ serve(async (req) => {
             unitPrice,
             oldPrice: existingProduct?.unit_price,
             unitType,
-            category: categoryId,
-            subcategory: subcategoryId,
+            category: categoryValue,
+            subcategory: subcategoryValue,
             photoUrl,
             isActive: isActiveStr.toLowerCase() === 'true',
             displayOrder: parseInt(displayOrderStr) || 0,
-            isNew: !isExisting
+            isNew: !isExisting,
+            isNewCategory,
+            isNewSubcategory
           };
           preview.push(item);
           validRows++;
