@@ -34,6 +34,7 @@ interface MeasurementToolsProps {
   }>;
   onAddressSelect?: (address: ParsedAddress) => void;
   onResetToMeasurement?: () => void;
+  isManualEntry?: boolean;
 }
 
 interface Product {
@@ -57,7 +58,8 @@ const MeasurementTools = ({
   isConfigurationMode = false,
   existingQuoteItems = [],
   onAddressSelect,
-  onResetToMeasurement
+  onResetToMeasurement,
+  isManualEntry = false
 }: MeasurementToolsProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -247,10 +249,13 @@ const MeasurementTools = ({
       renderExistingMeasurements(map);
       
       // Auto-start drawing after a brief delay to ensure everything is ready
+      // But NOT if this is a manual entry measurement (user chose manual input)
       console.log('Map initialized, preparing to auto-start drawing');
       setTimeout(() => {
-        if (!showManualEntry) {
+        if (!showManualEntry && !isManualEntry) {
           startDrawing();
+        } else {
+          console.log('Skipping auto-start drawing: manual entry mode');
         }
       }, 500);
       
@@ -281,12 +286,15 @@ const MeasurementTools = ({
   }, [apiKey]);
 
   // Auto-start drawing when map and drawing manager are ready
+  // But NOT if this is a manual entry measurement
   useEffect(() => {
-    if (mapRef.current && drawingManagerRef.current && !showManualEntry && !mapLoading) {
+    if (mapRef.current && drawingManagerRef.current && !showManualEntry && !isManualEntry && !mapLoading) {
       console.log('Map ready, auto-starting drawing for type:', measurementType);
       setTimeout(() => startDrawing(), 300);
+    } else if (isManualEntry) {
+      console.log('Skipping auto-start drawing: manual entry mode');
     }
-  }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, mapLoading]);
+  }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, isManualEntry, mapLoading]);
 
   useEffect(() => {
     // Update ref when measurement type changes

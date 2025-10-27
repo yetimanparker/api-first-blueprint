@@ -183,6 +183,23 @@ const Widget = () => {
             }
           }
         }, 300);
+      } else if (widgetState.currentStep === 'product-configuration') {
+        // For product-configuration, scroll to show the configuration section
+        setTimeout(() => {
+          const configSection = document.getElementById('step-product-configuration');
+          if (configSection) {
+            console.log('📍 Found product-configuration section, scrolling into view');
+            const header = document.querySelector('.sticky.top-0');
+            const headerHeight = header?.getBoundingClientRect().height || 0;
+            const elementPosition = configSection.getBoundingClientRect().top + window.pageYOffset;
+            const offsetPosition = elementPosition - headerHeight - 20;
+            
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+          }
+        }, 300);
       } else if (widgetState.currentStep === 'quote-review') {
         // For quote-review, scroll to show the Total and buttons
         setTimeout(() => {
@@ -501,6 +518,7 @@ const Widget = () => {
               isConfigurationMode={['product-configuration', 'add-another-check', 'quote-review', 'project-comments', 'confirmation'].includes(widgetState.currentStep)}
               existingQuoteItems={widgetState.quoteItems}
               onResetToMeasurement={resetToMeasurement}
+              isManualEntry={widgetState.currentMeasurement?.manualEntry === true}
               onAddressSelect={(address) => {
                 updateCustomerInfo({
                   address: `${address.streetAddress}, ${address.city}, ${address.state} ${address.zipCode}`,
