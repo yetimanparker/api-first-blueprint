@@ -177,6 +177,31 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
     }
   }, [product]);
 
+  // Convert category/subcategory UUIDs to names for form initialization
+  useEffect(() => {
+    if (product && categories.length > 0) {
+      // Check if category is a UUID (36 characters with dashes)
+      const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+      
+      if (product.category && isUUID(product.category)) {
+        // Find category name from UUID
+        const category = categories.find(c => c.id === product.category);
+        if (category) {
+          form.setValue('category', category.name);
+          
+          // If there's a subcategory UUID, convert it too
+          if (product.subcategory && isUUID(product.subcategory)) {
+            const subcategories = getSubcategoriesForCategory(category.name);
+            const subcategory = subcategories.find(s => s.id === product.subcategory);
+            if (subcategory) {
+              form.setValue('subcategory', subcategory.name);
+            }
+          }
+        }
+      }
+    }
+  }, [product, categories, form, getSubcategoriesForCategory]);
+
   const addNewAddon = () => {
     const newAddon: ProductAddon = {
       name: "",
@@ -315,6 +340,25 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         photoUrl = publicUrl;
       }
 
+      // Convert category/subcategory names to UUIDs before saving
+      const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+      
+      let categoryUUID = data.category;
+      let subcategoryUUID = data.subcategory || null;
+
+      // If category is a name (not UUID), convert to UUID
+      if (data.category && !isUUID(data.category)) {
+        const category = categories.find(c => c.name === data.category);
+        categoryUUID = category?.id || data.category;
+      }
+
+      // If subcategory is a name (not UUID), convert to UUID
+      if (data.subcategory && !isUUID(data.subcategory)) {
+        const subcategories = getSubcategoriesForCategory(data.category);
+        const subcategory = subcategories.find(s => s.name === data.subcategory);
+        subcategoryUUID = subcategory?.id || null;
+      }
+
       let productData = {
         name: data.name,
         description: data.description || null,
@@ -326,8 +370,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         use_tiered_pricing: data.use_tiered_pricing,
         display_order: data.display_order || 0,
         photo_url: photoUrl,
-        category: data.category,
-        subcategory: data.subcategory || null,
+        category: categoryUUID,
+        subcategory: subcategoryUUID,
         contractor_id: contractorData.id,
         has_fixed_dimensions: data.has_fixed_dimensions,
         default_width: data.has_fixed_dimensions && data.default_width ? Number(data.default_width) : null,
