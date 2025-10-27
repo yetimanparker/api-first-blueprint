@@ -177,9 +177,10 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
     }
   }, [product]);
 
-  // Convert category/subcategory UUIDs to names for form initialization
+  // Convert category/subcategory UUIDs to names for form initialization (only once)
+  const [initialValuesSet, setInitialValuesSet] = useState(false);
   useEffect(() => {
-    if (product && categories.length > 0) {
+    if (product && categories.length > 0 && !initialValuesSet) {
       // Check if category is a UUID (36 characters with dashes)
       const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
       
@@ -199,8 +200,9 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           }
         }
       }
+      setInitialValuesSet(true);
     }
-  }, [product, categories, form, getSubcategoriesForCategory]);
+  }, [product, categories, initialValuesSet, form, getSubcategoriesForCategory]);
 
   const addNewAddon = () => {
     const newAddon: ProductAddon = {
