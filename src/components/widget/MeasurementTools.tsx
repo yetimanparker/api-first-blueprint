@@ -10,7 +10,7 @@ import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft } from 'l
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
-import { getZoomBasedFontSize } from '@/lib/mapLabelUtils';
+import { getZoomBasedFontSize, getZoomBasedMarkerScale } from '@/lib/mapLabelUtils';
 
 interface MeasurementToolsProps {
   productId: string;
@@ -149,6 +149,36 @@ const MeasurementTools = ({
       };
     }
   }, [mapRef.current]);
+
+  // Update marker scales when zoom changes
+  useEffect(() => {
+    if (currentZoom && pointMarkers.length > 0) {
+      const newScale = getZoomBasedMarkerScale(currentZoom);
+      pointMarkers.forEach(marker => {
+        const currentIcon = marker.getIcon() as google.maps.Symbol;
+        if (currentIcon && typeof currentIcon === 'object') {
+          marker.setIcon({
+            ...currentIcon,
+            scale: newScale
+          });
+        }
+      });
+    }
+    
+    // Also update existing measurement markers (from previousLabelsRef)
+    if (currentZoom && previousLabelsRef.current.length > 0) {
+      const newScale = getZoomBasedMarkerScale(currentZoom);
+      previousLabelsRef.current.forEach(marker => {
+        const currentIcon = marker.getIcon() as google.maps.Symbol;
+        if (currentIcon && typeof currentIcon === 'object') {
+          marker.setIcon({
+            ...currentIcon,
+            scale: newScale
+          });
+        }
+      });
+    }
+  }, [currentZoom, pointMarkers]);
 
   // When productId changes, just refetch product without reinitializing map
   useEffect(() => {
@@ -580,7 +610,7 @@ const MeasurementTools = ({
               text: `${idx + 1}`,
               color: 'white',
               fontSize: '14px',
-              fontWeight: 'normal'
+              fontWeight: '300'
             },
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
@@ -588,7 +618,7 @@ const MeasurementTools = ({
               fillOpacity: 0.8,
               strokeColor: 'white',
               strokeWeight: 2,
-              scale: 7.5
+              scale: getZoomBasedMarkerScale(currentZoom)
             },
             title: `${item.customName || item.productName} - Point ${idx + 1}`
           });
@@ -996,6 +1026,7 @@ const MeasurementTools = ({
     const nextColor = getNextMeasurementColor();
     
     // Create marker
+    const currentZoom = mapRef.current?.getZoom() || 16;
     const marker = new google.maps.Marker({
       position: location,
       map: mapRef.current,
@@ -1004,7 +1035,7 @@ const MeasurementTools = ({
         text: `${markerNumber}`,
         color: 'white',
         fontSize: '14px',
-        fontWeight: 'normal'
+        fontWeight: '300'
       },
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
@@ -1012,7 +1043,7 @@ const MeasurementTools = ({
         fillOpacity: 1,
         strokeColor: 'white',
         strokeWeight: 2,
-        scale: 9
+        scale: getZoomBasedMarkerScale(currentZoom)
       },
       animation: google.maps.Animation.DROP
     });
@@ -1056,7 +1087,7 @@ const MeasurementTools = ({
         text: `${idx + 1}`,
         color: 'white',
         fontSize: '14px',
-        fontWeight: 'normal'
+        fontWeight: '300'
       });
     });
   };
