@@ -1158,8 +1158,8 @@ const MeasurementTools = ({
         }
       }, 300);
     }
-    // Handle area/linear measurements
-    else if (mapMeasurement && !isDrawing && !showManualEntry && !currentMeasurement && currentShapeRef.current) {
+    // Handle area/linear measurements (allow 0 measurements so user can remeasure)
+    else if (mapMeasurement !== null && mapMeasurement !== undefined && !isDrawing && !showManualEntry && !currentMeasurement && currentShapeRef.current) {
       // Get coordinates from the current shape
       const coordinates: number[][] = [];
       if (currentShapeRef.current instanceof google.maps.Polygon) {
@@ -1458,6 +1458,7 @@ const MeasurementTools = ({
                     variant="success"
                     size="lg"
                     onClick={onNext}
+                    disabled={currentMeasurement.value === 0}
                     className="w-full sm:w-auto px-4 sm:px-8 shadow-lg gap-2 sm:gap-3"
                   >
                     <span>NEXT (configure)</span>
