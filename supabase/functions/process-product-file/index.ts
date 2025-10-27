@@ -348,6 +348,19 @@ serve(async (req) => {
               const subcat = Array.from(subcategoryMap.values()).find(s => s.id === subcategory);
               if (subcat) {
                 subcategoryValue = subcategory;
+                
+                // Check if subcategory belongs to the specified category
+                if (categoryValue && typeof categoryValue === 'string' && 
+                    categoryValue.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                  // Category is a UUID, check if subcategory belongs to it
+                  if (subcat.category_id !== categoryValue) {
+                    rowErrors.push({ 
+                      row: i, 
+                      field: 'Subcategory', 
+                      message: `Subcategory "${subcat.name}" will be auto-resolved under new category` 
+                    });
+                  }
+                }
               } else {
                 rowErrors.push({ row: i, field: 'Subcategory', message: `Subcategory UUID "${subcategory}" not found` });
               }

@@ -181,15 +181,53 @@ serve(async (req) => {
               // It's a UUID - verify it exists and belongs to the category
               const { data: existingSubcategory } = await supabaseClient
                 .from('product_subcategories')
-                .select('id')
+                .select('id, name, category_id')
                 .eq('id', update.subcategory)
-                .eq('category_id', categoryId)
                 .single();
 
               if (existingSubcategory) {
-                subcategoryId = existingSubcategory.id;
+                // Check if subcategory belongs to the target category
+                if (existingSubcategory.category_id === categoryId) {
+                  subcategoryId = existingSubcategory.id;
+                } else {
+                  // Subcategory exists but belongs to different category
+                  // Try to find or create subcategory with same name under new category
+                  console.log(`Subcategory "${existingSubcategory.name}" belongs to different category, auto-resolving...`);
+                  
+                  const { data: matchingSubcategory } = await supabaseClient
+                    .from('product_subcategories')
+                    .select('id')
+                    .eq('name', existingSubcategory.name)
+                    .eq('category_id', categoryId)
+                    .single();
+
+                  if (matchingSubcategory) {
+                    subcategoryId = matchingSubcategory.id;
+                    console.log(`Auto-resolved to existing subcategory "${existingSubcategory.name}" under new category`);
+                    result.subcategoryAutoResolved = true;
+                  } else {
+                    // Create new subcategory with same name under new category
+                    const { data: newSubcategory, error: subcategoryError } = await supabaseClient
+                      .from('product_subcategories')
+                      .insert({
+                        name: existingSubcategory.name,
+                        category_id: categoryId
+                      })
+                      .select('id')
+                      .single();
+
+                    if (!subcategoryError && newSubcategory) {
+                      subcategoryId = newSubcategory.id;
+                      console.log(`Created new subcategory "${existingSubcategory.name}" under new category`);
+                      result.subcategoryCreated = true;
+                      result.originalSubcategoryName = existingSubcategory.name;
+                    } else {
+                      console.warn(`Failed to create subcategory: ${subcategoryError?.message}`);
+                    }
+                  }
+                }
               } else {
-                console.warn(`Subcategory UUID ${update.subcategory} not found or doesn't belong to category`);
+                console.warn(`Subcategory UUID ${update.subcategory} not found`);
               }
             } else {
               // It's a name - look it up by name
@@ -215,6 +253,7 @@ serve(async (req) => {
 
                 if (!subcategoryError) {
                   subcategoryId = newSubcategory.id;
+                  result.subcategoryCreated = true;
                 }
               }
             }
