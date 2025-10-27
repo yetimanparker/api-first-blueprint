@@ -287,7 +287,7 @@ const MeasurementTools = ({
       setMapLoading(false);
       
       // Render existing measurements from quote items
-      renderExistingMeasurements(map);
+      await renderExistingMeasurements(map);
       
       // Auto-start drawing after a brief delay to ensure everything is ready
       // But NOT if this is a manual entry measurement (user chose manual input)
@@ -576,7 +576,7 @@ const MeasurementTools = ({
     // Add a small delay to ensure Google Maps API processes the removals
     await new Promise(resolve => setTimeout(resolve, 10));
 
-    existingQuoteItems.forEach((item, index) => {
+    for (const [index, item] of existingQuoteItems.entries()) {
       console.log(`📍 Rendering item ${index} (${item.productName}):`, {
         type: item.measurement.type,
         hasCoordinates: !!item.measurement.coordinates,
@@ -592,7 +592,7 @@ const MeasurementTools = ({
       
       if (!hasCoordinates && !hasPointLocations) {
         console.log('⚠️ Skipping item with no coordinates:', item.productName);
-        return;
+        continue;
       }
 
       // Use the measurement's stored map color, or fall back to a default
@@ -674,20 +674,24 @@ const MeasurementTools = ({
       } else if (item.measurement.type === 'point' && item.measurement.pointLocations) {
         // Render point measurements using AdvancedMarkerElement
         console.log(`  ➡️ Rendering ${item.measurement.pointLocations.length} point markers with color ${color}`);
-        item.measurement.pointLocations.forEach(async (point, idx) => {
-          const markerId = `${item.id}-point-${idx}`;
-          console.log(`    • Point ${idx + 1}:`, point, 'ID:', markerId);
-          
-          const marker = await createCustomPointMarker(point, idx + 1, color, map, false);
-          
-          // Store custom ID for debugging
-          (marker as any).customId = markerId;
-          (marker as any).title = `${item.customName || item.productName} - Point ${idx + 1}`;
-          
-          previousLabelsRef.current.push(marker);
-        });
+        const pointMarkers = await Promise.all(
+          item.measurement.pointLocations.map(async (point, idx) => {
+            const markerId = `${item.id}-point-${idx}`;
+            console.log(`    • Point ${idx + 1}:`, point, 'ID:', markerId);
+            
+            const marker = await createCustomPointMarker(point, idx + 1, color, map, false);
+            
+            // Store custom ID for debugging
+            (marker as any).customId = markerId;
+            (marker as any).title = `${item.customName || item.productName} - Point ${idx + 1}`;
+            
+            return marker;
+          })
+        );
+
+        previousLabelsRef.current.push(...pointMarkers);
       }
-    });
+    }
     
     console.log('✅ MeasurementTools - Rendering complete. Shapes:', previousShapesRef.current.length, 'Labels:', previousLabelsRef.current.length);
     isRenderingRef.current = false;
