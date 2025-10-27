@@ -303,6 +303,7 @@ const ProductConfiguration = ({
       id: Date.now().toString(),
       productId: product.id,
       productName: product.name,
+      unitType: product.unit_type,
       measurement: measurementWithOptions,
       unitPrice: product.unit_price,
       quantity: actualQuantity,

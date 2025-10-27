@@ -63,6 +63,24 @@ const QuoteReview = ({
   const quoteSummaryRef = useRef<HTMLDivElement>(null);
   const { getAutocomplete, getPlaceDetails, predictions, loading } = useGooglePlaces();
 
+  // Helper function to get display unit abbreviation
+  const getDisplayUnit = (unitType: string, isVolumeBased: boolean = false) => {
+    if (isVolumeBased) return 'cu yd';
+    
+    const unitMap: Record<string, string> = {
+      'sq_ft': 'SF',
+      'linear_ft': 'LF',
+      'each': 'each',
+      'cubic_yard': 'cu yd',
+      'hour': 'hr',
+      'pound': 'lb',
+      'ton': 'ton',
+      'pallet': 'pallet'
+    };
+    
+    return unitMap[unitType] || unitType;
+  };
+
   // Update dialog customer info when customerInfo prop changes
   useEffect(() => {
     setDialogCustomerInfo(customerInfo);
@@ -623,9 +641,7 @@ const QuoteReview = ({
                               ? ((item.measurement.value * item.measurement.depth) / 324).toFixed(2)
                               : item.measurement.value.toLocaleString();
                             
-                            const displayUnit = item.measurement.depth 
-                              ? 'cu yd'
-                              : item.measurement.unit === 'linear_ft' ? 'LF' : item.measurement.unit === 'sq_ft' ? 'SF' : item.measurement.unit.replace('_', ' ');
+                            const displayUnit = getDisplayUnit(item.unitType, !!item.measurement.depth);
                             
                             return `${displayQuantity} ${displayUnit} × ${formatExactPrice(adjustedUnitPrice, {
                               currency_symbol: settings.currency_symbol,
@@ -724,11 +740,11 @@ const QuoteReview = ({
                                           ? (item.measurement.value * item.measurement.depth) / 324
                                           : item.measurement.value;
                                         displayQuantity = baseQuantity.toLocaleString();
-                                        displayUnit = item.measurement.depth ? 'cu yd' : (item.measurement.unit === 'linear_ft' ? 'LF' : 'SF');
+                                        displayUnit = getDisplayUnit(item.unitType, !!item.measurement.depth);
                                       }
                                     } else if (addon.calculationType === 'per_unit') {
                                       displayQuantity = quantity.toLocaleString();
-                                      displayUnit = item.measurement.depth ? 'cu yd' : (item.measurement.unit === 'linear_ft' ? 'LF' : item.measurement.unit === 'sq_ft' ? 'SF' : item.measurement.unit.replace('_', ' '));
+                                      displayUnit = getDisplayUnit(item.unitType, !!item.measurement.depth);
                                     } else {
                                       displayQuantity = addon.quantity.toFixed(1);
                                       displayUnit = 'ea';

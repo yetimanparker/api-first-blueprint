@@ -37,6 +37,7 @@ export interface QuoteItem {
   id: string;
   productId: string;
   productName: string;
+  unitType: string;
   measurement: MeasurementData;
   unitPrice: number;
   quantity: number;

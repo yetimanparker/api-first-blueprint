@@ -132,6 +132,7 @@ export default function InternalQuoteBuilder() {
         id: item.id,
         productId: item.product_id,
         productName: item.product.name,
+        unitType: item.product.unit_type,
         measurement: item.measurement_data as unknown as MeasurementData,
         unitPrice: Number(item.unit_price),
         quantity: Number(item.quantity),
