@@ -74,7 +74,7 @@ const MeasurementTools = ({
   const [manualValue, setManualValue] = useState('');
   const [searchAddress, setSearchAddress] = useState(customerAddress || '');
   const [pointLocations, setPointLocations] = useState<Array<{lat: number, lng: number}>>([]);
-  const [pointMarkers, setPointMarkers] = useState<google.maps.Marker[]>([]);
+  const [pointMarkers, setPointMarkers] = useState<google.maps.marker.AdvancedMarkerElement[]>([]);
   const [currentZoom, setCurrentZoom] = useState(19);
   const [debouncedZoom, setDebouncedZoom] = useState(19);
   
@@ -93,7 +93,7 @@ const MeasurementTools = ({
   const measurementLabelRef = useRef<google.maps.Marker | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const previousShapesRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]);
-  const previousLabelsRef = useRef<Array<google.maps.Marker>>([]);
+  const previousLabelsRef = useRef<Array<google.maps.Marker | google.maps.marker.AdvancedMarkerElement>>([]);
   const measurementTypeRef = useRef<'area' | 'linear' | 'point' | 'dimensional'>('area');
   const isDrawingRef = useRef(false);
   const pointCountRef = useRef(0); // Track point count for reliable sequential numbering
@@ -150,31 +150,40 @@ const MeasurementTools = ({
     }
   }, [mapRef.current]);
 
-  // Update marker scales when zoom changes
+  // Update marker scales when zoom changes (for AdvancedMarkerElement)
   useEffect(() => {
-    if (currentZoom && pointMarkers.length > 0) {
-      const newScale = getZoomBasedMarkerScale(currentZoom);
+    if (!currentZoom) return;
+    
+    const scale = getZoomBasedMarkerScale(currentZoom) / 10; // Convert to CSS scale (0.3 to 0.9)
+    
+    if (pointMarkers.length > 0) {
       pointMarkers.forEach(marker => {
-        const currentIcon = marker.getIcon() as google.maps.Symbol;
-        if (currentIcon && typeof currentIcon === 'object') {
-          marker.setIcon({
-            ...currentIcon,
-            scale: newScale
-          });
+        const content = marker.content as HTMLElement;
+        if (content && content.classList.contains('custom-point-marker')) {
+          content.style.transform = `scale(${scale})`;
         }
       });
     }
     
     // Also update existing measurement markers (from previousLabelsRef)
-    if (currentZoom && previousLabelsRef.current.length > 0) {
-      const newScale = getZoomBasedMarkerScale(currentZoom);
+    if (previousLabelsRef.current.length > 0) {
       previousLabelsRef.current.forEach(marker => {
-        const currentIcon = marker.getIcon() as google.maps.Symbol;
-        if (currentIcon && typeof currentIcon === 'object') {
-          marker.setIcon({
-            ...currentIcon,
-            scale: newScale
-          });
+        // Check if it's an AdvancedMarkerElement
+        if ('content' in marker) {
+          const content = (marker as google.maps.marker.AdvancedMarkerElement).content as HTMLElement;
+          if (content && content.classList.contains('custom-point-marker')) {
+            content.style.transform = `scale(${scale})`;
+          }
+        }
+        // Handle old Marker types for non-point measurements
+        else if ('getIcon' in marker) {
+          const currentIcon = marker.getIcon() as google.maps.Symbol;
+          if (currentIcon && typeof currentIcon === 'object') {
+            marker.setIcon({
+              ...currentIcon,
+              scale: getZoomBasedMarkerScale(currentZoom)
+            });
+          }
         }
       });
     }
@@ -447,6 +456,64 @@ const MeasurementTools = ({
     }
   };
 
+  /**
+   * Create a custom point marker using AdvancedMarkerElement for full styling control
+   */
+  const createCustomPointMarker = async (
+    position: google.maps.LatLngLiteral,
+    number: number,
+    color: string,
+    map: google.maps.Map,
+    isDraggable: boolean = false
+  ): Promise<google.maps.marker.AdvancedMarkerElement> => {
+    const { AdvancedMarkerElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
+    
+    // Create custom HTML content
+    const content = document.createElement('div');
+    content.className = 'custom-point-marker';
+    content.style.cssText = `
+      width: 32px;
+      height: 32px;
+      background-color: ${color};
+      border: 2px solid white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: ${isDraggable ? 'grab' : 'pointer'};
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      transition: transform 0.2s ease;
+    `;
+    
+    const label = document.createElement('span');
+    label.className = 'marker-label';
+    label.textContent = number.toString();
+    label.style.cssText = `
+      color: white;
+      font-size: 14px;
+      font-weight: 300;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      text-shadow: 0 0 3px rgba(0,0,0,0.8);
+      user-select: none;
+      pointer-events: none;
+    `;
+    
+    content.appendChild(label);
+    
+    const marker = new AdvancedMarkerElement({
+      map,
+      position,
+      content,
+      gmpDraggable: isDraggable
+    });
+    
+    // Store metadata
+    (marker as any).customNumber = number;
+    (marker as any).customColor = color;
+    
+    return marker;
+  };
+
 
   const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
     try {
@@ -492,7 +559,14 @@ const MeasurementTools = ({
     // Clear labels/markers
     previousLabelsRef.current.forEach(label => {
       try {
-        label.setMap(null);
+        // Handle both AdvancedMarkerElement and regular Marker types
+        if ('map' in label && !('setMap' in label)) {
+          // AdvancedMarkerElement
+          (label as google.maps.marker.AdvancedMarkerElement).map = null;
+        } else {
+          // Regular Marker
+          (label as google.maps.Marker).setMap(null);
+        }
       } catch (e) {
         console.warn('Failed to remove label:', e);
       }
@@ -598,33 +672,17 @@ const MeasurementTools = ({
         });
         previousLabelsRef.current.push(marker);
       } else if (item.measurement.type === 'point' && item.measurement.pointLocations) {
-        // Render point measurements
+        // Render point measurements using AdvancedMarkerElement
         console.log(`  ➡️ Rendering ${item.measurement.pointLocations.length} point markers with color ${color}`);
-        item.measurement.pointLocations.forEach((point, idx) => {
+        item.measurement.pointLocations.forEach(async (point, idx) => {
           const markerId = `${item.id}-point-${idx}`;
           console.log(`    • Point ${idx + 1}:`, point, 'ID:', markerId);
-          const marker = new google.maps.Marker({
-            position: point, // Already in {lat, lng} format
-            map: map,
-            label: {
-              text: `${idx + 1}`,
-              color: 'white',
-              fontSize: '14px',
-              fontWeight: '300'
-            },
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              fillColor: color,
-              fillOpacity: 0.8,
-              strokeColor: 'white',
-              strokeWeight: 2,
-              scale: getZoomBasedMarkerScale(currentZoom)
-            },
-            title: `${item.customName || item.productName} - Point ${idx + 1}`
-          });
+          
+          const marker = await createCustomPointMarker(point, idx + 1, color, map, false);
           
           // Store custom ID for debugging
           (marker as any).customId = markerId;
+          (marker as any).title = `${item.customName || item.productName} - Point ${idx + 1}`;
           
           previousLabelsRef.current.push(marker);
         });
@@ -979,9 +1037,9 @@ const MeasurementTools = ({
       measurementLabelRef.current = null;
     }
     
-    // Clear point markers
+    // Clear point markers (AdvancedMarkerElement)
     if (measurementType === 'point') {
-      pointMarkers.forEach(marker => marker.setMap(null));
+      pointMarkers.forEach(marker => marker.map = null);
       setPointMarkers([]);
       setPointLocations([]);
       pointCountRef.current = 0; // Reset counter
@@ -1012,7 +1070,7 @@ const MeasurementTools = ({
     }, 100);
   };
 
-  const addPointMarker = (location: google.maps.LatLng) => {
+  const addPointMarker = async (location: google.maps.LatLng) => {
     if (!mapRef.current) return;
     
     const newPoint = {
@@ -1025,41 +1083,30 @@ const MeasurementTools = ({
     const markerNumber = pointCountRef.current;
     const nextColor = getNextMeasurementColor();
     
-    // Create marker
+    // Create custom marker using AdvancedMarkerElement
+    const marker = await createCustomPointMarker(newPoint, markerNumber, nextColor, mapRef.current, true);
+    
+    // Apply initial zoom-based scale
     const currentZoom = mapRef.current?.getZoom() || 16;
-    const marker = new google.maps.Marker({
-      position: location,
-      map: mapRef.current,
-      draggable: true,
-      label: {
-        text: `${markerNumber}`,
-        color: 'white',
-        fontSize: '14px',
-        fontWeight: '300'
-      },
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        fillColor: nextColor,
-        fillOpacity: 1,
-        strokeColor: 'white',
-        strokeWeight: 2,
-        scale: getZoomBasedMarkerScale(currentZoom)
-      },
-      animation: google.maps.Animation.DROP
-    });
+    const scale = getZoomBasedMarkerScale(currentZoom) / 10;
+    const content = marker.content as HTMLElement;
+    if (content) {
+      content.style.transform = `scale(${scale})`;
+      // Add drop animation
+      content.style.animation = 'marker-drop 0.3s ease-out';
+    }
     
     // Add drag listener to update position
-    google.maps.event.addListener(marker, 'dragend', (e: google.maps.MapMouseEvent) => {
-      if (e.latLng) {
-        const index = pointMarkers.indexOf(marker);
-        if (index !== -1) {
-          const updatedLocations = [...pointLocations];
-          updatedLocations[index] = {
-            lat: e.latLng.lat(),
-            lng: e.latLng.lng()
-          };
-          setPointLocations(updatedLocations);
-        }
+    marker.addListener('dragend', () => {
+      const index = pointMarkers.indexOf(marker);
+      if (index !== -1 && marker.position) {
+        const pos = marker.position;
+        const updatedLocations = [...pointLocations];
+        updatedLocations[index] = {
+          lat: typeof pos.lat === 'number' ? pos.lat : (pos as any).lat(),
+          lng: typeof pos.lng === 'number' ? pos.lng : (pos as any).lng()
+        };
+        setPointLocations(updatedLocations);
       }
     });
     
@@ -1072,7 +1119,7 @@ const MeasurementTools = ({
     
     // Remove last marker from map
     const lastMarker = pointMarkers[pointMarkers.length - 1];
-    lastMarker.setMap(null);
+    lastMarker.map = null; // AdvancedMarkerElement uses .map instead of .setMap()
     
     // Update state
     setPointMarkers(prev => prev.slice(0, -1));
@@ -1083,18 +1130,19 @@ const MeasurementTools = ({
     
     // Renumber remaining markers
     pointMarkers.slice(0, -1).forEach((marker, idx) => {
-      marker.setLabel({
-        text: `${idx + 1}`,
-        color: 'white',
-        fontSize: '14px',
-        fontWeight: '300'
-      });
+      const content = marker.content as HTMLElement;
+      if (content) {
+        const label = content.querySelector('.marker-label');
+        if (label) {
+          label.textContent = `${idx + 1}`;
+        }
+      }
     });
   };
 
   const clearAllPoints = () => {
     // Remove all markers from map
-    pointMarkers.forEach(marker => marker.setMap(null));
+    pointMarkers.forEach(marker => marker.map = null); // AdvancedMarkerElement uses .map instead of .setMap()
     
     // Clear state
     setPointMarkers([]);
