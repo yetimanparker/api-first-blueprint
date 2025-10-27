@@ -469,21 +469,8 @@ const MeasurementTools = ({
     });
     previousLabelsRef.current = [];
     
-    // Add a delay to ensure Google Maps API processes the removals
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
-    // Verify cleanup - check for any remaining markers
-    const remainingMarkers = previousLabelsRef.current.filter(m => m.getMap() !== null);
-    if (remainingMarkers.length > 0) {
-      console.warn('⚠️ Markers still on map after cleanup:', remainingMarkers.length);
-    }
-    
-    // Double-check cleanup - force clear if anything remains
-    if (previousLabelsRef.current.length > 0) {
-      console.warn('⚠️ Previous labels array not empty, force clearing...');
-      previousLabelsRef.current.forEach(label => label.setMap(null));
-      previousLabelsRef.current = [];
-    }
+    // Add a small delay to ensure Google Maps API processes the removals
+    await new Promise(resolve => setTimeout(resolve, 10));
 
     existingQuoteItems.forEach((item, index) => {
       console.log(`📍 Rendering item ${index} (${item.productName}):`, {
@@ -592,8 +579,8 @@ const MeasurementTools = ({
             label: {
               text: `${idx + 1}`,
               color: 'white',
-              fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
-              fontWeight: 'normal'
+              fontSize: `${Math.max(8, getZoomBasedFontSize(currentZoom) - 2)}px`,
+              fontWeight: 'bold'
             },
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
@@ -601,7 +588,7 @@ const MeasurementTools = ({
               fillOpacity: 0.8,
               strokeColor: 'white',
               strokeWeight: 2,
-              scale: 12
+              scale: 10
             },
             title: `${item.customName || item.productName} - Point ${idx + 1}`
           });
@@ -1016,8 +1003,8 @@ const MeasurementTools = ({
       label: {
         text: `${markerNumber}`,
         color: 'white',
-        fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
-        fontWeight: 'normal'
+        fontSize: '14px',
+        fontWeight: 'bold'
       },
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
@@ -1068,8 +1055,8 @@ const MeasurementTools = ({
       marker.setLabel({
         text: `${idx + 1}`,
         color: 'white',
-        fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
-        fontWeight: 'normal'
+        fontSize: '14px',
+        fontWeight: 'bold'
       });
     });
   };
