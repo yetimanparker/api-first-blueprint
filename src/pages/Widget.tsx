@@ -99,9 +99,20 @@ const Widget = () => {
     }
   }, [isServiceAreaValid, toast]);
 
-  // Handle scroll to show/hide header
+  // Hide header after product selection step
+  useEffect(() => {
+    const isProductSelectionStep = ['contact-before', 'product-selection'].includes(widgetState.currentStep);
+    if (!isProductSelectionStep) {
+      setShowHeader(false);
+    }
+  }, [widgetState.currentStep]);
+
+  // Handle scroll to show/hide header (only during product selection)
   useEffect(() => {
     const handleScroll = () => {
+      const isProductSelectionStep = ['contact-before', 'product-selection'].includes(widgetState.currentStep);
+      if (!isProductSelectionStep) return; // Don't handle scroll if past product selection
+      
       const currentScrollY = window.scrollY;
       
       if (currentScrollY < 50) {
@@ -120,7 +131,7 @@ const Widget = () => {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  }, [lastScrollY, widgetState.currentStep]);
 
   // Auto-scroll to current step with debugging
   useEffect(() => {
