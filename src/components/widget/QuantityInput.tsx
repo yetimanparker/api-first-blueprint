@@ -134,7 +134,7 @@ const QuantityInput = ({
             <Button
               size="lg"
               onClick={handleContinue}
-              className="w-full"
+              className="w-full text-black"
               disabled={quantity < (minQuantity || 1)}
             >
               Continue to Configure
