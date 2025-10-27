@@ -39,6 +39,8 @@ const Widget = () => {
   const [submittedQuoteNumber, setSubmittedQuoteNumber] = useState<string | null>(null);
   const [submittedProjectComments, setSubmittedProjectComments] = useState<string>('');
   const [showMethodDialog, setShowMethodDialog] = useState(false);
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   // Use debounced service area validation
   const { isServiceAreaValid, isValidating, manualValidate } = useDebouncedServiceArea({
@@ -96,6 +98,29 @@ const Widget = () => {
       });
     }
   }, [isServiceAreaValid, toast]);
+
+  // Handle scroll to show/hide header
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY < 50) {
+        // Always show header at top of page
+        setShowHeader(true);
+      } else if (currentScrollY > lastScrollY) {
+        // Scrolling down - hide header
+        setShowHeader(false);
+      } else {
+        // Scrolling up - show header
+        setShowHeader(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   // Auto-scroll to current step with debugging
   useEffect(() => {
@@ -436,7 +461,7 @@ const Widget = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30" style={brandStyle}>
       {/* Header with Steps */}
-      <div className="hidden md:block border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <div className={`hidden md:block border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             {stepConfig.map((step, index) => (
