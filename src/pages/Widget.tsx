@@ -272,8 +272,11 @@ const Widget = () => {
     
     setSelectedProduct(productData);
     
-    // All products now go directly to measurement step
-    const nextStep = 'measurement';
+    // Products sold by count/weight/time go to quantity input
+    const manualInputUnits = ['each', 'ton', 'pound', 'pallet', 'hour'];
+    const requiresManualInput = manualInputUnits.includes(productData.unit_type);
+    
+    const nextStep = requiresManualInput ? 'quantity-input' : 'measurement';
     
     setWidgetState(prev => ({
       ...prev,
@@ -452,19 +455,11 @@ const Widget = () => {
               productId={widgetState.currentProductId!}
               productName={selectedProduct.name}
               productImage={selectedProduct.photo_url}
+              unitType={selectedProduct.unit_type}
               minQuantity={selectedProduct.min_order_quantity || 1}
-              onQuantitySet={(quantity) => {
-                const measurement: MeasurementData = {
-                  type: 'point',
-                  value: quantity,
-                  unit: 'each',
-                  manualEntry: true
-                };
-                setWidgetState(prev => ({
-                  ...prev,
-                  currentMeasurement: measurement,
-                  currentStep: 'product-configuration'
-                }));
+              onQuantitySet={(quantity, measurement) => {
+                updateCurrentMeasurement(measurement);
+                nextStep();
               }}
               settings={settings}
             />

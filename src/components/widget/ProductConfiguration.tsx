@@ -19,6 +19,24 @@ import {
   calculateQuantityWithBaseHeight
 } from '@/lib/priceUtils';
 
+// Helper function to get display unit abbreviation
+const getDisplayUnit = (unitType: string, isVolumeBased: boolean = false) => {
+  if (isVolumeBased) return 'cu yd';
+  
+  const unitMap: Record<string, string> = {
+    'sq_ft': 'SF',
+    'linear_ft': 'LF',
+    'each': 'each',
+    'cubic_yard': 'cu yd',
+    'hour': 'hr',
+    'pound': 'lb',
+    'ton': 'ton',
+    'pallet': 'pallet'
+  };
+  
+  return unitMap[unitType] || unitType;
+};
+
 interface Product {
   id: string;
   name: string;
@@ -92,9 +110,8 @@ const ProductConfiguration = ({
 
   // Check if product is volume-based
   const isVolumeBased = product && (
-    product.unit_type.toLowerCase().includes('cubic') || 
-    product.unit_type.toLowerCase().includes('cu_') || 
-    product.unit_type.toLowerCase().includes('yard')
+    product.unit_type === 'cubic_yard' ||
+    product.unit_type.includes('cubic')
   );
 
   // Check if product is 'each' type (point measurement)
@@ -146,7 +163,16 @@ const ProductConfiguration = ({
         .eq('is_active', true)
         .order('display_order');
 
-      setAddons((addonsData || []) as Addon[]);
+      // Filter addons based on product compatibility
+      const manualInputUnits = ['each', 'ton', 'pound', 'pallet', 'hour'];
+      const isManualInputProduct = manualInputUnits.includes(productData.unit_type);
+
+      // For manual input products, only show 'total' calculation type addons
+      const compatibleAddons = isManualInputProduct 
+        ? (addonsData || []).filter(addon => addon.calculation_type === 'total')
+        : (addonsData || []);
+
+      setAddons(compatibleAddons as Addon[]);
 
       if (productData.use_tiered_pricing) {
         const { data: tiersData } = await supabase
@@ -515,7 +541,8 @@ const ProductConfiguration = ({
                       if (depthValue && !isNaN(depthValue) && isVolumeBased) {
                         return `${((measurement.value * depthValue) / 324).toFixed(0)} cu yd`;
                       }
-                      return `${measurement.value.toFixed(0)} LF`;
+                      const displayUnit = getDisplayUnit(product.unit_type, false);
+                      return `${measurement.value.toFixed(0)} ${displayUnit}`;
                     })()} × {(() => {
                       // Calculate unit price with variation included
                       let unitPrice = product.unit_price;
@@ -601,7 +628,7 @@ const ProductConfiguration = ({
                           displayUnit = 'SF';
                         } else if (addon.calculation_type === 'per_unit') {
                           displayQuantity = quantity.toLocaleString();
-                          displayUnit = measurement.unit.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                          displayUnit = getDisplayUnit(product.unit_type, isVolumeBased);
                         } else {
                           displayQuantity = '1';
                           displayUnit = 'ea';

@@ -5,21 +5,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, Minus, Package } from 'lucide-react';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
+import { MeasurementData } from '@/types/widget';
 
 interface QuantityInputProps {
   productId: string;
   productName: string;
   productImage?: string;
+  unitType: string;
   minQuantity: number;
-  onQuantitySet: (quantity: number) => void;
+  onQuantitySet: (quantity: number, measurement: MeasurementData) => void;
   settings: GlobalSettings;
 }
 
 const QuantityInput = ({ 
+  productId, 
   productName, 
-  productImage, 
+  productImage,
+  unitType,
   minQuantity, 
   onQuantitySet,
+  settings 
 }: QuantityInputProps) => {
   const [quantity, setQuantity] = useState<number>(minQuantity || 1);
 
@@ -40,7 +45,14 @@ const QuantityInput = ({
 
   const handleContinue = () => {
     if (quantity >= (minQuantity || 1)) {
-      onQuantitySet(quantity);
+      // Create a point measurement for manual quantity products
+      const measurement: MeasurementData = {
+        type: 'point',
+        value: quantity,
+        unit: unitType,
+        manualEntry: true
+      };
+      onQuantitySet(quantity, measurement);
     }
   };
 
