@@ -579,8 +579,8 @@ const MeasurementTools = ({
             label: {
               text: `${idx + 1}`,
               color: 'white',
-              fontSize: `${Math.max(8, getZoomBasedFontSize(currentZoom) - 2)}px`,
-              fontWeight: 'bold'
+              fontSize: '14px',
+              fontWeight: 'normal'
             },
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
@@ -588,7 +588,7 @@ const MeasurementTools = ({
               fillOpacity: 0.8,
               strokeColor: 'white',
               strokeWeight: 2,
-              scale: 10
+              scale: 7.5
             },
             title: `${item.customName || item.productName} - Point ${idx + 1}`
           });
@@ -1004,7 +1004,7 @@ const MeasurementTools = ({
         text: `${markerNumber}`,
         color: 'white',
         fontSize: '14px',
-        fontWeight: 'bold'
+        fontWeight: 'normal'
       },
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
@@ -1012,7 +1012,7 @@ const MeasurementTools = ({
         fillOpacity: 1,
         strokeColor: 'white',
         strokeWeight: 2,
-        scale: 12
+        scale: 9
       },
       animation: google.maps.Animation.DROP
     });
@@ -1056,7 +1056,7 @@ const MeasurementTools = ({
         text: `${idx + 1}`,
         color: 'white',
         fontSize: '14px',
-        fontWeight: 'bold'
+        fontWeight: 'normal'
       });
     });
   };
