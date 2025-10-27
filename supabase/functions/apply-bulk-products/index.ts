@@ -6,6 +6,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to normalize unit types to database format
+function normalizeUnitType(unitType: string): string {
+  const normalized = unitType.toLowerCase().trim().replace(/\s+/g, '');
+  const mapping: Record<string, string> = {
+    'sqft': 'sq_ft',
+    'sq_ft': 'sq_ft',
+    'squarefeet': 'sq_ft',
+    'linearft': 'linear_ft',
+    'linear_ft': 'linear_ft',
+    'linearfeet': 'linear_ft',
+    'cubicyard': 'cubic_yard',
+    'cubic_yard': 'cubic_yard',
+    'cubicyards': 'cubic_yard',
+    'each': 'each',
+    'hour': 'hour',
+    'pound': 'pound',
+    'ton': 'ton',
+    'pallet': 'pallet'
+  };
+  return mapping[normalized] || normalized;
+}
+
 interface ProductUpdate {
   productId?: string;
   name: string;
@@ -263,7 +285,7 @@ serve(async (req) => {
             name: update.name,
             description: update.description || null,
             unit_price: update.unitPrice,
-            unit_type: update.unitType,
+            unit_type: normalizeUnitType(update.unitType),
             category: categoryId,
             subcategory: subcategoryId,
             color_hex: '#3B82F6',

@@ -7,6 +7,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to normalize unit types to database format
+function normalizeUnitType(unitType: string): string {
+  const normalized = unitType.toLowerCase().trim().replace(/\s+/g, '');
+  const mapping: Record<string, string> = {
+    'sqft': 'sq_ft',
+    'sq_ft': 'sq_ft',
+    'squarefeet': 'sq_ft',
+    'linearft': 'linear_ft',
+    'linear_ft': 'linear_ft',
+    'linearfeet': 'linear_ft',
+    'cubicyard': 'cubic_yard',
+    'cubic_yard': 'cubic_yard',
+    'cubicyards': 'cubic_yard',
+    'each': 'each',
+    'hour': 'hour',
+    'pound': 'pound',
+    'ton': 'ton',
+    'pallet': 'pallet'
+  };
+  return mapping[normalized] || normalized;
+}
+
 interface ValidationError {
   row: number;
   field: string;
@@ -263,7 +285,7 @@ serve(async (req) => {
         const productName = row['Product Name'] || row['Name'];
         const description = row['Description'] || '';
         const unitPriceStr = row['Unit Price'] || row['Price'];
-        const unitType = row['Unit Type'] || row['Unit'] || 'sq_ft';
+        const unitType = normalizeUnitType(row['Unit Type'] || row['Unit'] || 'sq_ft');
         const category = row['Category'] || '';
         const subcategory = row['Subcategory'] || '';
         const photoUrl = row['Photo URL'] || row['Photo'] || '';
@@ -295,19 +317,14 @@ serve(async (req) => {
           // Already handled above, skip duplicate
         }
 
-        // Support both underscore and non-underscore formats
-        const validUnitTypes = [
-          'sqft', 'sq_ft',
-          'linearft', 'linear_ft',
-          'cubicyard', 'cubic_yard',
-          'each',
-          'hour',
-          'pound',
-          'ton',
-          'pallet'
-        ];
-        if (unitType && !validUnitTypes.includes(unitType.toLowerCase())) {
-          rowErrors.push({ row: i, field: 'Unit Type', message: `Must be one of: sqft, linearft, cubicyard, each, hour, pound, ton, pallet` });
+        // Validate unit type (after normalization)
+        const validUnitTypes = ['sq_ft', 'linear_ft', 'cubic_yard', 'each', 'hour', 'pound', 'ton', 'pallet'];
+        if (unitType && !validUnitTypes.includes(unitType)) {
+          rowErrors.push({ 
+            row: i + 2, 
+            field: 'Unit Type', 
+            message: `Invalid unit type "${row['Unit Type'] || row['Unit']}". Accepted formats: sq_ft (or sqft), linear_ft (or linearft), cubic_yard (or cubicyard), each, hour, pound, ton, pallet` 
+          });
         }
 
         // Validate display order is a number
