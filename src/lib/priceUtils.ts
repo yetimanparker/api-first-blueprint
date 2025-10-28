@@ -375,3 +375,31 @@ export function getMinimumProductPrice(
   
   return lowestPrice;
 }
+
+/**
+ * Calculate quantity needed when product is sold in fixed increments
+ * @param measuredQuantity The quantity measured by the customer
+ * @param incrementSize The size of each increment unit
+ * @param allowPartial Whether to allow partial increments (e.g., 0.5)
+ * @returns Object with units needed, total coverage, and extra coverage
+ */
+export function calculateIncrementQuantity(
+  measuredQuantity: number,
+  incrementSize: number,
+  allowPartial: boolean
+): { unitsNeeded: number; totalCoverage: number; extra: number } {
+  let unitsNeeded: number;
+  
+  if (allowPartial) {
+    // Round to nearest 0.5 for half-unit support
+    unitsNeeded = Math.ceil(measuredQuantity / incrementSize * 2) / 2;
+  } else {
+    // Always round up to whole number
+    unitsNeeded = Math.ceil(measuredQuantity / incrementSize);
+  }
+  
+  const totalCoverage = unitsNeeded * incrementSize;
+  const extra = totalCoverage - measuredQuantity;
+  
+  return { unitsNeeded, totalCoverage, extra };
+}

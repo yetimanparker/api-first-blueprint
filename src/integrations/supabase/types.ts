@@ -553,6 +553,7 @@ export type Database = {
       products: {
         Row: {
           allow_dimension_editing: boolean | null
+          allow_partial_increments: boolean | null
           base_height: number | null
           base_height_unit: string | null
           category: string | null
@@ -566,11 +567,14 @@ export type Database = {
           display_order: number | null
           has_fixed_dimensions: boolean
           id: string
+          increment_description: string | null
+          increment_unit_label: string | null
           is_active: boolean
           min_order_quantity: number
           name: string
           photo_url: string | null
           show_pricing_before_submit: boolean
+          sold_in_increments_of: number | null
           subcategory: string | null
           unit_price: number
           unit_type: string
@@ -580,6 +584,7 @@ export type Database = {
         }
         Insert: {
           allow_dimension_editing?: boolean | null
+          allow_partial_increments?: boolean | null
           base_height?: number | null
           base_height_unit?: string | null
           category?: string | null
@@ -593,11 +598,14 @@ export type Database = {
           display_order?: number | null
           has_fixed_dimensions?: boolean
           id?: string
+          increment_description?: string | null
+          increment_unit_label?: string | null
           is_active?: boolean
           min_order_quantity?: number
           name: string
           photo_url?: string | null
           show_pricing_before_submit?: boolean
+          sold_in_increments_of?: number | null
           subcategory?: string | null
           unit_price: number
           unit_type?: string
@@ -607,6 +615,7 @@ export type Database = {
         }
         Update: {
           allow_dimension_editing?: boolean | null
+          allow_partial_increments?: boolean | null
           base_height?: number | null
           base_height_unit?: string | null
           category?: string | null
@@ -620,11 +629,14 @@ export type Database = {
           display_order?: number | null
           has_fixed_dimensions?: boolean
           id?: string
+          increment_description?: string | null
+          increment_unit_label?: string | null
           is_active?: boolean
           min_order_quantity?: number
           name?: string
           photo_url?: string | null
           show_pricing_before_submit?: boolean
+          sold_in_increments_of?: number | null
           subcategory?: string | null
           unit_price?: number
           unit_type?: string

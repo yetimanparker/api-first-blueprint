@@ -31,6 +31,13 @@ export interface MeasurementData {
   };
   rotation?: number; // Rotation angle in degrees (0-360)
   centerPoint?: {lat: number, lng: number}; // Center coordinates for dimensional products
+  originalMeasurement?: number; // Store the actual measured value before increment rounding
+  wasRoundedForIncrements?: boolean; // Flag to indicate rounding occurred
+  incrementsApplied?: {
+    incrementSize: number;
+    incrementLabel: string;
+    unitsNeeded: number;
+  };
 }
 
 export interface QuoteItem {

@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobalSettings, useProductCategories } from "@/hooks/useGlobalSettings";
 import { displayPrice, calculateFinalPrice, PricingTier, validateTiers } from "@/lib/priceUtils";
-import { Plus, Trash2, GripVertical, Upload, Image, Ruler } from "lucide-react";
+import { Plus, Trash2, GripVertical, Upload, Image, Ruler, Package } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useContractorId } from "@/hooks/useContractorId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -40,6 +40,10 @@ const productSchema = z.object({
   base_height: z.number().optional(),
   base_height_unit: z.string().optional(),
   use_height_in_calculation: z.boolean(),
+  sold_in_increments_of: z.number().optional(),
+  increment_unit_label: z.string().optional(),
+  increment_description: z.string().optional(),
+  allow_partial_increments: z.boolean(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -96,6 +100,10 @@ interface Product {
   base_height?: number | null;
   base_height_unit?: string | null;
   use_height_in_calculation?: boolean;
+  sold_in_increments_of?: number | null;
+  increment_unit_label?: string | null;
+  increment_description?: string | null;
+  allow_partial_increments?: boolean;
 }
 
 interface ProductFormProps {
@@ -144,6 +152,10 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       base_height: product?.base_height || undefined,
       base_height_unit: product?.base_height_unit || "ft",
       use_height_in_calculation: product?.use_height_in_calculation ?? false,
+      sold_in_increments_of: product?.sold_in_increments_of || undefined,
+      increment_unit_label: product?.increment_unit_label || "",
+      increment_description: product?.increment_description || "",
+      allow_partial_increments: product?.allow_partial_increments ?? false,
     },
   });
 
@@ -383,6 +395,10 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         base_height: data.use_height_in_calculation && data.base_height ? Number(data.base_height) : null,
         base_height_unit: data.use_height_in_calculation ? (data.base_height_unit || 'ft') : null,
         use_height_in_calculation: data.use_height_in_calculation,
+        sold_in_increments_of: data.sold_in_increments_of ? Number(data.sold_in_increments_of) : null,
+        increment_unit_label: data.sold_in_increments_of ? (data.increment_unit_label || null) : null,
+        increment_description: data.sold_in_increments_of ? (data.increment_description || null) : null,
+        allow_partial_increments: data.sold_in_increments_of ? data.allow_partial_increments : false,
       };
 
       let productId = product?.id;
@@ -1020,6 +1036,113 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             )}
           />
         </div>
+
+        {/* Sold in Increments Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Sold in Increments
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <FormDescription>
+              Configure if this product is only sold in fixed increments (e.g., pallets, bundles, 20ft lengths)
+            </FormDescription>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="sold_in_increments_of"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Increment Size</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.1" 
+                        placeholder="e.g., 450 or 20"
+                        {...field}
+                        value={field.value || ""}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value);
+                          field.onChange(value > 0 ? value : undefined);
+                        }}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Size of each increment unit
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="increment_unit_label"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Increment Label</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="e.g., pallet, bundle, 20ft length"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Display name for each increment
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="increment_description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="e.g., Each pallet covers approximately 450 square feet"
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Explain to customers what each increment represents
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="allow_partial_increments"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Allow Partial Increments</FormLabel>
+                    <FormDescription>
+                      Allow half-increments (e.g., 0.5 pallets)
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
 
         {/* Dimensional Product Settings */}
         <Card>
