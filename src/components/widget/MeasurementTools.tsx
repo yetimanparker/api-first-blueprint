@@ -422,31 +422,31 @@ const MeasurementTools = ({
       }
       
       // Auto-select measurement type based on product unit type
-      const unitType = data.unit_type.toLowerCase();
+      const unitType = productData.unit_type.toLowerCase();
       
       // Check for 'each' type products first
       if (unitType === 'each') {
-        console.log('Auto-selecting POINT measurement for unit type:', data.unit_type);
+        console.log('Auto-selecting POINT measurement for unit type:', productData.unit_type);
         setMeasurementType('point');
       }
       // Check for linear measurements (linear_ft, linear, etc.)
       else if (unitType.includes('linear')) {
-        console.log('Auto-selecting LINEAR measurement for unit type:', data.unit_type);
+        console.log('Auto-selecting LINEAR measurement for unit type:', productData.unit_type);
         setMeasurementType('linear');
       }
       // Then check for area measurements (sq_ft, square, etc.)
       else if (unitType.includes('sq_') || unitType.includes('square') || unitType.includes('area')) {
-        console.log('Auto-selecting AREA measurement for unit type:', data.unit_type);
+        console.log('Auto-selecting AREA measurement for unit type:', productData.unit_type);
         setMeasurementType('area');
       }
       // For volume/cubic measurements, use area measurement (depth will be added in configuration)
       else if (unitType.includes('cubic') || unitType.includes('cu_') || unitType.includes('yard')) {
-        console.log('Auto-selecting AREA measurement for volume-based unit type:', data.unit_type);
+        console.log('Auto-selecting AREA measurement for volume-based unit type:', productData.unit_type);
         setMeasurementType('area');
       }
       // Default to area for other types
       else {
-        console.log('Defaulting to AREA measurement for unit type:', data.unit_type);
+        console.log('Defaulting to AREA measurement for unit type:', productData.unit_type);
         setMeasurementType('area');
       }
     } catch (error) {

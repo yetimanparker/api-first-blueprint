@@ -524,6 +524,12 @@ const Widget = () => {
     ];
     const currentIndex = stepOrder.indexOf(widgetState.currentStep);
     const stepIndex = stepOrder.indexOf(step);
+    
+    // Special handling: product-selection should always be visible after contact-before is complete
+    if (step === 'product-selection' && currentIndex >= stepOrder.indexOf('product-selection')) {
+      return true;
+    }
+    
     return stepIndex <= currentIndex;
   };
 
