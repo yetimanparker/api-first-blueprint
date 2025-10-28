@@ -32,10 +32,14 @@ export function useGlobalSettings(contractorId?: string) {
       setLoading(true);
       setError(null);
 
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      const isAuthenticated = !!session;
+
       // Use provided contractor ID or get from authenticated user
       let targetContractorId = contractorId;
       
-      if (!targetContractorId) {
+      if (!targetContractorId && isAuthenticated) {
         const { data: contractor } = await supabase
           .from('contractors')
           .select('id')
@@ -69,12 +73,31 @@ export function useGlobalSettings(contractorId?: string) {
         return;
       }
 
-      // Load settings for the contractor
-      const { data: contractorSettings, error: settingsError } = await supabase
-        .from('contractor_settings')
-        .select('*')
-        .eq('contractor_id', targetContractorId)
-        .maybeSingle();
+      let contractorSettings;
+      let settingsError;
+
+      // Authenticated users get full settings via direct query (RLS protected)
+      if (isAuthenticated) {
+        const { data, error } = await supabase
+          .from('contractor_settings')
+          .select('*')
+          .eq('contractor_id', targetContractorId)
+          .maybeSingle();
+        
+        contractorSettings = data;
+        settingsError = error;
+      } else {
+        // Public widget users get limited safe settings via edge function
+        const { data, error } = await supabase.functions.invoke(
+          'get-contractor-widget-settings',
+          {
+            body: { contractor_id: targetContractorId }
+          }
+        );
+        
+        contractorSettings = data;
+        settingsError = error;
+      }
 
       if (settingsError && settingsError.code !== 'PGRST116') {
         throw settingsError;
