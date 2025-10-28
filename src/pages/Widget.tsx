@@ -559,8 +559,8 @@ const Widget = () => {
       </div>
       
       <div className="max-w-[1920px] mx-auto">
-        {/* Contact Form Section */}
-        {isStepVisible('contact-before') && settings.contact_capture_timing === 'before_quote' && (
+        {/* Contact Form Section - Only show when actively on this step */}
+        {widgetState.currentStep === 'contact-before' && settings.contact_capture_timing === 'before_quote' && (
           <div id="step-contact-before" className="px-4 py-6">
             <ContactForm
               customerInfo={widgetState.customerInfo}
@@ -648,8 +648,8 @@ const Widget = () => {
           </div>
         )}
 
-        {/* Contact After Section */}
-        {isStepVisible('contact-after') && settings.contact_capture_timing === 'after_quote' && (
+        {/* Contact After Section - Only show when actively on this step */}
+        {widgetState.currentStep === 'contact-after' && settings.contact_capture_timing === 'after_quote' && (
           <div id="step-contact-after" className="px-4 py-6">
             <ContactForm
               customerInfo={widgetState.customerInfo}
