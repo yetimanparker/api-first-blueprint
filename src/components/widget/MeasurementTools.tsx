@@ -559,7 +559,7 @@ const MeasurementTools = ({
             scale: 0,
           },
           label: {
-            text: `${item.measurement.value.toLocaleString()} sq ft`,
+            text: `${(item.measurement.originalMeasurement || item.measurement.value).toLocaleString()} sq ft`,
             color: color,
             fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
             fontWeight: 'bold',
@@ -590,7 +590,7 @@ const MeasurementTools = ({
             scale: 0,
           },
           label: {
-            text: `${item.measurement.value.toLocaleString()} ft`,
+            text: `${(item.measurement.originalMeasurement || item.measurement.value).toLocaleString()} ft`,
             color: color,
             fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
             fontWeight: 'bold',
