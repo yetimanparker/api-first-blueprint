@@ -48,6 +48,10 @@ interface Product {
   base_height?: number | null;
   base_height_unit?: string;
   use_height_in_calculation?: boolean;
+  sold_in_increments_of?: number | null;
+  increment_unit_label?: string | null;
+  increment_description?: string | null;
+  allow_partial_increments?: boolean;
 }
 
 interface Variation {
@@ -127,7 +131,7 @@ const ProductConfiguration = ({
       
       const { data: productData, error: productError } = await supabase
         .from('products')
-        .select('*')
+        .select('*, sold_in_increments_of, increment_unit_label, increment_description, allow_partial_increments')
         .eq('id', productId)
         .single();
 
@@ -411,6 +415,31 @@ const ProductConfiguration = ({
             </div>
           )}
 
+          {/* Measurement Summary with Increment Info */}
+          {measurement.wasRoundedForIncrements && measurement.incrementsApplied && (
+            <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Package className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-blue-900 mb-1">Quantity Rounded for Increments</p>
+                  <div className="text-sm text-blue-800 space-y-1">
+                    <p>
+                      <strong>You measured:</strong> {measurement.originalMeasurement} {getDisplayUnit(product.unit_type)}
+                    </p>
+                    <p>
+                      <strong>Rounded to:</strong> {measurement.value} {getDisplayUnit(product.unit_type)} 
+                      ({measurement.incrementsApplied.unitsNeeded} {measurement.incrementsApplied.incrementLabel}
+                      {measurement.incrementsApplied.unitsNeeded > 1 && !measurement.incrementsApplied.incrementLabel.endsWith('s') && 's'})
+                    </p>
+                    <p className="text-blue-600">
+                      <strong>Extra coverage:</strong> {(measurement.value - measurement.originalMeasurement!).toFixed(0)} {getDisplayUnit(product.unit_type)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Variations Dropdown */}
           {variations.length > 0 && (
             <div className="space-y-2">
@@ -542,6 +571,12 @@ const ProductConfiguration = ({
                         return `${((measurement.value * depthValue) / 324).toFixed(0)} cu yd`;
                       }
                       const displayUnit = getDisplayUnit(product.unit_type, false);
+                      
+                      // Show increment info if rounded
+                      if (measurement.wasRoundedForIncrements && measurement.incrementsApplied) {
+                        return `${measurement.value.toFixed(0)} ${displayUnit} (rounded)`;
+                      }
+                      
                       return `${measurement.value.toFixed(0)} ${displayUnit}`;
                     })()} × {(() => {
                       // Calculate unit price with variation included
@@ -578,6 +613,14 @@ const ProductConfiguration = ({
                       });
                     })()}</span>
                   </div>
+                  {/* Show increment breakdown */}
+                  {measurement.wasRoundedForIncrements && measurement.incrementsApplied && (
+                    <div className="text-xs text-muted-foreground mt-1 pl-4">
+                      = {measurement.incrementsApplied.unitsNeeded} {measurement.incrementsApplied.incrementLabel}
+                      {measurement.incrementsApplied.unitsNeeded > 1 && !measurement.incrementsApplied.incrementLabel.endsWith('s') && 's'}
+                      {' × '}{measurement.incrementsApplied.incrementSize} {getDisplayUnit(product.unit_type)}
+                    </div>
+                  )}
                 </div>
 
                 {/* Add-ons Section */}

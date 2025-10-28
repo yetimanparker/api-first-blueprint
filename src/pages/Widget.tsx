@@ -13,6 +13,7 @@ import ProductSelector from '@/components/widget/ProductSelector';
 import MeasurementTools from '@/components/widget/MeasurementTools';
 import QuantityInput from '@/components/widget/QuantityInput';
 import QuantityMethodDialog from '@/components/widget/QuantityMethodDialog';
+import { IncrementConfirmationDialog } from '@/components/widget/IncrementConfirmationDialog';
 import ProductConfiguration from '@/components/widget/ProductConfiguration';
 import QuoteReview from '@/components/widget/QuoteReview';
 import QuoteSuccess from '@/components/widget/QuoteSuccess';
@@ -41,6 +42,8 @@ const Widget = () => {
   const [showMethodDialog, setShowMethodDialog] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [showIncrementDialog, setShowIncrementDialog] = useState(false);
+  const [pendingMeasurement, setPendingMeasurement] = useState<MeasurementData | null>(null);
 
   // Use debounced service area validation
   const { isServiceAreaValid, isValidating, manualValidate } = useDebouncedServiceArea({
@@ -310,18 +313,26 @@ const Widget = () => {
     }));
   };
 
-  const updateCurrentMeasurement = (measurement: MeasurementData) => {
-    setWidgetState(prev => ({
-      ...prev,
-      currentMeasurement: measurement
-    }));
+  const updateCurrentMeasurement = async (measurement: MeasurementData) => {
+    // Check if selected product requires increment confirmation
+    if (selectedProduct?.sold_in_increments_of) {
+      setPendingMeasurement(measurement);
+      setShowIncrementDialog(true);
+    } else {
+      // Normal flow - go directly to configuration
+      setWidgetState(prev => ({
+        ...prev,
+        currentMeasurement: measurement,
+        currentStep: 'product-configuration'
+      }));
+    }
   };
 
   const setCurrentProduct = async (productId: string) => {
-    // Fetch product details to display in UI
+    // Fetch product details to display in UI, including increment fields
     const { data: productData } = await supabase
       .from('products')
-      .select('id, name, description, unit_type, unit_price, min_order_quantity, photo_url')
+      .select('id, name, description, unit_type, unit_price, min_order_quantity, photo_url, sold_in_increments_of, increment_unit_label, increment_description, allow_partial_increments')
       .eq('id', productId)
       .single();
     
@@ -406,6 +417,36 @@ const Widget = () => {
       currentProductId: undefined,
       currentMeasurement: undefined
     }));
+  };
+
+  const handleIncrementConfirm = (roundedQuantity: number, unitsNeeded: number) => {
+    if (pendingMeasurement && selectedProduct) {
+      const updatedMeasurement: MeasurementData = {
+        ...pendingMeasurement,
+        value: roundedQuantity, // 900 SF (the rounded amount)
+        originalMeasurement: pendingMeasurement.value, // 700 SF (what they measured)
+        wasRoundedForIncrements: true,
+        incrementsApplied: {
+          incrementSize: selectedProduct.sold_in_increments_of!,
+          incrementLabel: selectedProduct.increment_unit_label || 'unit',
+          unitsNeeded: unitsNeeded // 2 (number of pallets, for display only)
+        }
+      };
+      
+      setWidgetState(prev => ({
+        ...prev,
+        currentMeasurement: updatedMeasurement,
+        currentStep: 'product-configuration'
+      }));
+    }
+    setShowIncrementDialog(false);
+    setPendingMeasurement(null);
+  };
+
+  const handleRemeasure = () => {
+    setShowIncrementDialog(false);
+    setPendingMeasurement(null);
+    // Stay on measurement step
   };
 
   const handleQuoteSubmitted = (quoteNumber: string) => {
@@ -677,6 +718,26 @@ const Widget = () => {
           open={showMethodDialog}
           productName={selectedProduct.name}
           onMethodSelect={handleMethodSelect}
+        />
+      )}
+
+      {/* Increment Confirmation Dialog */}
+      {showIncrementDialog && selectedProduct && pendingMeasurement && (
+        <IncrementConfirmationDialog
+          open={showIncrementDialog}
+          productName={selectedProduct.name}
+          measuredQuantity={pendingMeasurement.value}
+          measuredUnit={
+            selectedProduct.unit_type === 'sq_ft' ? 'SF' :
+            selectedProduct.unit_type === 'linear_ft' ? 'LF' :
+            selectedProduct.unit_type
+          }
+          incrementSize={selectedProduct.sold_in_increments_of!}
+          incrementLabel={selectedProduct.increment_unit_label || 'unit'}
+          incrementDescription={selectedProduct.increment_description}
+          allowPartial={selectedProduct.allow_partial_increments || false}
+          onConfirm={handleIncrementConfirm}
+          onRemeasure={handleRemeasure}
         />
       )}
     </div>

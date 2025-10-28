@@ -643,7 +643,12 @@ const QuoteReview = ({
                             
                             const displayUnit = getDisplayUnit(item.unitType, !!item.measurement.depth);
                             
-                            return `${displayQuantity} ${displayUnit} × ${formatExactPrice(adjustedUnitPrice, {
+                            // Show increment info if rounded
+                            const quantityLabel = item.measurement.wasRoundedForIncrements 
+                              ? `${displayQuantity} ${displayUnit} (rounded)`
+                              : `${displayQuantity} ${displayUnit}`;
+                            
+                            return `${quantityLabel} × ${formatExactPrice(adjustedUnitPrice, {
                               currency_symbol: settings.currency_symbol,
                               decimal_precision: settings.decimal_precision
                             })} = `;
@@ -653,6 +658,19 @@ const QuoteReview = ({
                             decimal_precision: settings.decimal_precision
                           })}</span>
                         </div>
+                        {/* Show increment breakdown */}
+                        {item.measurement.wasRoundedForIncrements && item.measurement.incrementsApplied && (
+                          <div className="text-xs text-muted-foreground pl-4 space-y-0.5">
+                            <div>
+                              {item.measurement.originalMeasurement} {getDisplayUnit(item.unitType)} measured → {item.measurement.value} {getDisplayUnit(item.unitType)} 
+                            </div>
+                            <div>
+                              ({item.measurement.incrementsApplied.unitsNeeded} {item.measurement.incrementsApplied.incrementLabel}
+                              {item.measurement.incrementsApplied.unitsNeeded > 1 && !item.measurement.incrementsApplied.incrementLabel.endsWith('s') && 's'}
+                              {' × '}{item.measurement.incrementsApplied.incrementSize} {getDisplayUnit(item.unitType)})
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
