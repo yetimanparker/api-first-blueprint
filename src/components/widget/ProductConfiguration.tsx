@@ -86,6 +86,7 @@ interface PricingTier {
 
 interface ProductConfigurationProps {
   productId: string;
+  contractorId: string;
   measurement: MeasurementData;
   onAddToQuote: (item: QuoteItem) => void;
   settings: GlobalSettings;
@@ -93,7 +94,8 @@ interface ProductConfigurationProps {
 }
 
 const ProductConfiguration = ({ 
-  productId, 
+  productId,
+  contractorId, 
   measurement, 
   onAddToQuote, 
   settings,
@@ -129,26 +131,28 @@ const ProductConfiguration = ({
     try {
       setLoading(true);
       
-      const { data: productData, error: productError } = await supabase
-        .from('products')
-        .select('*, sold_in_increments_of, increment_unit_label, increment_description, allow_partial_increments')
-        .eq('id', productId)
-        .single();
+      // Use secure edge function to get product data
+      const { data, error } = await supabase.functions.invoke('get-widget-products', {
+        body: { contractor_id: contractorId }
+      });
 
-      if (productError) throw productError;
+      if (error || !data?.success) {
+        throw new Error('Failed to load product details');
+      }
+      
+      const productData = data.products.find((p: any) => p.id === productId);
+      if (!productData) {
+        throw new Error('Product not found');
+      }
+
       setProduct(productData);
 
-      const { data: variationsData } = await supabase
-        .from('product_variations')
-        .select('*')
-        .eq('product_id', productId)
-        .eq('is_active', true)
-        .order('display_order');
-
-      const hasRequiredVariations = variationsData?.some(v => v.is_required);
-      const defaultVariation = variationsData?.find(v => v.is_default);
+      // Variations are now included in the product data
+      const variationsData = productData.product_variations || [];
+      const hasRequiredVariations = variationsData.some((v: any) => v.is_required);
+      const defaultVariation = variationsData.find((v: any) => v.is_default);
       
-      setVariations((variationsData || []) as Variation[]);
+      setVariations(variationsData as Variation[]);
       
       // Auto-select default variation if exists
       if (defaultVariation) {
@@ -156,16 +160,12 @@ const ProductConfiguration = ({
       }
       
       // Show error if required but no default and has variations
-      if (hasRequiredVariations && !defaultVariation && variationsData?.length > 0) {
+      if (hasRequiredVariations && !defaultVariation && variationsData.length > 0) {
         setVariationError("Please select a variation");
       }
 
-      const { data: addonsData } = await supabase
-        .from('product_addons')
-        .select('*')
-        .eq('product_id', productId)
-        .eq('is_active', true)
-        .order('display_order');
+      // Addons are now included in the product data
+      const addonsData = productData.product_addons || [];
 
       // Filter addons based on product compatibility
       const manualInputUnits = ['each', 'ton', 'pound', 'pallet', 'hour'];

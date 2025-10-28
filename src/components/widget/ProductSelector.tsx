@@ -82,23 +82,25 @@ const ProductSelector = ({ categories, onProductSelect, settings, contractorId }
       
       console.log('Fetching products for contractor:', contractorId);
       
-      const { data, error } = await supabase
-        .from('products')
-        .select('*, product_variations(*)')
-        .eq('contractor_id', contractorId)
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+      // Use secure edge function instead of direct database query
+      const { data, error } = await supabase.functions.invoke('get-widget-products', {
+        body: { contractor_id: contractorId }
+      });
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('Error from edge function:', error);
         throw error;
       }
       
-      console.log(`Successfully fetched ${data?.length || 0} products for contractor ${contractorId}`);
-      console.log('Products data:', data);
-      setProducts(data as Product[] || []);
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to load products');
+      }
       
-      if (!data || data.length === 0) {
+      console.log(`Successfully fetched ${data.products?.length || 0} products for contractor ${contractorId}`);
+      console.log('Products data:', data.products);
+      setProducts(data.products || []);
+      
+      if (!data.products || data.products.length === 0) {
         console.warn('No active products found for contractor:', contractorId);
       }
     } catch (err) {

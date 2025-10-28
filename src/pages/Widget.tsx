@@ -329,34 +329,51 @@ const Widget = () => {
   };
 
   const setCurrentProduct = async (productId: string) => {
-    // Fetch product details to display in UI, including increment fields
-    const { data: productData } = await supabase
-      .from('products')
-      .select('id, name, description, unit_type, unit_price, min_order_quantity, photo_url, sold_in_increments_of, increment_unit_label, increment_description, allow_partial_increments')
-      .eq('id', productId)
-      .single();
-    
-    setSelectedProduct(productData);
-    
-    setWidgetState(prev => ({
-      ...prev,
-      currentProductId: productId,
-    }));
-    
-    // For 'each' products, show method selection dialog
-    if (productData.unit_type === 'each') {
-      setShowMethodDialog(true);
-    } else {
-      // Other manual input products go straight to quantity input
-      const manualInputUnits = ['ton', 'pound', 'pallet', 'hour'];
-      const requiresManualInput = manualInputUnits.includes(productData.unit_type);
+    try {
+      // Fetch product details using secure edge function
+      const { data, error } = await supabase.functions.invoke('get-widget-products', {
+        body: { contractor_id: contractorId }
+      });
       
-      const nextStep = requiresManualInput ? 'quantity-input' : 'measurement';
+      if (error || !data?.success) {
+        throw new Error('Failed to load product details');
+      }
+      
+      const productData = data.products.find((p: any) => p.id === productId);
+      
+      if (!productData) {
+        throw new Error('Product not found');
+      }
+      
+      setSelectedProduct(productData);
       
       setWidgetState(prev => ({
         ...prev,
-        currentStep: nextStep
+        currentProductId: productId,
       }));
+      
+      // For 'each' products, show method selection dialog
+      if (productData.unit_type === 'each') {
+        setShowMethodDialog(true);
+      } else {
+        // Other manual input products go straight to quantity input
+        const manualInputUnits = ['ton', 'pound', 'pallet', 'hour'];
+        const requiresManualInput = manualInputUnits.includes(productData.unit_type);
+        
+        const nextStep = requiresManualInput ? 'quantity-input' : 'measurement';
+        
+        setWidgetState(prev => ({
+          ...prev,
+          currentStep: nextStep
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load product details",
+        variant: "destructive",
+      });
     }
   };
 
@@ -584,6 +601,7 @@ const Widget = () => {
         {isStepVisible('measurement') && widgetState.currentProductId && (
           <div id="step-measurement" className="w-full mb-2">
             <MeasurementTools
+              contractorId={contractorId!}
               productId={widgetState.currentProductId}
               onMeasurementComplete={updateCurrentMeasurement}
               onNext={() => {
@@ -614,6 +632,7 @@ const Widget = () => {
         {isStepVisible('product-configuration') && widgetState.currentMeasurement && (
           <div id="step-product-configuration" className="px-4 py-0 bg-background">
             <ProductConfiguration
+              contractorId={contractorId!}
               productId={widgetState.currentProductId!}
               measurement={widgetState.currentMeasurement}
               onAddToQuote={addQuoteItem}

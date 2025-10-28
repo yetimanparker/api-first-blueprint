@@ -14,6 +14,7 @@ import { getZoomBasedFontSize, getZoomBasedMarkerScale } from '@/lib/mapLabelUti
 
 interface MeasurementToolsProps {
   productId: string;
+  contractorId: string;
   onMeasurementComplete: (measurement: MeasurementData) => void;
   onNext: () => void;
   customerAddress?: string;
@@ -49,7 +50,8 @@ interface Product {
 }
 
 const MeasurementTools = ({ 
-  productId, 
+  productId,
+  contractorId, 
   onMeasurementComplete, 
   onNext,
   customerAddress,
@@ -396,18 +398,25 @@ const MeasurementTools = ({
 
   const fetchProduct = async () => {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('id, name, unit_type, has_fixed_dimensions, default_width, default_length, dimension_unit, allow_dimension_editing')
-        .eq('id', productId)
-        .single();
+      // Use secure edge function to get product data
+      const { data, error } = await supabase.functions.invoke('get-widget-products', {
+        body: { contractor_id: contractorId }
+      });
 
-      if (error) throw error;
-      setProduct(data);
+      if (error || !data?.success) {
+        throw new Error('Failed to load product details');
+      }
+      
+      const productData = data.products.find((p: any) => p.id === productId);
+      if (!productData) {
+        throw new Error('Product not found');
+      }
+      
+      setProduct(productData);
       
       // Check if this is a dimensional product
-      if (data.has_fixed_dimensions && data.default_width && data.default_length) {
-        console.log('This is a DIMENSIONAL product:', data.name);
+      if (productData.has_fixed_dimensions && productData.default_width && productData.default_length) {
+        console.log('This is a DIMENSIONAL product:', productData.name);
         setMeasurementType('dimensional');
         return;
       }

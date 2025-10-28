@@ -361,6 +361,7 @@ export default function InternalQuoteBuilder() {
               </CardHeader>
               <CardContent>
                 <MeasurementTools
+                  contractorId={contractorId!}
                   productId={currentProductId}
                   onMeasurementComplete={handleMeasurementComplete}
                   onNext={() => setCurrentStep('product-configuration')}
@@ -391,6 +392,7 @@ export default function InternalQuoteBuilder() {
               </CardHeader>
               <CardContent>
                 <ProductConfiguration
+                  contractorId={contractorId!}
                   productId={currentProductId}
                   measurement={currentMeasurement}
                   settings={settings}

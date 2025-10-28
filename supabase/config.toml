@@ -81,6 +81,9 @@ verify_jwt = false
 [functions.get-contractor-widget-settings]
 verify_jwt = false
 
+[functions.get-widget-products]
+verify_jwt = false
+
 [functions.submit-widget-quote]
 verify_jwt = false
 
