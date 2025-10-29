@@ -136,7 +136,7 @@ serve(async (req) => {
     // Fetch categories for this contractor
     const { data: categories, error: categoriesError } = await supabaseClient
       .from('product_categories')
-      .select('id::text as id, name, color_hex')
+      .select('id, name, color_hex')
       .eq('contractor_id', contractor_id)
       .eq('is_active', true)
       .order('display_order', { ascending: true });
@@ -147,9 +147,9 @@ serve(async (req) => {
 
     // Fetch subcategories for this contractor's categories
     const categoryIds = categories?.map(c => c.id) || [];
-    const { data: subcategories, error: subcategoriesError } = await supabaseClient
+    const { data: subcategories, error: subcategoriesError} = await supabaseClient
       .from('product_subcategories')
-      .select('id::text as id, category_id::text as category_id, name, is_active, display_order')
+      .select('id, category_id, name, is_active, display_order')
       .in('category_id', categoryIds)
       .eq('is_active', true)
       .order('display_order', { ascending: true });
