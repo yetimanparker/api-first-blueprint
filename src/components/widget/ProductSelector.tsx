@@ -45,26 +45,37 @@ interface ProductSubcategory {
 
 interface ProductSelectorProps {
   categories: ProductCategory[];
+  subcategories?: ProductSubcategory[];
   onProductSelect: (productId: string) => void;
   settings: GlobalSettings;
   contractorId: string;
 }
 
-const ProductSelector = ({ categories, onProductSelect, settings, contractorId }: ProductSelectorProps) => {
+const ProductSelector = ({ categories, subcategories: propSubcategories, onProductSelect, settings, contractorId }: ProductSelectorProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
-  const [subcategories, setSubcategories] = useState<ProductSubcategory[]>([]);
+  const [subcategories, setSubcategories] = useState<ProductSubcategory[]>(propSubcategories || []);
   const [error, setError] = useState<string | null>(null);
+
+  // Update subcategories when prop changes
+  useEffect(() => {
+    if (propSubcategories) {
+      setSubcategories(propSubcategories);
+    }
+  }, [propSubcategories]);
 
   useEffect(() => {
     if (contractorId) {
       console.log('Fetching products for contractor:', contractorId);
       fetchProducts();
-      fetchSubcategories();
+      // Only fetch subcategories if not provided via props
+      if (!propSubcategories || propSubcategories.length === 0) {
+        fetchSubcategories();
+      }
     }
-  }, [contractorId]);
+  }, [contractorId, propSubcategories]);
 
   // Reset subcategory when category changes
   useEffect(() => {

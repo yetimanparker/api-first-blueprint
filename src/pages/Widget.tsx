@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useGlobalSettings } from '@/hooks/useGlobalSettings';
-import { useProductCategories } from '@/hooks/useGlobalSettings';
 import { useDebouncedServiceArea } from '@/hooks/useDebouncedServiceArea';
 import { useToast } from '@/hooks/use-toast';
 import ContactForm from '@/components/widget/ContactForm';
@@ -25,7 +24,6 @@ const Widget = () => {
   const navigate = useNavigate();
   
   const { settings, loading: settingsLoading, error: settingsError } = useGlobalSettings(contractorId);
-  const { categories, loading: categoriesLoading } = useProductCategories(contractorId);
 
   const [widgetState, setWidgetState] = useState<WidgetState>({
     contractorId: contractorId!,
@@ -44,6 +42,8 @@ const Widget = () => {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [showIncrementDialog, setShowIncrementDialog] = useState(false);
   const [pendingMeasurement, setPendingMeasurement] = useState<MeasurementData | null>(null);
+  const [widgetCategories, setWidgetCategories] = useState<Array<{ id: string; name: string; color_hex: string }>>([]);
+  const [widgetSubcategories, setWidgetSubcategories] = useState<Array<{ id: string; category_id: string; name: string; is_active: boolean; display_order: number }>>([]);
 
   // Use debounced service area validation
   const { isServiceAreaValid, isValidating, manualValidate } = useDebouncedServiceArea({
@@ -66,6 +66,36 @@ const Widget = () => {
       }
     };
     fetchContractor();
+  }, [contractorId]);
+
+  // Fetch widget data (categories, subcategories, products) on mount
+  useEffect(() => {
+    const fetchWidgetData = async () => {
+      if (!contractorId) return;
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('get-widget-products', {
+          body: { contractor_id: contractorId }
+        });
+        
+        if (error || !data?.success) {
+          console.error('Failed to load widget data');
+          return;
+        }
+
+        // Store categories and subcategories for filters
+        if (data.categories) {
+          setWidgetCategories(data.categories);
+        }
+        if (data.subcategories) {
+          setWidgetSubcategories(data.subcategories);
+        }
+      } catch (err) {
+        console.error('Error fetching widget data:', err);
+      }
+    };
+    
+    fetchWidgetData();
   }, [contractorId]);
 
   // Initialize workflow based on contractor settings
@@ -474,7 +504,7 @@ const Widget = () => {
     }));
   };
 
-  if (settingsLoading || categoriesLoading) {
+  if (settingsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md p-8 text-center">
@@ -577,7 +607,8 @@ const Widget = () => {
         {isStepVisible('product-selection') && !widgetState.currentProductId && (
           <div id="step-product-selection" className="w-full py-6">
             <ProductSelector
-              categories={categories}
+              categories={widgetCategories}
+              subcategories={widgetSubcategories}
               onProductSelect={setCurrentProduct}
               settings={settings}
               contractorId={contractorId!}
