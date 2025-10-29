@@ -144,9 +144,12 @@ serve(async (req) => {
     if (categoriesError) {
       console.error('Error fetching categories:', categoriesError);
     }
+    console.log(`Fetched ${categories?.length || 0} categories for contractor ${contractor_id}`);
+    console.log('Categories data:', categories);
 
     // Fetch subcategories for this contractor's categories
     const categoryIds = categories?.map(c => c.id) || [];
+    console.log(`Category IDs for subcategories query:`, categoryIds);
     const { data: subcategories, error: subcategoriesError} = await supabaseClient
       .from('product_subcategories')
       .select('id, category_id, name, is_active, display_order')
@@ -157,6 +160,8 @@ serve(async (req) => {
     if (subcategoriesError) {
       console.error('Error fetching subcategories:', subcategoriesError);
     }
+    console.log(`Fetched ${subcategories?.length || 0} subcategories`);
+    console.log('Subcategories data:', subcategories);
 
     // Organize data by product
     const productsWithRelations = products?.map(product => ({
@@ -165,6 +170,8 @@ serve(async (req) => {
       product_addons: addons?.filter(a => a.product_id === product.id) || [],
       product_pricing_tiers: pricingTiers?.filter(t => t.product_id === product.id) || [],
     })) || [];
+
+    console.log(`Returning response with ${productsWithRelations.length} products, ${categories?.length || 0} categories, ${subcategories?.length || 0} subcategories`);
 
     return new Response(
       JSON.stringify({ 

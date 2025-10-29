@@ -109,7 +109,14 @@ const ProductSelector = ({ categories, subcategories: propSubcategories, onProdu
       
       console.log(`Successfully fetched ${data.products?.length || 0} products for contractor ${contractorId}`);
       console.log('Products data:', data.products);
+      console.log('Categories from edge function:', data.categories);
+      console.log('Subcategories from edge function:', data.subcategories);
       setProducts(data.products || []);
+      
+      // Update subcategories from edge function response if available
+      if (data.subcategories && data.subcategories.length > 0) {
+        setSubcategories(data.subcategories);
+      }
       
       if (!data.products || data.products.length === 0) {
         console.warn('No active products found for contractor:', contractorId);

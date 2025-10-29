@@ -83,6 +83,14 @@ const Widget = () => {
           return;
         }
 
+        console.log('Widget data received:', {
+          categoriesCount: data.categories?.length || 0,
+          subcategoriesCount: data.subcategories?.length || 0,
+          productsCount: data.products?.length || 0
+        });
+        console.log('Categories data:', data.categories);
+        console.log('Subcategories data:', data.subcategories);
+
         // Store categories and subcategories for filters
         if (data.categories) {
           setWidgetCategories(data.categories);
