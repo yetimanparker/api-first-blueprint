@@ -70,6 +70,36 @@ const Widget = () => {
     fetchContractor();
   }, [contractorId]);
 
+  // Fetch widget categories and subcategories on mount
+  useEffect(() => {
+    const fetchWidgetData = async () => {
+      if (!contractorId) return;
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('get-widget-products', {
+          body: { contractor_id: contractorId }
+        });
+        
+        if (error || !data?.success) {
+          console.error('Failed to load widget data');
+          return;
+        }
+
+        // Store categories and subcategories for filters
+        if (data.categories) {
+          setWidgetCategories(data.categories);
+        }
+        if (data.subcategories) {
+          setWidgetSubcategories(data.subcategories);
+        }
+      } catch (err) {
+        console.error('Error fetching widget data:', err);
+      }
+    };
+    
+    fetchWidgetData();
+  }, [contractorId]);
+
   // Initialize workflow based on contractor settings
   useEffect(() => {
     if (settings && !settingsLoading) {
@@ -587,7 +617,7 @@ const Widget = () => {
         {isStepVisible('product-selection') && !widgetState.currentProductId && (
           <div id="step-product-selection" className="w-full py-6">
             <ProductSelector
-              categories={widgetCategories.length > 0 ? widgetCategories : categories}
+              categories={widgetCategories}
               subcategories={widgetSubcategories}
               onProductSelect={setCurrentProduct}
               settings={settings}
