@@ -96,6 +96,31 @@ serve(async (req) => {
       throw productsError;
     }
 
+    // Fetch product categories for the contractor
+    const { data: categories, error: categoriesError } = await supabaseClient
+      .from('product_categories')
+      .select('id, name, color_hex')
+      .eq('contractor_id', contractor_id)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    if (categoriesError) {
+      console.error('Error fetching categories:', categoriesError);
+    }
+
+    // Fetch product subcategories
+    const categoryIds = categories?.map(c => c.id) || [];
+    const { data: subcategories, error: subcategoriesError } = await supabaseClient
+      .from('product_subcategories')
+      .select('id, category_id, name')
+      .in('category_id', categoryIds)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    if (subcategoriesError) {
+      console.error('Error fetching subcategories:', subcategoriesError);
+    }
+
     // Fetch variations for all products
     const productIds = products?.map(p => p.id) || [];
     const { data: variations, error: variationsError } = await supabaseClient
@@ -144,7 +169,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        products: productsWithRelations
+        products: productsWithRelations,
+        categories: categories || [],
+        subcategories: subcategories || []
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
