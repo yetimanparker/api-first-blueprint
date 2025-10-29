@@ -44,8 +44,6 @@ const Widget = () => {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [showIncrementDialog, setShowIncrementDialog] = useState(false);
   const [pendingMeasurement, setPendingMeasurement] = useState<MeasurementData | null>(null);
-  const [widgetCategories, setWidgetCategories] = useState<any[]>([]);
-  const [widgetSubcategories, setWidgetSubcategories] = useState<any[]>([]);
 
   // Use debounced service area validation
   const { isServiceAreaValid, isValidating, manualValidate } = useDebouncedServiceArea({
@@ -68,36 +66,6 @@ const Widget = () => {
       }
     };
     fetchContractor();
-  }, [contractorId]);
-
-  // Fetch widget categories and subcategories on mount
-  useEffect(() => {
-    const fetchWidgetData = async () => {
-      if (!contractorId) return;
-      
-      try {
-        const { data, error } = await supabase.functions.invoke('get-widget-products', {
-          body: { contractor_id: contractorId }
-        });
-        
-        if (error || !data?.success) {
-          console.error('Failed to load widget data');
-          return;
-        }
-
-        // Store categories and subcategories for filters
-        if (data.categories) {
-          setWidgetCategories(data.categories);
-        }
-        if (data.subcategories) {
-          setWidgetSubcategories(data.subcategories);
-        }
-      } catch (err) {
-        console.error('Error fetching widget data:', err);
-      }
-    };
-    
-    fetchWidgetData();
   }, [contractorId]);
 
   // Initialize workflow based on contractor settings
@@ -370,14 +338,6 @@ const Widget = () => {
       if (error || !data?.success) {
         throw new Error('Failed to load product details');
       }
-
-      // Store categories and subcategories for the widget
-      if (data.categories) {
-        setWidgetCategories(data.categories);
-      }
-      if (data.subcategories) {
-        setWidgetSubcategories(data.subcategories);
-      }
       
       const productData = data.products.find((p: any) => p.id === productId);
       
@@ -617,8 +577,7 @@ const Widget = () => {
         {isStepVisible('product-selection') && !widgetState.currentProductId && (
           <div id="step-product-selection" className="w-full py-6">
             <ProductSelector
-              categories={widgetCategories}
-              subcategories={widgetSubcategories}
+              categories={categories}
               onProductSelect={setCurrentProduct}
               settings={settings}
               contractorId={contractorId!}

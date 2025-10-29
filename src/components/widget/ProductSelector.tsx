@@ -45,30 +45,26 @@ interface ProductSubcategory {
 
 interface ProductSelectorProps {
   categories: ProductCategory[];
-  subcategories?: ProductSubcategory[];
   onProductSelect: (productId: string) => void;
   settings: GlobalSettings;
   contractorId: string;
 }
 
-const ProductSelector = ({ categories, subcategories: subcategoriesProp, onProductSelect, settings, contractorId }: ProductSelectorProps) => {
+const ProductSelector = ({ categories, onProductSelect, settings, contractorId }: ProductSelectorProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
-  const [subcategories, setSubcategories] = useState<ProductSubcategory[]>(subcategoriesProp || []);
+  const [subcategories, setSubcategories] = useState<ProductSubcategory[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (contractorId) {
       console.log('Fetching products for contractor:', contractorId);
       fetchProducts();
-      // Only fetch subcategories if not provided as prop
-      if (!subcategoriesProp || subcategoriesProp.length === 0) {
-        fetchSubcategories();
-      }
+      fetchSubcategories();
     }
-  }, [contractorId, subcategoriesProp]);
+  }, [contractorId]);
 
   // Reset subcategory when category changes
   useEffect(() => {
@@ -103,12 +99,6 @@ const ProductSelector = ({ categories, subcategories: subcategoriesProp, onProdu
       console.log(`Successfully fetched ${data.products?.length || 0} products for contractor ${contractorId}`);
       console.log('Products data:', data.products);
       setProducts(data.products || []);
-      
-      // If edge function returns subcategories and we don't have them from props, use them
-      if (data.subcategories && (!subcategoriesProp || subcategoriesProp.length === 0)) {
-        console.log('Using subcategories from edge function:', data.subcategories);
-        setSubcategories(data.subcategories);
-      }
       
       if (!data.products || data.products.length === 0) {
         console.warn('No active products found for contractor:', contractorId);
