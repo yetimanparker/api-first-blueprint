@@ -87,6 +87,11 @@ const MeasurementTools = ({
   const [dragHandle, setDragHandle] = useState<google.maps.Marker | null>(null);
   const [isDimensionalPlaced, setIsDimensionalPlaced] = useState(false);
   
+  // Real-time measurement tracking
+  const [tempMeasurementValue, setTempMeasurementValue] = useState<string>('');
+  const [tempMeasurementOverlay, setTempMeasurementOverlay] = useState<google.maps.Marker | null>(null);
+  const [isDrawingInProgress, setIsDrawingInProgress] = useState(false);
+  
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const initializationAttemptedRef = useRef(false);
@@ -100,6 +105,9 @@ const MeasurementTools = ({
   const isDrawingRef = useRef(false);
   const pointCountRef = useRef(0); // Track point count for reliable sequential numbering
   const isRenderingRef = useRef(false); // Guard against concurrent renders
+  const currentPathRef = useRef<google.maps.LatLng[]>([]);
+  const mouseMoveListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -371,6 +379,114 @@ const MeasurementTools = ({
     }
   }, [existingQuoteItems, debouncedZoom]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // Ignore if user is typing in an input field
+      if (event.target instanceof HTMLInputElement || 
+          event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      const key = event.key.toLowerCase();
+      
+      switch (key) {
+        case 'a':
+          // Area measurement
+          if (!isConfigurationMode && measurementType !== 'area' && !product?.has_fixed_dimensions) {
+            console.log('⌨️ Keyboard: Switching to Area measurement');
+            setMeasurementType('area');
+            event.preventDefault();
+          }
+          break;
+          
+        case 'l':
+          // Linear measurement
+          if (!isConfigurationMode && measurementType !== 'linear' && !product?.has_fixed_dimensions) {
+            console.log('⌨️ Keyboard: Switching to Linear measurement');
+            setMeasurementType('linear');
+            event.preventDefault();
+          }
+          break;
+          
+        case 'p':
+          // Point measurement
+          if (!isConfigurationMode && measurementType !== 'point' && !product?.has_fixed_dimensions) {
+            console.log('⌨️ Keyboard: Switching to Point measurement');
+            setMeasurementType('point');
+            event.preventDefault();
+          }
+          break;
+          
+        case 'escape':
+          // Cancel current drawing
+          if (isDrawing) {
+            console.log('⌨️ Keyboard: Canceling drawing');
+            handleUndo();
+            event.preventDefault();
+          }
+          break;
+          
+        case 'z':
+        case 'u':
+          // Undo (when Ctrl/Cmd not pressed, otherwise browser handles it)
+          if (!event.ctrlKey && !event.metaKey && (isDrawing || currentMeasurement)) {
+            console.log('⌨️ Keyboard: Undo last measurement');
+            handleUndo();
+            event.preventDefault();
+          }
+          break;
+          
+        case 'backspace':
+          // Remove last point (only for point measurement mode)
+          if (measurementType === 'point' && pointMarkers.length > 0 && !currentMeasurement) {
+            console.log('⌨️ Keyboard: Removing last point');
+            removeLastPoint();
+            event.preventDefault();
+          }
+          break;
+          
+        case 'm':
+          // Toggle manual entry mode
+          if (!isConfigurationMode) {
+            console.log('⌨️ Keyboard: Toggling manual entry');
+            setShowManualEntry(prev => !prev);
+            if (!showManualEntry) {
+              clearMapDrawing();
+            }
+            event.preventDefault();
+          }
+          break;
+          
+        case 'enter':
+          // Finish point measurement
+          if (measurementType === 'point' && pointLocations.length > 0 && isDrawing) {
+            console.log('⌨️ Keyboard: Finishing point measurement');
+            setIsDrawing(false);
+            event.preventDefault();
+          }
+          break;
+      }
+    };
+    
+    // Add event listener
+    window.addEventListener('keydown', handleKeyPress);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [
+    isConfigurationMode, 
+    measurementType, 
+    isDrawing, 
+    currentMeasurement, 
+    pointMarkers.length, 
+    pointLocations.length,
+    showManualEntry,
+    product
+  ]);
+
   // Disable/enable shape editing based on configuration mode
   useEffect(() => {
     if (currentShapeRef.current) {
@@ -473,6 +589,98 @@ const MeasurementTools = ({
       console.error('Error geocoding address:', error);
     }
     return null;
+  };
+
+  const calculateRealTimeMeasurement = (
+    path: google.maps.LatLng[], 
+    mousePosition: google.maps.LatLng
+  ): { value: number; unit: string; position: google.maps.LatLng } => {
+    if (measurementType === 'area') {
+      // For polygon, create temp path including mouse position
+      const tempPath = [...path, mousePosition];
+      if (tempPath.length < 3) {
+        return { value: 0, unit: 'sq ft', position: mousePosition };
+      }
+      
+      // Calculate area with temporary closing point
+      const area = google.maps.geometry.spherical.computeArea(tempPath);
+      const sqFt = Math.ceil(area * 10.764);
+      
+      // Calculate centroid for label position
+      let centerLat = 0, centerLng = 0;
+      tempPath.forEach(point => {
+        centerLat += point.lat();
+        centerLng += point.lng();
+      });
+      const center = new google.maps.LatLng(
+        centerLat / tempPath.length,
+        centerLng / tempPath.length
+      );
+      
+      return { value: sqFt, unit: 'sq ft', position: center };
+    } else if (measurementType === 'linear') {
+      // For polyline, calculate length to mouse position
+      const tempPath = [...path, mousePosition];
+      if (tempPath.length < 2) {
+        return { value: 0, unit: 'ft', position: mousePosition };
+      }
+      
+      const length = google.maps.geometry.spherical.computeLength(tempPath);
+      const feet = Math.ceil(length * 3.28084);
+      
+      // Position at midpoint
+      const midIndex = Math.floor(tempPath.length / 2);
+      const position = tempPath[midIndex];
+      
+      return { value: feet, unit: 'ft', position };
+    }
+    
+    return { value: 0, unit: '', position: mousePosition };
+  };
+
+  const updateTempMeasurementOverlay = (
+    value: number,
+    unit: string,
+    position: google.maps.LatLng
+  ) => {
+    if (!mapRef.current) return;
+    
+    const displayText = value > 0 
+      ? `Drawing: ${value.toLocaleString()} ${unit}` 
+      : `Click to start ${measurementType === 'area' ? 'polygon' : 'line'}`;
+    
+    if (tempMeasurementOverlay) {
+      // Update existing overlay
+      tempMeasurementOverlay.setPosition(position);
+      tempMeasurementOverlay.setLabel({
+        text: displayText,
+        color: '#1a1a1a',
+        fontSize: '14px',
+        fontWeight: 'bold',
+      });
+    } else {
+      // Create new overlay
+      const marker = new google.maps.Marker({
+        position: position,
+        map: mapRef.current,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: '#ffffff',
+          fillOpacity: 0.9,
+          strokeColor: '#3B82F6',
+          strokeWeight: 2,
+        },
+        label: {
+          text: displayText,
+          color: '#1a1a1a',
+          fontSize: '14px',
+          fontWeight: 'bold',
+        },
+        zIndex: 9999,
+      });
+      setTempMeasurementOverlay(marker);
+    }
   };
 
   const renderExistingMeasurements = async (map: google.maps.Map) => {
@@ -696,7 +904,86 @@ const MeasurementTools = ({
       }
     });
 
+    // Add drawing mode change listener for real-time measurements
+    google.maps.event.addListener(drawingManager, 'drawingmode_changed', () => {
+      const mode = drawingManager.getDrawingMode();
+      
+      if (mode === google.maps.drawing.OverlayType.POLYGON || 
+          mode === google.maps.drawing.OverlayType.POLYLINE) {
+        setIsDrawingInProgress(true);
+        currentPathRef.current = [];
+        
+        // Start tracking mouse movements
+        if (mouseMoveListenerRef.current) {
+          google.maps.event.removeListener(mouseMoveListenerRef.current);
+        }
+        
+        // Throttle mouse move updates
+        let lastUpdate = 0;
+        mouseMoveListenerRef.current = map.addListener('mousemove', (event: google.maps.MapMouseEvent) => {
+          const now = Date.now();
+          if (!event.latLng || currentPathRef.current.length === 0 || now - lastUpdate < 50) return;
+          lastUpdate = now;
+          
+          const measurement = calculateRealTimeMeasurement(
+            currentPathRef.current,
+            event.latLng
+          );
+          
+          updateTempMeasurementOverlay(
+            measurement.value,
+            measurement.unit,
+            measurement.position
+          );
+        });
+        
+        // Track clicks to build path
+        if (clickListenerRef.current) {
+          google.maps.event.removeListener(clickListenerRef.current);
+        }
+        clickListenerRef.current = map.addListener('click', (event: google.maps.MapMouseEvent) => {
+          if (event.latLng && isDrawingInProgress) {
+            currentPathRef.current.push(event.latLng);
+          }
+        });
+      } else {
+        // Clear when exiting drawing mode
+        setIsDrawingInProgress(false);
+        currentPathRef.current = [];
+        if (tempMeasurementOverlay) {
+          tempMeasurementOverlay.setMap(null);
+          setTempMeasurementOverlay(null);
+        }
+        if (mouseMoveListenerRef.current) {
+          google.maps.event.removeListener(mouseMoveListenerRef.current);
+          mouseMoveListenerRef.current = null;
+        }
+        if (clickListenerRef.current) {
+          google.maps.event.removeListener(clickListenerRef.current);
+          clickListenerRef.current = null;
+        }
+      }
+    });
+
     google.maps.event.addListener(drawingManager, 'overlaycomplete', (event: any) => {
+      // Clean up real-time measurement overlay
+      if (tempMeasurementOverlay) {
+        tempMeasurementOverlay.setMap(null);
+        setTempMeasurementOverlay(null);
+      }
+      setIsDrawingInProgress(false);
+      currentPathRef.current = [];
+      
+      // Clean up listeners
+      if (mouseMoveListenerRef.current) {
+        google.maps.event.removeListener(mouseMoveListenerRef.current);
+        mouseMoveListenerRef.current = null;
+      }
+      if (clickListenerRef.current) {
+        google.maps.event.removeListener(clickListenerRef.current);
+        clickListenerRef.current = null;
+      }
+      
       setIsDrawing(false);
       
       if (currentShapeRef.current) {
@@ -988,6 +1275,24 @@ const MeasurementTools = ({
       measurementLabelRef.current = null;
     }
     
+    // Clear real-time measurement overlay
+    if (tempMeasurementOverlay) {
+      tempMeasurementOverlay.setMap(null);
+      setTempMeasurementOverlay(null);
+    }
+    setIsDrawingInProgress(false);
+    currentPathRef.current = [];
+    
+    // Clean up listeners
+    if (mouseMoveListenerRef.current) {
+      google.maps.event.removeListener(mouseMoveListenerRef.current);
+      mouseMoveListenerRef.current = null;
+    }
+    if (clickListenerRef.current) {
+      google.maps.event.removeListener(clickListenerRef.current);
+      clickListenerRef.current = null;
+    }
+    
     // Clear point markers
     if (measurementType === 'point') {
       pointMarkers.forEach(marker => marker.setMap(null));
@@ -995,6 +1300,17 @@ const MeasurementTools = ({
       setPointLocations([]);
       pointCountRef.current = 0; // Reset counter
     }
+    
+    // Clear dimensional product handles
+    if (rotationHandle) {
+      rotationHandle.setMap(null);
+      setRotationHandle(null);
+    }
+    if (dragHandle) {
+      dragHandle.setMap(null);
+      setDragHandle(null);
+    }
+    setIsDimensionalPlaced(false);
     
     if (drawingManagerRef.current) {
       drawingManagerRef.current.setDrawingMode(null);
@@ -1319,6 +1635,33 @@ const MeasurementTools = ({
               >
                 Satellite
               </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Keyboard Shortcuts Help - Top Left */}
+        {!mapLoading && !mapError && !isConfigurationMode && (
+          <div className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm rounded-lg shadow-lg border p-3 max-w-xs">
+            <div className="font-semibold mb-2 text-sm text-foreground flex items-center gap-2">
+              ⌨️ Keyboard Shortcuts
+            </div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+              {!product?.has_fixed_dimensions && (
+                <>
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">A</kbd> Area</div>
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">L</kbd> Linear</div>
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">P</kbd> Points</div>
+                </>
+              )}
+              <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">M</kbd> Manual</div>
+              <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">ESC</kbd> Cancel</div>
+              <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">Z/U</kbd> Undo</div>
+              {measurementType === 'point' && pointLocations.length > 0 && (
+                <>
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">⌫</kbd> Remove</div>
+                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">Enter</kbd> Finish</div>
+                </>
+              )}
             </div>
           </div>
         )}
