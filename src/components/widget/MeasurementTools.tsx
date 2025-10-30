@@ -391,33 +391,6 @@ const MeasurementTools = ({
       const key = event.key.toLowerCase();
       
       switch (key) {
-        case 'a':
-          // Area measurement
-          if (!isConfigurationMode && measurementType !== 'area' && !product?.has_fixed_dimensions) {
-            console.log('⌨️ Keyboard: Switching to Area measurement');
-            setMeasurementType('area');
-            event.preventDefault();
-          }
-          break;
-          
-        case 'l':
-          // Linear measurement
-          if (!isConfigurationMode && measurementType !== 'linear' && !product?.has_fixed_dimensions) {
-            console.log('⌨️ Keyboard: Switching to Linear measurement');
-            setMeasurementType('linear');
-            event.preventDefault();
-          }
-          break;
-          
-        case 'p':
-          // Point measurement
-          if (!isConfigurationMode && measurementType !== 'point' && !product?.has_fixed_dimensions) {
-            console.log('⌨️ Keyboard: Switching to Point measurement');
-            setMeasurementType('point');
-            event.preventDefault();
-          }
-          break;
-          
         case 'escape':
           // Cancel current drawing
           if (isDrawing) {
@@ -1646,13 +1619,6 @@ const MeasurementTools = ({
               ⌨️ Keyboard Shortcuts
             </div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-              {!product?.has_fixed_dimensions && (
-                <>
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">A</kbd> Area</div>
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">L</kbd> Linear</div>
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">P</kbd> Points</div>
-                </>
-              )}
               <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">M</kbd> Manual</div>
               <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">ESC</kbd> Cancel</div>
               <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">Z/U</kbd> Undo</div>
