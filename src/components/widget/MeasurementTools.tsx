@@ -400,16 +400,6 @@ const MeasurementTools = ({
           }
           break;
           
-        case 'z':
-        case 'u':
-          // Undo (when Ctrl/Cmd not pressed, otherwise browser handles it)
-          if (!event.ctrlKey && !event.metaKey && (isDrawing || currentMeasurement)) {
-            console.log('⌨️ Keyboard: Undo last measurement');
-            handleUndo();
-            event.preventDefault();
-          }
-          break;
-          
         case 'backspace':
           // Remove last point (only for point measurement mode)
           if (measurementType === 'point' && pointMarkers.length > 0 && !currentMeasurement) {
@@ -1614,18 +1604,26 @@ const MeasurementTools = ({
 
         {/* Keyboard Shortcuts Help - Top Left */}
         {!mapLoading && !mapError && !isConfigurationMode && (
-          <div className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm rounded-lg shadow-lg border p-3 max-w-xs">
-            <div className="font-semibold mb-2 text-sm text-foreground flex items-center gap-2">
-              ⌨️ Keyboard Shortcuts
-            </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-              <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">M</kbd> Manual</div>
-              <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">ESC</kbd> Cancel</div>
-              <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">Z/U</kbd> Undo</div>
+          <div className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm rounded-lg shadow-lg border px-3 py-2">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">M</kbd>
+                <span>Manual</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">ESC</kbd>
+                <span>Cancel</span>
+              </div>
               {measurementType === 'point' && pointLocations.length > 0 && (
                 <>
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">⌫</kbd> Remove</div>
-                  <div><kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">Enter</kbd> Finish</div>
+                  <div className="flex items-center gap-1.5">
+                    <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">⌫</kbd>
+                    <span>Remove</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">Enter</kbd>
+                    <span>Finish</span>
+                  </div>
                 </>
               )}
             </div>
