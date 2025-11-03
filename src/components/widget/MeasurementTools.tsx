@@ -1123,7 +1123,28 @@ const MeasurementTools = ({
       setDragHandle(drag);
 
       google.maps.event.addListener(drag, 'drag', (e: any) => {
-        setDimensionalCenter({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+        const newCenter = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        setDimensionalCenter(newCenter);
+        
+        // Immediately update the polygon position for real-time feedback
+        if (currentShapeRef.current && polygon) {
+          const updatedCorners = calculateRotatedRectangle(
+            newCenter.lat,
+            newCenter.lng,
+            width,
+            length,
+            dimensionalRotation
+          );
+          (currentShapeRef.current as google.maps.Polygon).setPath(updatedCorners);
+        }
+      });
+
+      // Add dragend for final consistency check
+      google.maps.event.addListener(drag, 'dragend', (e: any) => {
+        const newCenter = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        setDimensionalCenter(newCenter);
+        // Trigger full redraw to ensure everything stays in sync
+        updateDimensionalShape();
       });
     };
 
