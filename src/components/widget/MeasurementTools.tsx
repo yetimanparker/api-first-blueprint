@@ -1122,8 +1122,79 @@ const MeasurementTools = ({
       });
       setDragHandle(drag);
 
+      // Drag listener - update polygon in real-time
       google.maps.event.addListener(drag, 'drag', (e: any) => {
-        setDimensionalCenter({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+        const newCenter = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        setDimensionalCenter(newCenter);
+        
+        // Immediately update polygon position
+        if (currentShapeRef.current) {
+          const updatedCorners = calculateRotatedRectangle(
+            newCenter.lat, newCenter.lng, width, length, dimensionalRotation
+          );
+          (currentShapeRef.current as google.maps.Polygon).setPath(updatedCorners);
+        }
+        
+        // Update rotation handle position if it exists
+        if (rotationHandle) {
+          const corners = calculateRotatedRectangle(
+            newCenter.lat, newCenter.lng, width, length, dimensionalRotation
+          );
+          rotationHandle.setPosition(corners[1]); // Top-right corner
+        }
+      });
+      
+      google.maps.event.addListener(drag, 'dragend', () => {
+        updateDimensionalShape(); // Full redraw for consistency
+      });
+
+      // Create rotation handle at top-right corner
+      const rotHandle = new google.maps.Marker({
+        position: corners[1],
+        map: mapRef.current,
+        draggable: true,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          fillColor: color,
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+          scale: 8
+        },
+        title: 'Drag to rotate',
+        zIndex: 10
+      });
+      setRotationHandle(rotHandle);
+
+      // Rotation drag listener
+      google.maps.event.addListener(rotHandle, 'drag', (e: any) => {
+        const handlePos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        const centerPos = dimensionalCenter || center;
+        
+        // Calculate angle between center and handle
+        const angle = Math.atan2(
+          handlePos.lat - centerPos.lat,
+          handlePos.lng - centerPos.lng
+        ) * (180 / Math.PI);
+        
+        // Adjust angle to match our coordinate system (0° = north)
+        const adjustedAngle = (angle + 90 + 360) % 360;
+        setDimensionalRotation(adjustedAngle);
+        
+        // Immediately update polygon with new rotation
+        if (currentShapeRef.current) {
+          const updatedCorners = calculateRotatedRectangle(
+            centerPos.lat, centerPos.lng, width, length, adjustedAngle
+          );
+          (currentShapeRef.current as google.maps.Polygon).setPath(updatedCorners);
+          
+          // Update rotation handle position to stay at corner
+          rotHandle.setPosition(updatedCorners[1]);
+        }
+      });
+      
+      google.maps.event.addListener(rotHandle, 'dragend', () => {
+        updateDimensionalShape(); // Full redraw for consistency
       });
     };
 
