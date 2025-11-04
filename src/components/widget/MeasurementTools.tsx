@@ -119,6 +119,9 @@ const MeasurementTools = ({
     '#F97316', // orange
   ];
   
+  // Ref to track rotation handle position for accurate updates
+  const rotationHandlePositionRef = useRef<google.maps.LatLng | null>(null);
+  
   // Store map state in sessionStorage to persist across component unmounts
   const STORAGE_KEY = `map-state-${customerAddress || 'default'}`;
 
@@ -1133,24 +1136,25 @@ const MeasurementTools = ({
             newCenter.lat, newCenter.lng, width, length, dimensionalRotation
           );
           (currentShapeRef.current as google.maps.Polygon).setPath(updatedCorners);
-        }
-        
-        // Update rotation handle position if it exists
-        if (rotationHandle) {
-          const corners = calculateRotatedRectangle(
-            newCenter.lat, newCenter.lng, width, length, dimensionalRotation
-          );
-          rotationHandle.setPosition(corners[1]); // Top-right corner
+          
+          // Update rotation handle position to follow the product
+          if (rotationHandle) {
+            const newRotationPos = new google.maps.LatLng(updatedCorners[1].lat, updatedCorners[1].lng);
+            rotationHandle.setPosition(newRotationPos);
+            rotationHandlePositionRef.current = newRotationPos;
+          }
         }
       });
       
       google.maps.event.addListener(drag, 'dragend', () => {
-        // Position update is already handled by real-time 'drag' listener
-        // Update measurement label position if needed
-        if (measurementLabelRef.current) {
-          const newCenter = drag.getPosition();
-          if (newCenter) {
-            measurementLabelRef.current.setPosition(newCenter);
+        // Ensure state is updated with final position
+        const finalCenter = drag.getPosition();
+        if (finalCenter) {
+          setDimensionalCenter({ lat: finalCenter.lat(), lng: finalCenter.lng() });
+          
+          // Update measurement label position if needed
+          if (measurementLabelRef.current) {
+            measurementLabelRef.current.setPosition(finalCenter);
           }
         }
       });
@@ -1176,12 +1180,14 @@ const MeasurementTools = ({
       // Rotation drag listener
       google.maps.event.addListener(rotHandle, 'drag', (e: any) => {
         const handlePos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-        const centerPos = dimensionalCenter || center;
+        const centerPos = drag.getPosition(); // Use CURRENT drag handle position
+        
+        if (!centerPos) return;
         
         // Calculate angle between center and handle
         const angle = Math.atan2(
-          handlePos.lat - centerPos.lat,
-          handlePos.lng - centerPos.lng
+          handlePos.lat - centerPos.lat(),
+          handlePos.lng - centerPos.lng()
         ) * (180 / Math.PI);
         
         // Adjust angle to match our coordinate system (0° = north)
@@ -1191,19 +1197,27 @@ const MeasurementTools = ({
         // Immediately update polygon with new rotation
         if (currentShapeRef.current) {
           const updatedCorners = calculateRotatedRectangle(
-            centerPos.lat, centerPos.lng, width, length, adjustedAngle
+            centerPos.lat(), centerPos.lng(), width, length, adjustedAngle
           );
           (currentShapeRef.current as google.maps.Polygon).setPath(updatedCorners);
           
-          // Update rotation handle position to stay at corner
-          rotHandle.setPosition(updatedCorners[1]);
+          // LOCK rotation handle to the corner (don't let it float freely)
+          const lockedPosition = new google.maps.LatLng(updatedCorners[1].lat, updatedCorners[1].lng);
+          rotHandle.setPosition(lockedPosition);
+          rotationHandlePositionRef.current = lockedPosition;
         }
+        
+        // Update center to current position
+        setDimensionalCenter({ lat: centerPos.lat(), lng: centerPos.lng() });
       });
       
       google.maps.event.addListener(rotHandle, 'dragend', () => {
-        // Rotation and position updates are already handled by real-time 'drag' listener
-        // No need to recreate the entire shape
-        console.log('🔄 Rotation complete, angle:', dimensionalRotation);
+        // Ensure both center and rotation state are finalized
+        const finalCenter = drag.getPosition();
+        if (finalCenter) {
+          setDimensionalCenter({ lat: finalCenter.lat(), lng: finalCenter.lng() });
+        }
+        console.log('🔄 Rotation complete, angle:', dimensionalRotation, 'center:', dimensionalCenter);
       });
     };
 
