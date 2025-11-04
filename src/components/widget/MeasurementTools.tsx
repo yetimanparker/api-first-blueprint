@@ -1248,6 +1248,9 @@ const MeasurementTools = ({
           if (measurementLabelRef.current) {
             measurementLabelRef.current.setPosition(finalCenter);
           }
+          
+          // UPDATE: Re-save measurement with new position
+          updateDimensionalMeasurement();
         }
       });
 
@@ -1321,10 +1324,52 @@ const MeasurementTools = ({
         finalDimensionalRotationRef.current = dimensionalRotation;
         
         console.log('🔄 Rotation complete, angle:', finalDimensionalRotationRef.current, 'center:', finalDimensionalCenterRef.current);
+        
+        // UPDATE: Re-save measurement with new rotation
+        updateDimensionalMeasurement();
       });
     };
 
     updateDimensionalShape();
+  };
+
+  const updateDimensionalMeasurement = () => {
+    if (!currentShapeRef.current || !product || measurementType !== 'dimensional') return;
+    
+    // Get current coordinates from the shape
+    const coordinates: number[][] = [];
+    const path = (currentShapeRef.current as google.maps.Polygon).getPath();
+    path.forEach((latLng) => {
+      coordinates.push([latLng.lat(), latLng.lng()]);
+    });
+    
+    const mapColor = assignedMeasurementColor || MAP_COLORS[existingQuoteItems.length % MAP_COLORS.length];
+    
+    const updatedMeasurement: MeasurementData = {
+      type: 'area',
+      value: mapMeasurement,
+      unit: 'sq_ft',
+      coordinates: coordinates,
+      manualEntry: false,
+      mapColor: mapColor,
+      isDimensional: true,
+      rotation: finalDimensionalRotationRef.current,
+      centerPoint: finalDimensionalCenterRef.current || dimensionalCenter,
+      dimensions: {
+        width: product.default_width || 0,
+        length: product.default_length || 0,
+        unit: 'feet'
+      }
+    };
+    
+    console.log('🔄 Updating dimensional measurement after move/rotate:', {
+      center: updatedMeasurement.centerPoint,
+      rotation: updatedMeasurement.rotation,
+      coordinates: updatedMeasurement.coordinates
+    });
+    
+    setCurrentMeasurement(updatedMeasurement);
+    onMeasurementComplete(updatedMeasurement);
   };
 
   const updateMeasurementLabel = (
