@@ -1549,6 +1549,34 @@ const MeasurementTools = ({
       setCurrentMeasurement(measurement);
       onMeasurementComplete(measurement);
       
+      // Clear the dimensional shape and handles after completing measurement
+      // This prevents duplication when the item is later rendered via renderExistingMeasurements
+      if (measurementType === 'dimensional') {
+        // Clear current shape (polygon)
+        if (currentShapeRef.current) {
+          currentShapeRef.current.setMap(null);
+          currentShapeRef.current = null;
+        }
+        
+        // Clear dimensional handles
+        if (rotationHandle) {
+          rotationHandle.setMap(null);
+          setRotationHandle(null);
+        }
+        if (dragHandle) {
+          dragHandle.setMap(null);
+          setDragHandle(null);
+        }
+        
+        // Clear measurement label
+        if (measurementLabelRef.current) {
+          measurementLabelRef.current.setMap(null);
+          measurementLabelRef.current = null;
+        }
+        
+        setIsDimensionalPlaced(false);
+      }
+      
       // Scroll to show the measurement tools after completing measurement
       setTimeout(() => {
         const bottomControls = document.querySelector('.measurement-controls');
