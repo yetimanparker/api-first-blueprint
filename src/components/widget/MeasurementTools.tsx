@@ -1345,9 +1345,14 @@ const MeasurementTools = ({
     
     const mapColor = assignedMeasurementColor || MAP_COLORS[existingQuoteItems.length % MAP_COLORS.length];
     
+    // Calculate measurement value from dimensions (don't rely on state)
+    const width = product.default_width || 0;
+    const length = product.default_length || 0;
+    const calculatedArea = Math.ceil(width * length);
+    
     const updatedMeasurement: MeasurementData = {
       type: 'area',
-      value: mapMeasurement,
+      value: calculatedArea,
       unit: 'sq_ft',
       coordinates: coordinates,
       manualEntry: false,
@@ -1356,8 +1361,8 @@ const MeasurementTools = ({
       rotation: finalDimensionalRotationRef.current,
       centerPoint: finalDimensionalCenterRef.current || dimensionalCenter,
       dimensions: {
-        width: product.default_width || 0,
-        length: product.default_length || 0,
+        width: width,
+        length: length,
         unit: 'feet'
       }
     };
