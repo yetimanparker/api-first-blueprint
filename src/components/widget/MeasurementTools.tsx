@@ -769,6 +769,52 @@ const MeasurementTools = ({
             },
           });
           previousLabelsRef.current.push(marker);
+          
+          // Add side dimension labels for width and length
+          const topMid = {
+            lat: (rotatedCorners[0].lat + rotatedCorners[1].lat) / 2,
+            lng: (rotatedCorners[0].lng + rotatedCorners[1].lng) / 2
+          };
+          const rightMid = {
+            lat: (rotatedCorners[1].lat + rotatedCorners[2].lat) / 2,
+            lng: (rotatedCorners[1].lng + rotatedCorners[2].lng) / 2
+          };
+          
+          // Width label (top side)
+          const widthLabel = new google.maps.Marker({
+            position: topMid,
+            map: map,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 0,
+            },
+            label: {
+              text: `${width} ft`,
+              color: color,
+              fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+              fontWeight: '600',
+            },
+            zIndex: 1
+          });
+          previousLabelsRef.current.push(widthLabel);
+          
+          // Length label (right side)
+          const lengthLabel = new google.maps.Marker({
+            position: rightMid,
+            map: map,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 0,
+            },
+            label: {
+              text: `${length} ft`,
+              color: color,
+              fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+              fontWeight: '600',
+            },
+            zIndex: 1
+          });
+          previousLabelsRef.current.push(lengthLabel);
         } else {
           // Regular area polygon (existing code)
           const polygon = new google.maps.Polygon({
