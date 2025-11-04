@@ -11,6 +11,7 @@ import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 import { getZoomBasedFontSize, getZoomBasedMarkerScale } from '@/lib/mapLabelUtils';
+import { calculateRotatedRectangle } from '@/components/widget/DimensionalPlacement';
 
 interface MeasurementToolsProps {
   productId: string;
@@ -735,29 +736,6 @@ const MeasurementTools = ({
           const rotation = item.measurement.rotation || 0;
           const { width, length } = item.measurement.dimensions;
           
-          // Calculate rotated rectangle corners
-          const calculateRotatedRectangle = (
-            centerLat: number, centerLng: number, widthFeet: number, lengthFeet: number, rotationDeg: number
-          ) => {
-            const metersPerFoot = 0.3048;
-            const latPerMeter = 1 / 111320;
-            const lngPerMeter = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
-            
-            const halfWidth = (widthFeet * metersPerFoot / 2) * lngPerMeter;
-            const halfLength = (lengthFeet * metersPerFoot / 2) * latPerMeter;
-            
-            const corners = [
-              { x: -halfWidth, y: halfLength }, { x: halfWidth, y: halfLength },
-              { x: halfWidth, y: -halfLength }, { x: -halfWidth, y: -halfLength }
-            ];
-            
-            const angleRad = (rotationDeg * Math.PI) / 180;
-            return corners.map(c => ({
-              lat: centerLat + (c.x * Math.sin(angleRad) + c.y * Math.cos(angleRad)),
-              lng: centerLng + (c.x * Math.cos(angleRad) - c.y * Math.sin(angleRad))
-            }));
-          };
-          
           const rotatedCorners = calculateRotatedRectangle(
             center.lat, center.lng, width, length, rotation
           );
@@ -1278,29 +1256,6 @@ const MeasurementTools = ({
     // Assign color ONCE and persist it
     const assignedColor = getNextMeasurementColor();
     setAssignedMeasurementColor(assignedColor);
-    
-    // Import helper functions inline for now
-    const calculateRotatedRectangle = (
-      centerLat: number, centerLng: number, widthFeet: number, lengthFeet: number, rotationDeg: number
-    ) => {
-      const metersPerFoot = 0.3048;
-      const latPerMeter = 1 / 111320;
-      const lngPerMeter = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
-      
-      const halfWidth = (widthFeet * metersPerFoot / 2) * lngPerMeter;
-      const halfLength = (lengthFeet * metersPerFoot / 2) * latPerMeter;
-      
-      const corners = [
-        { x: -halfWidth, y: halfLength }, { x: halfWidth, y: halfLength },
-        { x: halfWidth, y: -halfLength }, { x: -halfWidth, y: -halfLength }
-      ];
-      
-      const angleRad = (rotationDeg * Math.PI) / 180;
-      return corners.map(c => ({
-        lat: centerLat + (c.x * Math.sin(angleRad) + c.y * Math.cos(angleRad)),
-        lng: centerLng + (c.x * Math.cos(angleRad) - c.y * Math.sin(angleRad))
-      }));
-    };
 
     const updateDimensionalShape = () => {
       if (currentShapeRef.current) currentShapeRef.current.setMap(null);
