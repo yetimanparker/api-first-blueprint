@@ -1145,7 +1145,14 @@ const MeasurementTools = ({
       });
       
       google.maps.event.addListener(drag, 'dragend', () => {
-        updateDimensionalShape(); // Full redraw for consistency
+        // Position update is already handled by real-time 'drag' listener
+        // Update measurement label position if needed
+        if (measurementLabelRef.current) {
+          const newCenter = drag.getPosition();
+          if (newCenter) {
+            measurementLabelRef.current.setPosition(newCenter);
+          }
+        }
       });
 
       // Create rotation handle at top-right corner
@@ -1194,7 +1201,9 @@ const MeasurementTools = ({
       });
       
       google.maps.event.addListener(rotHandle, 'dragend', () => {
-        updateDimensionalShape(); // Full redraw for consistency
+        // Rotation and position updates are already handled by real-time 'drag' listener
+        // No need to recreate the entire shape
+        console.log('🔄 Rotation complete, angle:', dimensionalRotation);
       });
     };
 
