@@ -86,6 +86,7 @@ const MeasurementTools = ({
   const [rotationHandle, setRotationHandle] = useState<google.maps.Marker | null>(null);
   const [dragHandle, setDragHandle] = useState<google.maps.Marker | null>(null);
   const [isDimensionalPlaced, setIsDimensionalPlaced] = useState(false);
+  const [assignedMeasurementColor, setAssignedMeasurementColor] = useState<string | null>(null);
   
   // Real-time measurement tracking
   const [tempMeasurementValue, setTempMeasurementValue] = useState<string>('');
@@ -716,39 +717,105 @@ const MeasurementTools = ({
         : [];
 
       if (item.measurement.type === 'area') {
-        const polygon = new google.maps.Polygon({
-          paths: latLngs,
-          fillColor: color,
-          fillOpacity: 0.25,
-          strokeColor: color,
-          strokeWeight: 2,
-          clickable: false,
-          editable: false,
-          zIndex: 0,
-        });
-        polygon.setMap(map);
-        previousShapesRef.current.push(polygon);
+        // Check if this is a dimensional product that should be rendered with rotation
+        if (item.measurement.isDimensional && item.measurement.centerPoint && item.measurement.dimensions) {
+          // Reconstruct rotated rectangle from stored metadata
+          const center = item.measurement.centerPoint;
+          const rotation = item.measurement.rotation || 0;
+          const { width, length } = item.measurement.dimensions;
+          
+          // Calculate rotated rectangle corners
+          const calculateRotatedRectangle = (
+            centerLat: number, centerLng: number, widthFeet: number, lengthFeet: number, rotationDeg: number
+          ) => {
+            const metersPerFoot = 0.3048;
+            const latPerMeter = 1 / 111320;
+            const lngPerMeter = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
+            
+            const halfWidth = (widthFeet * metersPerFoot / 2) * lngPerMeter;
+            const halfLength = (lengthFeet * metersPerFoot / 2) * latPerMeter;
+            
+            const corners = [
+              { x: -halfWidth, y: halfLength }, { x: halfWidth, y: halfLength },
+              { x: halfWidth, y: -halfLength }, { x: -halfWidth, y: -halfLength }
+            ];
+            
+            const angleRad = (rotationDeg * Math.PI) / 180;
+            return corners.map(c => ({
+              lat: centerLat + (c.x * Math.sin(angleRad) + c.y * Math.cos(angleRad)),
+              lng: centerLng + (c.x * Math.cos(angleRad) - c.y * Math.sin(angleRad))
+            }));
+          };
+          
+          const rotatedCorners = calculateRotatedRectangle(
+            center.lat, center.lng, width, length, rotation
+          );
+          
+          const polygon = new google.maps.Polygon({
+            paths: rotatedCorners,
+            fillColor: color,
+            fillOpacity: 0.25,
+            strokeColor: color,
+            strokeWeight: 2,
+            clickable: false,
+            editable: false,
+            zIndex: 0,
+          });
+          polygon.setMap(map);
+          previousShapesRef.current.push(polygon);
 
-        // Add label marker
-        const bounds = new google.maps.LatLngBounds();
-        latLngs.forEach(coord => bounds.extend(coord));
-        const center = bounds.getCenter();
+          // Add label at center point (not bounds center)
+          const marker = new google.maps.Marker({
+            position: center,
+            map: map,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 0,
+            },
+            label: {
+              text: `${(item.measurement.originalMeasurement || item.measurement.value).toLocaleString()} sq ft`,
+              color: color,
+              fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+              fontWeight: 'bold',
+            },
+          });
+          previousLabelsRef.current.push(marker);
+        } else {
+          // Regular area polygon (existing code)
+          const polygon = new google.maps.Polygon({
+            paths: latLngs,
+            fillColor: color,
+            fillOpacity: 0.25,
+            strokeColor: color,
+            strokeWeight: 2,
+            clickable: false,
+            editable: false,
+            zIndex: 0,
+          });
+          polygon.setMap(map);
+          previousShapesRef.current.push(polygon);
 
-        const marker = new google.maps.Marker({
-          position: center,
-          map: map,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 0,
-          },
-          label: {
-            text: `${(item.measurement.originalMeasurement || item.measurement.value).toLocaleString()} sq ft`,
-            color: color,
-            fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
-            fontWeight: 'bold',
-          },
-        });
-        previousLabelsRef.current.push(marker);
+          // Add label marker
+          const bounds = new google.maps.LatLngBounds();
+          latLngs.forEach(coord => bounds.extend(coord));
+          const center = bounds.getCenter();
+
+          const marker = new google.maps.Marker({
+            position: center,
+            map: map,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 0,
+            },
+            label: {
+              text: `${(item.measurement.originalMeasurement || item.measurement.value).toLocaleString()} sq ft`,
+              color: color,
+              fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+              fontWeight: 'bold',
+            },
+          });
+          previousLabelsRef.current.push(marker);
+        }
       } else if (item.measurement.type === 'linear') {
         const polyline = new google.maps.Polyline({
           path: latLngs,
@@ -1076,6 +1143,10 @@ const MeasurementTools = ({
     
     setMapMeasurement(area);
     
+    // Assign color ONCE and persist it
+    const assignedColor = getNextMeasurementColor();
+    setAssignedMeasurementColor(assignedColor);
+    
     // Import helper functions inline for now
     const calculateRotatedRectangle = (
       centerLat: number, centerLng: number, widthFeet: number, lengthFeet: number, rotationDeg: number
@@ -1110,7 +1181,7 @@ const MeasurementTools = ({
         width, length, dimensionalRotation
       );
 
-      const color = getNextMeasurementColor();
+      const color = assignedMeasurementColor || getNextMeasurementColor();
       const polygon = new google.maps.Polygon({
         paths: corners, fillColor: color, fillOpacity: 0.3,
         strokeColor: color, strokeWeight: 2, map: mapRef.current, zIndex: 1
@@ -1368,6 +1439,7 @@ const MeasurementTools = ({
       setDragHandle(null);
     }
     setIsDimensionalPlaced(false);
+    setAssignedMeasurementColor(null); // Reset color when clearing
     
     if (drawingManagerRef.current) {
       drawingManagerRef.current.setDrawingMode(null);
@@ -1556,9 +1628,8 @@ const MeasurementTools = ({
         });
       }
 
-      // Assign a color from the palette based on existing quote items count
-      const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
-      const mapColor = MAP_COLORS[colorIndex];
+      // Use the assigned color or assign a new one based on existing quote items count
+      const mapColor = assignedMeasurementColor || MAP_COLORS[existingQuoteItems.length % MAP_COLORS.length];
 
       const measurement: MeasurementData = {
         type: measurementType === 'dimensional' ? 'area' : measurementType,
@@ -1566,7 +1637,18 @@ const MeasurementTools = ({
         unit: measurementType === 'area' || measurementType === 'dimensional' ? 'sq_ft' : 'linear_ft',
         coordinates: coordinates,
         manualEntry: false,
-        mapColor: mapColor
+        mapColor: mapColor,
+        // Add dimensional metadata
+        ...(measurementType === 'dimensional' && {
+          isDimensional: true,
+          rotation: dimensionalRotation,
+          centerPoint: dimensionalCenter,
+          dimensions: {
+            width: product?.default_width || 0,
+            length: product?.default_length || 0,
+            unit: 'feet'
+          }
+        })
       };
 
       setCurrentMeasurement(measurement);
