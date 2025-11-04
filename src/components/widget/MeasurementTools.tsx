@@ -1321,8 +1321,8 @@ const MeasurementTools = ({
           finalDimensionalCenterRef.current = centerObj;
         }
         
-        // CRITICAL: Save final rotation to ref
-        finalDimensionalRotationRef.current = dimensionalRotation;
+        // DON'T overwrite ref - it's already correct from drag event!
+        // The state is stale due to React batching
         
         console.log('🔄 Rotation complete, angle:', finalDimensionalRotationRef.current, 'center:', finalDimensionalCenterRef.current);
         
