@@ -1216,10 +1216,11 @@ const MeasurementTools = ({
         const newCenter = { lat: e.latLng.lat(), lng: e.latLng.lng() };
         setDimensionalCenter(newCenter);
         
-        // Immediately update polygon position
+        // Immediately update polygon position - USE REF FOR ROTATION (not state)
         if (currentShapeRef.current) {
+          const currentRotation = finalDimensionalRotationRef.current || 0;
           const updatedCorners = calculateRotatedRectangle(
-            newCenter.lat, newCenter.lng, width, length, dimensionalRotation
+            newCenter.lat, newCenter.lng, width, length, currentRotation
           );
           (currentShapeRef.current as google.maps.Polygon).setPath(updatedCorners);
           
