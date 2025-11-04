@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { loadGoogleMapsAPI } from "@/lib/googleMapsLoader";
+import { getZoomBasedFontSize, renderDimensionalProductLabels } from "@/lib/mapLabelUtils";
 
 interface MeasurementMapProps {
   measurements: Array<{
@@ -10,6 +11,12 @@ interface MeasurementMapProps {
     productColor: string;
     value: number;
     unit: string;
+    isDimensional?: boolean;
+    dimensions?: {
+      width: number;
+      length: number;
+      unit: string;
+    };
   }>;
   center?: { lat: number; lng: number };
   className?: string;
@@ -20,6 +27,7 @@ export default function MeasurementMap({ measurements, center, className = "" }:
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentZoom, setCurrentZoom] = useState(18);
 
   useEffect(() => {
     const initMap = async () => {
@@ -72,6 +80,14 @@ export default function MeasurementMap({ measurements, center, className = "" }:
 
         mapInstanceRef.current = map;
 
+        // Track zoom changes for dynamic font sizing
+        map.addListener('zoom_changed', () => {
+          const newZoom = map.getZoom();
+          if (newZoom) {
+            setCurrentZoom(newZoom);
+          }
+        });
+
         // Draw measurements
         measurements.forEach((measurement, index) => {
           // Skip if no location data
@@ -114,6 +130,18 @@ export default function MeasurementMap({ measurements, center, className = "" }:
             polygon.addListener('click', () => {
               infoWindow.open(map);
             });
+
+            // Add side dimension labels for dimensional products
+            if (measurement.isDimensional && measurement.dimensions) {
+              renderDimensionalProductLabels(
+                map,
+                path,
+                measurement.dimensions.width,
+                measurement.dimensions.length,
+                color,
+                currentZoom
+              );
+            }
           } else if (measurement.type === 'linear') {
             // Draw polyline for linear measurements
             const polyline = new google.maps.Polyline({

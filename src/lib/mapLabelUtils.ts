@@ -1,4 +1,14 @@
 /**
+ * IMPORTANT: When adding new map rendering features, ensure they are applied to ALL map locations:
+ * 1. src/components/widget/MeasurementTools.tsx - Widget measurement tool
+ * 2. src/components/widget/QuoteSuccess.tsx - Quote confirmation page
+ * 3. src/components/crm/QuoteDetailView.tsx - CRM quote detail view
+ * 4. src/components/quote/MeasurementMap.tsx - General measurement map component
+ * 
+ * Use helper functions from this file to maintain consistency across all rendering locations.
+ */
+
+/**
  * Calculate font size for map labels based on zoom level
  * This ensures labels scale proportionally with the map
  * 
@@ -39,4 +49,71 @@ export function getZoomBasedMarkerScale(zoomLevel: number): number {
   if (zoomLevel <= 18) return 7;
   if (zoomLevel <= 20) return 8;
   return 9;
+}
+
+/**
+ * Render dimensional product side labels (width and length) on a Google Map
+ * This ensures consistent display of dimensional measurements across all maps
+ * 
+ * @param map - Google Maps instance
+ * @param coordinates - Array of 4 corner coordinates defining the rectangle
+ * @param width - Width dimension in feet
+ * @param length - Length dimension in feet
+ * @param color - Color for the labels
+ * @param currentZoom - Current map zoom level for font sizing
+ * @returns Array of marker references [widthLabel, lengthLabel]
+ */
+export function renderDimensionalProductLabels(
+  map: google.maps.Map,
+  coordinates: Array<{lat: number, lng: number}>,
+  width: number,
+  length: number,
+  color: string,
+  currentZoom: number
+): google.maps.Marker[] {
+  // Calculate midpoints for width and length labels
+  const topMid = {
+    lat: (coordinates[0].lat + coordinates[1].lat) / 2,
+    lng: (coordinates[0].lng + coordinates[1].lng) / 2
+  };
+  const rightMid = {
+    lat: (coordinates[1].lat + coordinates[2].lat) / 2,
+    lng: (coordinates[1].lng + coordinates[2].lng) / 2
+  };
+  
+  // Create width label (top side)
+  const widthLabel = new google.maps.Marker({
+    position: topMid,
+    map: map,
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 0,
+    },
+    label: {
+      text: `${width} ft`,
+      color: color,
+      fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+      fontWeight: '600',
+    },
+    zIndex: 1
+  });
+  
+  // Create length label (right side)
+  const lengthLabel = new google.maps.Marker({
+    position: rightMid,
+    map: map,
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 0,
+    },
+    label: {
+      text: `${length} ft`,
+      color: color,
+      fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+      fontWeight: '600',
+    },
+    zIndex: 1
+  });
+  
+  return [widthLabel, lengthLabel];
 }

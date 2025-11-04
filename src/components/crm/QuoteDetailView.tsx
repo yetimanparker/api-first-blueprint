@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader } from '@googlemaps/js-api-loader';
 import { formatExactPrice, calculatePriceRange, formatPriceRange, displayQuoteTotal, displayLineItemPrice } from '@/lib/priceUtils';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
-import { getZoomBasedFontSize } from '@/lib/mapLabelUtils';
+import { getZoomBasedFontSize, renderDimensionalProductLabels } from '@/lib/mapLabelUtils';
 
 interface QuoteItem {
   id: string;
@@ -236,6 +236,18 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                 fontWeight: 'bold',
               },
             });
+
+            // Add side dimension labels for dimensional products
+            if (item.measurement_data.isDimensional && item.measurement_data.dimensions) {
+              renderDimensionalProductLabels(
+                map,
+                latLngs,
+                item.measurement_data.dimensions.width,
+                item.measurement_data.dimensions.length,
+                color,
+                currentZoom
+              );
+            }
           } else if (item.measurement_data.type === 'linear') {
             const polyline = new google.maps.Polyline({
               path: latLngs,

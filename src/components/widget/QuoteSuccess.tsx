@@ -17,7 +17,7 @@ import { formatExactPrice, calculatePriceRange, formatPriceRange, calculateAddon
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
-import { getZoomBasedFontSize } from '@/lib/mapLabelUtils';
+import { getZoomBasedFontSize, renderDimensionalProductLabels } from '@/lib/mapLabelUtils';
 
 interface QuoteSuccessProps {
   quoteNumber: string;
@@ -226,6 +226,18 @@ const QuoteSuccess = ({
               fontWeight: 'bold',
             },
           });
+
+          // Add side dimension labels for dimensional products
+          if (item.measurement.isDimensional && item.measurement.dimensions) {
+            renderDimensionalProductLabels(
+              map,
+              latLngs,
+              item.measurement.dimensions.width,
+              item.measurement.dimensions.length,
+              color,
+              currentZoom
+            );
+          }
         } else if (item.measurement.type === 'linear' && item.measurement.coordinates) {
           const latLngs = item.measurement.coordinates.map(coord => ({
             lat: coord[0],
