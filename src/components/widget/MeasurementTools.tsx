@@ -28,6 +28,7 @@ interface MeasurementToolsProps {
   } | null;
   onChangeProduct?: () => void;
   isConfigurationMode?: boolean;
+  currentStep?: string;
   existingQuoteItems?: Array<{
     id: string;
     productName: string;
@@ -59,6 +60,7 @@ const MeasurementTools = ({
   selectedProduct,
   onChangeProduct,
   isConfigurationMode = false,
+  currentStep,
   existingQuoteItems = [],
   onAddressSelect,
   onResetToMeasurement,
@@ -2151,7 +2153,7 @@ const MeasurementTools = ({
       )}
 
       {/* Bottom Control Bar and Measurement Display */}
-      {!mapLoading && !mapError && !isConfigurationMode && (
+      {!mapLoading && !mapError && !isConfigurationMode && currentStep === 'measurement' && (
         <div className="bg-background border-t px-3 sm:px-6 py-2 measurement-controls">
           <div className="max-w-7xl mx-auto">
             {/* Show Next Button when measurement is complete */}

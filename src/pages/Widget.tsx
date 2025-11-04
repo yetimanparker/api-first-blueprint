@@ -667,6 +667,7 @@ const Widget = () => {
               selectedProduct={selectedProduct}
               onChangeProduct={goToProductSelection}
               isConfigurationMode={widgetState.currentStep === 'product-configuration'}
+              currentStep={widgetState.currentStep}
               existingQuoteItems={widgetState.quoteItems}
               onResetToMeasurement={resetToMeasurement}
               isManualEntry={widgetState.currentMeasurement?.manualEntry === true}
