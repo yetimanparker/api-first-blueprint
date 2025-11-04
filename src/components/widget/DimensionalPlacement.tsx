@@ -8,19 +8,15 @@ export const calculateRotatedRectangle = (
   lengthFeet: number,
   rotationDegrees: number
 ): Array<{lat: number, lng: number}> => {
-  // Convert feet to degrees (approximate)
+  // Convert feet to meters
   const metersPerFoot = 0.3048;
   const widthMeters = widthFeet * metersPerFoot;
   const lengthMeters = lengthFeet * metersPerFoot;
   
-  // Convert to lat/lng offsets (approximate)
-  const latPerMeter = 1 / 111320;
-  const lngPerMeter = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
+  const halfWidth = widthMeters / 2;
+  const halfLength = lengthMeters / 2;
   
-  const halfWidth = (widthMeters / 2) * lngPerMeter;
-  const halfLength = (lengthMeters / 2) * latPerMeter;
-  
-  // Define corners relative to center (before rotation)
+  // Define corners in uniform METER space (before scaling)
   const corners = [
     { x: -halfWidth, y: halfLength },   // Top-left
     { x: halfWidth, y: halfLength },    // Top-right
@@ -28,18 +24,21 @@ export const calculateRotatedRectangle = (
     { x: -halfWidth, y: -halfLength },  // Bottom-left
   ];
   
-  // Apply rotation
+  // Apply rotation in uniform meter space
   const angleRad = (rotationDegrees * Math.PI) / 180;
-  const rotatedCorners = corners.map(corner => {
-    const rotatedX = corner.x * Math.cos(angleRad) - corner.y * Math.sin(angleRad);
-    const rotatedY = corner.x * Math.sin(angleRad) + corner.y * Math.cos(angleRad);
-    return {
-      lat: centerLat + rotatedY,
-      lng: centerLng + rotatedX
-    };
-  });
+  const rotatedMeters = corners.map(corner => ({
+    x: corner.x * Math.cos(angleRad) - corner.y * Math.sin(angleRad),
+    y: corner.x * Math.sin(angleRad) + corner.y * Math.cos(angleRad)
+  }));
   
-  return rotatedCorners;
+  // NOW convert rotated meter offsets to lat/lng offsets
+  const latPerMeter = 1 / 111320;
+  const lngPerMeter = 1 / (111320 * Math.cos(centerLat * Math.PI / 180));
+  
+  return rotatedMeters.map(meters => ({
+    lat: centerLat + (meters.y * latPerMeter),
+    lng: centerLng + (meters.x * lngPerMeter)
+  }));
 };
 
 export const createDimensionalPolygon = (
