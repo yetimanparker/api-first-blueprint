@@ -125,6 +125,7 @@ const MeasurementTools = ({
   // Refs to capture final dimensional values synchronously (bypasses async state)
   const finalDimensionalCenterRef = useRef<{lat: number, lng: number} | null>(null);
   const finalDimensionalRotationRef = useRef<number>(0);
+  const dimensionalSideLabelsRef = useRef<google.maps.Marker[]>([]);
   
   // Store map state in sessionStorage to persist across component unmounts
   const STORAGE_KEY = `map-state-${customerAddress || 'default'}`;
@@ -182,15 +183,15 @@ const MeasurementTools = ({
       });
     }
     
-    // Also update existing measurement markers (from previousLabelsRef)
-    if (currentZoom && previousLabelsRef.current.length > 0) {
-      const newScale = getZoomBasedMarkerScale(currentZoom);
-      previousLabelsRef.current.forEach(marker => {
-        const currentIcon = marker.getIcon() as google.maps.Symbol;
-        if (currentIcon && typeof currentIcon === 'object') {
-          marker.setIcon({
-            ...currentIcon,
-            scale: newScale
+    // Update dimensional side labels font size when zoom changes
+    if (currentZoom && dimensionalSideLabelsRef.current.length > 0) {
+      const newFontSize = getZoomBasedFontSize(currentZoom);
+      dimensionalSideLabelsRef.current.forEach(label => {
+        const currentLabel = label.getLabel();
+        if (currentLabel && typeof currentLabel !== 'string') {
+          label.setLabel({
+            ...currentLabel,
+            fontSize: `${newFontSize}px`
           });
         }
       });
@@ -825,6 +826,58 @@ const MeasurementTools = ({
             },
           });
           previousLabelsRef.current.push(marker);
+          
+          // Add side dimension labels for dimensional products
+          if (item.measurement.isDimensional && item.measurement.dimensions) {
+            const width = item.measurement.dimensions.width;
+            const length = item.measurement.dimensions.length;
+            
+            // Calculate midpoints of top and right sides
+            const topMid = {
+              lat: (latLngs[0].lat + latLngs[1].lat) / 2,
+              lng: (latLngs[0].lng + latLngs[1].lng) / 2
+            };
+            const rightMid = {
+              lat: (latLngs[1].lat + latLngs[2].lat) / 2,
+              lng: (latLngs[1].lng + latLngs[2].lng) / 2
+            };
+            
+            // Width label (top side)
+            const widthLabel = new google.maps.Marker({
+              position: topMid,
+              map: map,
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 0,
+              },
+              label: {
+                text: `${width} ft`,
+                color: color,
+                fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+                fontWeight: '600',
+              },
+              zIndex: 0
+            });
+            
+            // Length label (right side)
+            const lengthLabel = new google.maps.Marker({
+              position: rightMid,
+              map: map,
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 0,
+              },
+              label: {
+                text: `${length} ft`,
+                color: color,
+                fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+                fontWeight: '600',
+              },
+              zIndex: 0
+            });
+            
+            previousLabelsRef.current.push(widthLabel, lengthLabel);
+          }
         }
       } else if (item.measurement.type === 'linear') {
         const polyline = new google.maps.Polyline({
@@ -1139,6 +1192,70 @@ const MeasurementTools = ({
     });
   };
 
+  // Helper function to create side dimension labels
+  const createSideLabels = (
+    corners: Array<{lat: number, lng: number}>,
+    width: number,
+    length: number,
+    color: string,
+    zoomLevel: number
+  ) => {
+    if (!mapRef.current) return;
+    
+    // Clear existing side labels
+    dimensionalSideLabelsRef.current.forEach(label => label.setMap(null));
+    dimensionalSideLabelsRef.current = [];
+    
+    // Calculate midpoints of each side
+    // corners order: [top-left, top-right, bottom-right, bottom-left]
+    const topMid = {
+      lat: (corners[0].lat + corners[1].lat) / 2,
+      lng: (corners[0].lng + corners[1].lng) / 2
+    };
+    const rightMid = {
+      lat: (corners[1].lat + corners[2].lat) / 2,
+      lng: (corners[1].lng + corners[2].lng) / 2
+    };
+    
+    const fontSize = getZoomBasedFontSize(zoomLevel);
+    
+    // Create width label (top side)
+    const widthLabel = new google.maps.Marker({
+      position: topMid,
+      map: mapRef.current,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 0,
+      },
+      label: {
+        text: `${width} ft`,
+        color: color,
+        fontSize: `${fontSize}px`,
+        fontWeight: '600',
+      },
+      zIndex: 2
+    });
+    
+    // Create length label (right side)
+    const lengthLabel = new google.maps.Marker({
+      position: rightMid,
+      map: mapRef.current,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 0,
+      },
+      label: {
+        text: `${length} ft`,
+        color: color,
+        fontSize: `${fontSize}px`,
+        fontWeight: '600',
+      },
+      zIndex: 2
+    });
+    
+    dimensionalSideLabelsRef.current.push(widthLabel, lengthLabel);
+  };
+
   const placeDimensionalProduct = (latLng: google.maps.LatLng) => {
     if (!product || !product.default_width || !product.default_length || !mapRef.current) return;
 
@@ -1202,6 +1319,10 @@ const MeasurementTools = ({
         strokeColor: color, strokeWeight: 2, map: mapRef.current, zIndex: 1
       });
       currentShapeRef.current = polygon;
+      
+      // Create side dimension labels
+      const currentZoom = mapRef.current?.getZoom() || 14;
+      createSideLabels(corners, width, length, color, currentZoom);
 
       const drag = new google.maps.Marker({
         position: dimensionalCenter || center, map: mapRef.current, draggable: true,
@@ -1230,6 +1351,11 @@ const MeasurementTools = ({
             rotationHandle.setPosition(newRotationPos);
             rotationHandlePositionRef.current = newRotationPos;
           }
+          
+          // Update side labels
+          const currentZoom = mapRef.current?.getZoom() || 14;
+          const color = assignedMeasurementColor || getNextMeasurementColor();
+          createSideLabels(updatedCorners, width, length, color, currentZoom);
         }
       });
       
@@ -1304,6 +1430,11 @@ const MeasurementTools = ({
           const lockedPosition = new google.maps.LatLng(updatedCorners[1].lat, updatedCorners[1].lng);
           rotHandle.setPosition(lockedPosition);
           rotationHandlePositionRef.current = lockedPosition;
+          
+          // Update side labels with new rotation
+          const currentZoom = mapRef.current?.getZoom() || 14;
+          const color = assignedMeasurementColor || getNextMeasurementColor();
+          createSideLabels(updatedCorners, width, length, color, currentZoom);
         }
         
         // Update center to current position and save to ref
