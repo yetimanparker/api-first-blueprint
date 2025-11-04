@@ -122,6 +122,9 @@ const MeasurementTools = ({
   
   // Ref to track rotation handle position for accurate updates
   const rotationHandlePositionRef = useRef<google.maps.LatLng | null>(null);
+  // Refs to capture final dimensional values synchronously (bypasses async state)
+  const finalDimensionalCenterRef = useRef<{lat: number, lng: number} | null>(null);
+  const finalDimensionalRotationRef = useRef<number>(0);
   
   // Store map state in sessionStorage to persist across component unmounts
   const STORAGE_KEY = `map-state-${customerAddress || 'default'}`;
@@ -719,6 +722,13 @@ const MeasurementTools = ({
       if (item.measurement.type === 'area') {
         // Check if this is a dimensional product that should be rendered with rotation
         if (item.measurement.isDimensional && item.measurement.centerPoint && item.measurement.dimensions) {
+          // Add debug logging
+          console.log('🎨 Rendering dimensional product:', {
+            center: item.measurement.centerPoint,
+            rotation: item.measurement.rotation,
+            dimensions: item.measurement.dimensions
+          });
+          
           // Reconstruct rotated rectangle from stored metadata
           const center = item.measurement.centerPoint;
           const rotation = item.measurement.rotation || 0;
@@ -1134,6 +1144,11 @@ const MeasurementTools = ({
 
     const center = { lat: latLng.lat(), lng: latLng.lng() };
     setDimensionalCenter(center);
+    
+    // Initialize refs with placement values
+    finalDimensionalCenterRef.current = center;
+    finalDimensionalRotationRef.current = 0;
+    
     setIsDimensionalPlaced(true);
     setIsDrawing(false);
 
@@ -1221,7 +1236,13 @@ const MeasurementTools = ({
         // Ensure state is updated with final position
         const finalCenter = drag.getPosition();
         if (finalCenter) {
-          setDimensionalCenter({ lat: finalCenter.lat(), lng: finalCenter.lng() });
+          const centerObj = { lat: finalCenter.lat(), lng: finalCenter.lng() };
+          setDimensionalCenter(centerObj);
+          
+          // CRITICAL: Save to ref immediately for measurement capture
+          finalDimensionalCenterRef.current = centerObj;
+          
+          console.log('🎯 Drag ended at:', centerObj);
           
           // Update measurement label position if needed
           if (measurementLabelRef.current) {
@@ -1265,6 +1286,9 @@ const MeasurementTools = ({
         const adjustedAngle = (angle + 90 + 360) % 360;
         setDimensionalRotation(adjustedAngle);
         
+        // Update ref in real-time
+        finalDimensionalRotationRef.current = adjustedAngle;
+        
         // Immediately update polygon with new rotation
         if (currentShapeRef.current) {
           const updatedCorners = calculateRotatedRectangle(
@@ -1278,17 +1302,25 @@ const MeasurementTools = ({
           rotationHandlePositionRef.current = lockedPosition;
         }
         
-        // Update center to current position
-        setDimensionalCenter({ lat: centerPos.lat(), lng: centerPos.lng() });
+        // Update center to current position and save to ref
+        const centerObj = { lat: centerPos.lat(), lng: centerPos.lng() };
+        setDimensionalCenter(centerObj);
+        finalDimensionalCenterRef.current = centerObj;
       });
       
       google.maps.event.addListener(rotHandle, 'dragend', () => {
         // Ensure both center and rotation state are finalized
         const finalCenter = drag.getPosition();
         if (finalCenter) {
-          setDimensionalCenter({ lat: finalCenter.lat(), lng: finalCenter.lng() });
+          const centerObj = { lat: finalCenter.lat(), lng: finalCenter.lng() };
+          setDimensionalCenter(centerObj);
+          finalDimensionalCenterRef.current = centerObj;
         }
-        console.log('🔄 Rotation complete, angle:', dimensionalRotation, 'center:', dimensionalCenter);
+        
+        // CRITICAL: Save final rotation to ref
+        finalDimensionalRotationRef.current = dimensionalRotation;
+        
+        console.log('🔄 Rotation complete, angle:', finalDimensionalRotationRef.current, 'center:', finalDimensionalCenterRef.current);
       });
     };
 
@@ -1638,11 +1670,11 @@ const MeasurementTools = ({
         coordinates: coordinates,
         manualEntry: false,
         mapColor: mapColor,
-        // Add dimensional metadata
+        // Add dimensional metadata - USE REFS for accurate values
         ...(measurementType === 'dimensional' && {
           isDimensional: true,
-          rotation: dimensionalRotation,
-          centerPoint: dimensionalCenter,
+          rotation: finalDimensionalRotationRef.current, // Use ref instead of state
+          centerPoint: finalDimensionalCenterRef.current || dimensionalCenter, // Use ref with fallback
           dimensions: {
             width: product?.default_width || 0,
             length: product?.default_length || 0,
@@ -1650,6 +1682,15 @@ const MeasurementTools = ({
           }
         })
       };
+
+      // Add debug logging
+      if (measurementType === 'dimensional') {
+        console.log('💾 Saving dimensional measurement:', {
+          center: finalDimensionalCenterRef.current,
+          rotation: finalDimensionalRotationRef.current,
+          dimensions: measurement.dimensions
+        });
+      }
 
       setCurrentMeasurement(measurement);
       onMeasurementComplete(measurement);
