@@ -352,17 +352,28 @@ const Widget = () => {
   };
 
   const updateCurrentMeasurement = async (measurement: MeasurementData) => {
+    console.log('🔵 Widget.updateCurrentMeasurement called with:', {
+      isDimensional: measurement.isDimensional,
+      centerPoint: measurement.centerPoint,
+      rotation: measurement.rotation,
+      value: measurement.value,
+      coordinates: measurement.coordinates?.length
+    });
+    
     // Check if selected product requires increment confirmation
     if (selectedProduct?.sold_in_increments_of) {
       setPendingMeasurement(measurement);
       setShowIncrementDialog(true);
     } else {
       // Normal flow - go directly to configuration
-      setWidgetState(prev => ({
-        ...prev,
-        currentMeasurement: measurement,
-        currentStep: 'product-configuration'
-      }));
+      setWidgetState(prev => {
+        console.log('🟢 Updating widgetState.currentMeasurement');
+        return {
+          ...prev,
+          currentMeasurement: measurement,
+          currentStep: prev.currentStep === 'product-configuration' ? prev.currentStep : 'product-configuration'
+        };
+      });
     }
   };
 

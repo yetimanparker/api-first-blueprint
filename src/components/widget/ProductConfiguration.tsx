@@ -277,6 +277,14 @@ const ProductConfiguration = ({
   const handleAddToQuote = () => {
     if (!product) return;
 
+    console.log('🟡 ProductConfiguration.handleAddToQuote - measurement prop:', {
+      isDimensional: measurement.isDimensional,
+      centerPoint: measurement.centerPoint,
+      rotation: measurement.rotation,
+      value: measurement.value,
+      coordinates: measurement.coordinates?.length
+    });
+
     // Validate required variation
     const hasRequiredVariations = variations.some(v => v.is_required);
     if (hasRequiredVariations && !selectedVariationId) {
@@ -342,6 +350,13 @@ const ProductConfiguration = ({
       variations: selectedVariationObjects,
       addons: selectedAddonObjects
     };
+
+    console.log('🔴 ProductConfiguration - Created quoteItem:', {
+      isDimensional: quoteItem.measurement.isDimensional,
+      centerPoint: quoteItem.measurement.centerPoint,
+      rotation: quoteItem.measurement.rotation,
+      coordinates: quoteItem.measurement.coordinates?.length
+    });
 
     onAddToQuote(quoteItem);
     setIsAdded(true);
