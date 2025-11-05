@@ -1883,24 +1883,19 @@ const MeasurementTools = ({
       setCurrentMeasurement(measurement);
       onMeasurementComplete(measurement);
       
-      // Scroll to show the measurement tools after completing measurement
+      // Scroll to show the buttons after completing measurement
       setTimeout(() => {
         const bottomControls = document.getElementById('measurement-action-buttons');
         if (bottomControls) {
-          // Get the sticky header height to offset scroll properly
-          const header = document.querySelector('.sticky.top-0');
-          const headerHeight = header?.getBoundingClientRect().height || 0;
-          
-          // Calculate position to scroll the buttons into view with proper offset
-          const elementPosition = bottomControls.getBoundingClientRect().top + window.pageYOffset;
-          const offsetPosition = elementPosition - headerHeight - 100; // Extra padding to show full buttons
-          
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
+          bottomControls.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'end',
+            inline: 'nearest'
           });
+        } else {
+          console.warn('⚠️ measurement-action-buttons not found for autoscroll');
         }
-      }, 500);
+      }, 600);
     }
     // Handle area/linear measurements (allow 0 measurements so user can remeasure)
     else if (mapMeasurement !== null && mapMeasurement !== undefined && !isDrawing && !showManualEntry && !currentMeasurement && currentShapeRef.current) {
@@ -1957,24 +1952,19 @@ const MeasurementTools = ({
         onMeasurementComplete(measurement);
       }
       
-      // Scroll to show the measurement tools after completing measurement
+      // Scroll to show the buttons after completing measurement
       setTimeout(() => {
         const bottomControls = document.getElementById('measurement-action-buttons');
         if (bottomControls) {
-          // Get the sticky header height to offset scroll properly
-          const header = document.querySelector('.sticky.top-0');
-          const headerHeight = header?.getBoundingClientRect().height || 0;
-          
-          // Calculate position to scroll the buttons into view with proper offset
-          const elementPosition = bottomControls.getBoundingClientRect().top + window.pageYOffset;
-          const offsetPosition = elementPosition - headerHeight - 100; // Extra padding to show full buttons
-          
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
+          bottomControls.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'end',
+            inline: 'nearest'
           });
+        } else {
+          console.warn('⚠️ measurement-action-buttons not found for autoscroll');
         }
-      }, 500);
+      }, 600);
     }
   }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement, pointLocations, measurementType]);
 
@@ -2089,7 +2079,7 @@ const MeasurementTools = ({
       </div>
 
       {/* Map Section */}
-      <div className="relative flex-1 w-full overflow-hidden min-h-[500px]">
+      <div className="relative flex-1 w-full overflow-hidden min-h-[350px] max-h-[450px]">
         <div 
           ref={mapContainerCallbackRef}
           className="w-full h-full absolute inset-0"
