@@ -925,6 +925,119 @@ const QuoteReview = ({
         </CardContent>
       </Card>
       </div>
+
+      {/* Contact Information Dialog */}
+      <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Contact Information</DialogTitle>
+            <DialogDescription>
+              Please provide your contact details to receive your quote
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input
+                  id="firstName"
+                  value={dialogCustomerInfo.firstName || ''}
+                  onChange={(e) => setDialogCustomerInfo(prev => ({ ...prev, firstName: e.target.value }))}
+                  className={dialogErrors.firstName ? 'border-destructive' : ''}
+                />
+                {dialogErrors.firstName && <p className="text-xs text-destructive mt-1">{dialogErrors.firstName}</p>}
+              </div>
+              <div>
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  value={dialogCustomerInfo.lastName || ''}
+                  onChange={(e) => setDialogCustomerInfo(prev => ({ ...prev, lastName: e.target.value }))}
+                  className={dialogErrors.lastName ? 'border-destructive' : ''}
+                />
+                {dialogErrors.lastName && <p className="text-xs text-destructive mt-1">{dialogErrors.lastName}</p>}
+              </div>
+            </div>
+            
+            {settings.require_email !== false && (
+              <div>
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={dialogCustomerInfo.email || ''}
+                  onChange={(e) => setDialogCustomerInfo(prev => ({ ...prev, email: e.target.value }))}
+                  className={dialogErrors.email ? 'border-destructive' : ''}
+                />
+                {dialogErrors.email && <p className="text-xs text-destructive mt-1">{dialogErrors.email}</p>}
+              </div>
+            )}
+            
+            {settings.require_phone !== false && (
+              <div>
+                <Label htmlFor="phone">Phone *</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={dialogCustomerInfo.phone || ''}
+                  onChange={(e) => setDialogCustomerInfo(prev => ({ ...prev, phone: e.target.value }))}
+                  className={dialogErrors.phone ? 'border-destructive' : ''}
+                />
+                {dialogErrors.phone && <p className="text-xs text-destructive mt-1">{dialogErrors.phone}</p>}
+              </div>
+            )}
+            
+            {settings.require_address !== false && (
+              <div>
+                <Label htmlFor="address">Address *</Label>
+                <div className="relative">
+                  <Input
+                    id="address"
+                    value={dialogCustomerInfo.address || ''}
+                    onChange={(e) => {
+                      setDialogCustomerInfo(prev => ({ ...prev, address: e.target.value }));
+                      getAutocomplete(e.target.value);
+                      setShowPredictions(true);
+                    }}
+                    onFocus={() => dialogCustomerInfo.address && predictions.length > 0 && setShowPredictions(true)}
+                    className={dialogErrors.address ? 'border-destructive' : ''}
+                  />
+                  {showPredictions && predictions.length > 0 && (
+                    <div className="absolute z-50 w-full bg-popover border rounded-md shadow-lg mt-1 max-h-60 overflow-auto">
+                      {predictions.map((prediction) => (
+                        <button
+                          key={prediction.place_id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 hover:bg-accent text-sm"
+                          onClick={() => handleDialogAddressSelect(prediction.place_id, prediction.description)}
+                        >
+                          {prediction.description}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {dialogErrors.address && <p className="text-xs text-destructive mt-1">{dialogErrors.address}</p>}
+              </div>
+            )}
+
+            <Button 
+              onClick={handleContactDialogSubmit}
+              className="w-full"
+            >
+              Continue
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clarifying Questions Dialog */}
+      <ClarifyingQuestionsDialog
+        open={showClarifyingDialog}
+        questions={clarifyingQuestions}
+        onSubmit={handleClarifyingQuestionsSubmit}
+        onCancel={() => setShowClarifyingDialog(false)}
+      />
     </>
   );
 };
