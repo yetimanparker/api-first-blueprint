@@ -315,16 +315,25 @@ const MeasurementTools = ({
       // Render existing measurements from quote items
       renderExistingMeasurements(map);
       
-      // Auto-start drawing after a brief delay to ensure everything is ready
+      // Auto-start drawing after ensuring projection is ready
       // But NOT if this is a manual entry measurement (user chose manual input)
       console.log('Map initialized, preparing to auto-start drawing');
-      setTimeout(() => {
-        if (!showManualEntry && !isManualEntry) {
-          startDrawing();
+      
+      const checkProjectionAndStart = () => {
+        if (overlayViewRef.current?.getProjection()) {
+          console.log('✅ Projection ready, auto-starting drawing');
+          if (!showManualEntry && !isManualEntry) {
+            startDrawing();
+          } else {
+            console.log('Skipping auto-start drawing: manual entry mode');
+          }
         } else {
-          console.log('Skipping auto-start drawing: manual entry mode');
+          console.log('⏳ Waiting for projection to be ready...');
+          setTimeout(checkProjectionAndStart, 100);
         }
-      }, 500);
+      };
+      
+      setTimeout(checkProjectionAndStart, 100);
       
     } catch (error) {
       console.error('Map initialization failed:', error);
@@ -1067,24 +1076,35 @@ const MeasurementTools = ({
         let lastUpdate = 0;
         
         const handleMouseMove = (e: MouseEvent) => {
+          console.log('🖱️ MOUSEMOVE fired');
+          
           const now = Date.now();
-          if (now - lastUpdate < 30) return;
+          if (now - lastUpdate < 30) {
+            console.log('⏱️ Throttled');
+            return;
+          }
           lastUpdate = now;
+          console.log('✅ Throttle passed');
           
           // Only show measurements AFTER first point is placed
           if (currentPathRef.current.length === 0) {
-            return; // No label until first click
+            console.log('⏸️ No points yet, waiting for first click');
+            return;
           }
+          console.log(`📍 ${currentPathRef.current.length} points exist, calculating distance`);
           
           // Convert pixel coordinates to lat/lng using persistent overlay view
           if (!overlayViewRef.current) {
+            console.log('❌ No overlay view');
             return;
           }
           
           const projection = overlayViewRef.current.getProjection();
           if (!projection) {
+            console.log('❌ Projection not ready');
             return;
           }
+          console.log('✅ Projection available');
           
           const bounds = mapDiv.getBoundingClientRect();
           const x = e.clientX - bounds.left;
@@ -1094,8 +1114,10 @@ const MeasurementTools = ({
           const latLng = projection.fromContainerPixelToLatLng(point);
           
           if (!latLng) {
+            console.log('❌ Could not convert pixel to latlng');
             return;
           }
+          console.log('✅ Coordinate conversion successful');
           
           // Show distance from last point
           const lastPoint = currentPathRef.current[currentPathRef.current.length - 1];
