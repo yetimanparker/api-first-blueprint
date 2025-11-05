@@ -1050,21 +1050,33 @@ const MeasurementTools = ({
           google.maps.event.removeListener(mouseMoveListenerRef.current);
         }
         
-        // Throttle mouse move updates
+        // Throttle mouse move updates for better performance
         let lastUpdate = 0;
         mouseMoveListenerRef.current = map.addListener('mousemove', (event: google.maps.MapMouseEvent) => {
           const now = Date.now();
-          if (!event.latLng || now - lastUpdate < 50) return;
+          if (!event.latLng || now - lastUpdate < 30) return; // Reduced from 50ms to 30ms
           lastUpdate = now;
           
-          // If we have at least one point, show temp segment distance to cursor
+          console.log('Mouse move event fired, current path length:', currentPathRef.current.length);
+          
+          // Always show temp overlay - either "Click to start" or distance from last point
           if (currentPathRef.current.length > 0) {
             const lastPoint = currentPathRef.current[currentPathRef.current.length - 1];
             const distance = google.maps.geometry.spherical.computeDistanceBetween(lastPoint, event.latLng);
             const feet = Math.ceil(distance * 3.28084);
             
+            console.log('Calculated distance:', feet, 'ft');
+            
             updateTempMeasurementOverlay(
               feet,
+              'ft',
+              event.latLng
+            );
+          } else {
+            // No points yet - show "Click to start" message
+            console.log('No points yet, showing "Click to start"');
+            updateTempMeasurementOverlay(
+              0,
               'ft',
               event.latLng
             );
