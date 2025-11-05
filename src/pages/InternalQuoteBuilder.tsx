@@ -526,6 +526,7 @@ export default function InternalQuoteBuilder() {
                   productId={currentProductId}
                   onMeasurementComplete={handleMeasurementComplete}
                   onNext={() => setCurrentStep('product-configuration')}
+                  currentStep={currentStep}
                   customerAddress={getCustomerAddress()}
                   existingQuoteItems={quoteItems.map(item => ({
                     id: item.id,
