@@ -637,31 +637,43 @@ const MeasurementTools = ({
       ? `${formattedValue} ${unit}` 
       : `Click to start`;
     
-    // Get the current measurement color
-    const color = getNextMeasurementColor();
-    
     if (tempMeasurementOverlay) {
       // Update existing overlay
       tempMeasurementOverlay.setPosition(position);
+      const icon = tempMeasurementOverlay.getIcon() as google.maps.Symbol;
+      if (icon && value > 0) {
+        tempMeasurementOverlay.setIcon({
+          ...icon,
+          fillColor: '#000000',
+          fillOpacity: 0.7,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+          scale: 8,
+        });
+      }
       tempMeasurementOverlay.setLabel({
         text: displayText,
-        color: color,
-        fontSize: `${getZoomBasedFontSize(currentZoom) + 2}px`,
+        color: '#ffffff',
+        fontSize: `${getZoomBasedFontSize(currentZoom) + 3}px`,
         fontWeight: '900',
       });
     } else {
-      // Create new overlay - just label, no visible icon
+      // Create new overlay with high visibility
       const marker = new google.maps.Marker({
         position: position,
         map: mapRef.current,
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          scale: 0, // Invisible
+          fillColor: value > 0 ? '#000000' : 'transparent',
+          fillOpacity: value > 0 ? 0.7 : 0,
+          strokeColor: value > 0 ? '#ffffff' : 'transparent',
+          strokeWeight: value > 0 ? 2 : 0,
+          scale: value > 0 ? 8 : 0,
         },
         label: {
           text: displayText,
-          color: color,
-          fontSize: `${getZoomBasedFontSize(currentZoom) + 2}px`,
+          color: '#ffffff',
+          fontSize: `${getZoomBasedFontSize(currentZoom) + 3}px`,
           fontWeight: '900',
         },
         zIndex: 99999,
@@ -1332,22 +1344,23 @@ const MeasurementTools = ({
     const currentZoom = mapRef.current?.getZoom() || 19;
     const fontSize = getZoomBasedFontSize(currentZoom);
     
-    // Get the current measurement color
-    const color = getNextMeasurementColor();
-    
-    // Create label marker with a more visible style
+    // Create label marker with high visibility - white text is most visible on satellite
     const marker = new google.maps.Marker({
       position: midpoint,
       map: mapRef.current,
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
-        scale: 0, // Invisible circle, just showing label
+        fillColor: '#000000',
+        fillOpacity: 0.6,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+        scale: 6,
       },
       label: {
         text: formattedDistance,
-        color: color,
-        fontSize: `${fontSize + 1}px`, // Slightly larger for visibility
-        fontWeight: '800',
+        color: '#ffffff',
+        fontSize: `${fontSize + 2}px`,
+        fontWeight: '900',
       },
       zIndex: 10000 + segmentIndex,
     });
