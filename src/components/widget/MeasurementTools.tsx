@@ -1124,6 +1124,19 @@ const MeasurementTools = ({
         
         setMapMeasurement(sqFt);
         
+        // Set initial measurement immediately after drawing
+        const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
+        const mapColor = MAP_COLORS[colorIndex];
+        
+        setCurrentMeasurement({
+          type: 'area',
+          value: sqFt,
+          unit: 'sq_ft',
+          coordinates: coordinates,
+          manualEntry: false,
+          mapColor: mapColor
+        });
+        
         const updateMeasurement = () => {
           const newArea = google.maps.geometry.spherical.computeArea(path);
           const newSqFt = Math.ceil(newArea * 10.764);
@@ -1151,12 +1164,10 @@ const MeasurementTools = ({
         
         updateMeasurementLabel(polygon, sqFt, 'sq ft');
         
-        // Only add edit listeners if not in configuration mode
-        if (!isConfigurationMode) {
-          google.maps.event.addListener(path, 'set_at', updateMeasurement);
-          google.maps.event.addListener(path, 'insert_at', updateMeasurement);
-          google.maps.event.addListener(path, 'remove_at', updateMeasurement);
-        }
+        // Always add edit listeners so nodes remain editable
+        google.maps.event.addListener(path, 'set_at', updateMeasurement);
+        google.maps.event.addListener(path, 'insert_at', updateMeasurement);
+        google.maps.event.addListener(path, 'remove_at', updateMeasurement);
         
       } else if (event.type === google.maps.drawing.OverlayType.POLYLINE) {
         const polyline = event.overlay as google.maps.Polyline;
@@ -1171,6 +1182,19 @@ const MeasurementTools = ({
         });
         
         setMapMeasurement(feet);
+        
+        // Set initial measurement immediately after drawing
+        const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
+        const mapColor = MAP_COLORS[colorIndex];
+        
+        setCurrentMeasurement({
+          type: 'linear',
+          value: feet,
+          unit: 'linear_ft',
+          coordinates: coordinates,
+          manualEntry: false,
+          mapColor: mapColor
+        });
         
         const updateMeasurement = () => {
           const newLength = google.maps.geometry.spherical.computeLength(path);
@@ -1199,12 +1223,10 @@ const MeasurementTools = ({
         
         updateMeasurementLabel(polyline, feet, 'ft');
         
-        // Only add edit listeners if not in configuration mode
-        if (!isConfigurationMode) {
-          google.maps.event.addListener(path, 'set_at', updateMeasurement);
-          google.maps.event.addListener(path, 'insert_at', updateMeasurement);
-          google.maps.event.addListener(path, 'remove_at', updateMeasurement);
-        }
+        // Always add edit listeners so nodes remain editable
+        google.maps.event.addListener(path, 'set_at', updateMeasurement);
+        google.maps.event.addListener(path, 'insert_at', updateMeasurement);
+        google.maps.event.addListener(path, 'remove_at', updateMeasurement);
       }
     });
   };
