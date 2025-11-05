@@ -66,6 +66,7 @@ export default function InternalQuoteBuilder() {
   const [showMethodDialog, setShowMethodDialog] = useState(false);
   const [showIncrementDialog, setShowIncrementDialog] = useState(false);
   const [pendingMeasurement, setPendingMeasurement] = useState<MeasurementData | null>(null);
+  const [cachedProducts, setCachedProducts] = useState<any[]>([]);
 
   useEffect(() => {
     if (!contractorLoading && !contractorId) {
@@ -81,8 +82,30 @@ export default function InternalQuoteBuilder() {
     if (quoteId && contractorId) {
       fetchQuoteData();
       fetchCategories();
+      fetchAndCacheProducts();
     }
   }, [quoteId, contractorId, contractorLoading]);
+
+  const fetchAndCacheProducts = async () => {
+    if (!contractorId) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('get-widget-products', {
+        body: { contractor_id: contractorId }
+      });
+      
+      if (error || !data?.success) {
+        console.error('Failed to load products');
+        return;
+      }
+
+      if (data.products) {
+        setCachedProducts(data.products);
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
+    }
+  };
 
   const fetchCategories = async () => {
     if (!contractorId) return;
@@ -164,16 +187,24 @@ export default function InternalQuoteBuilder() {
 
   const handleProductSelect = async (productId: string) => {
     try {
-      // Fetch product details
-      const { data, error } = await supabase.functions.invoke('get-widget-products', {
-        body: { contractor_id: contractorId }
-      });
-      
-      if (error || !data?.success) {
-        throw new Error('Failed to load product details');
+      // Use cached products if available
+      let productData;
+      if (cachedProducts.length > 0) {
+        productData = cachedProducts.find((p: any) => p.id === productId);
       }
       
-      const productData = data.products.find((p: any) => p.id === productId);
+      // Fallback to fetching if not in cache
+      if (!productData) {
+        const { data, error } = await supabase.functions.invoke('get-widget-products', {
+          body: { contractor_id: contractorId }
+        });
+        
+        if (error || !data?.success) {
+          throw new Error('Failed to load product details');
+        }
+        
+        productData = data.products.find((p: any) => p.id === productId);
+      }
       
       if (!productData) {
         throw new Error('Product not found');
@@ -314,6 +345,59 @@ export default function InternalQuoteBuilder() {
     }
   };
 
+  const resetToMeasurement = () => {
+    setCurrentMeasurement(undefined);
+    if (selectedProduct?.unit_type === 'each' || 
+        ['ton', 'pound', 'pallet', 'hour'].includes(selectedProduct?.unit_type)) {
+      setCurrentStep('quantity-input');
+    } else {
+      setCurrentStep('measurement');
+    }
+  };
+
+  const goToProductSelection = () => {
+    setSelectedProduct(null);
+    setCurrentProductId(undefined);
+    setCurrentMeasurement(undefined);
+    setCurrentStep('product-selection');
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    if (!quoteId) return;
+
+    try {
+      const { error } = await supabase
+        .from('quote_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedItems = quoteItems.filter(item => item.id !== itemId);
+      setQuoteItems(updatedItems);
+
+      // Recalculate quote total
+      const newTotal = updatedItems.reduce((sum, i) => sum + i.lineTotal, 0);
+      await supabase
+        .from('quotes')
+        .update({ total_amount: newTotal })
+        .eq('id', quoteId);
+
+      toast({
+        title: "Item Removed",
+        description: "Quote item has been removed successfully",
+      });
+    } catch (error) {
+      console.error('Error removing quote item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove item",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleFinish = () => {
     navigate(`/quote/edit/${quoteId}`);
   };
@@ -408,13 +492,23 @@ export default function InternalQuoteBuilder() {
               <CardTitle>Quote Items ({quoteItems.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {quoteItems.map((item, index) => (
-                  <div key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-2 text-sm">
-                    <span className="font-medium">{index + 1}. {item.productName}</span>
-                    <span className="text-muted-foreground text-xs sm:text-sm">
-                      {item.measurement.value} {item.measurement.unit} × ${item.unitPrice.toFixed(2)} = ${item.lineTotal.toFixed(2)}
-                    </span>
+                  <div key={item.id} className="flex items-start justify-between gap-4 p-3 rounded-lg bg-muted/50">
+                    <div className="flex-1">
+                      <div className="font-medium">{index + 1}. {item.productName}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {item.measurement.value} {item.measurement.unit} × ${item.unitPrice.toFixed(2)} = ${item.lineTotal.toFixed(2)}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveItem(item.id)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      Remove
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -514,7 +608,7 @@ export default function InternalQuoteBuilder() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Measure Area or Distance</CardTitle>
-                  <Button variant="outline" onClick={handleBack}>
+                  <Button variant="outline" onClick={goToProductSelection}>
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Change Product
                   </Button>
@@ -534,6 +628,8 @@ export default function InternalQuoteBuilder() {
                     customName: item.notes,
                     measurement: item.measurement,
                   }))}
+                  onResetToMeasurement={resetToMeasurement}
+                  onChangeProduct={goToProductSelection}
                 />
               </CardContent>
             </Card>
@@ -544,12 +640,17 @@ export default function InternalQuoteBuilder() {
           <div ref={el => stepRefs.current['product-configuration'] = el}>
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   <CardTitle>Configure Product</CardTitle>
-                  <Button variant="outline" onClick={handleBack}>
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Re-measure
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={resetToMeasurement}>
+                      Re-measure
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={goToProductSelection}>
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Change Product
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -559,11 +660,7 @@ export default function InternalQuoteBuilder() {
                   measurement={currentMeasurement}
                   settings={settings}
                   onAddToQuote={handleAddToQuote}
-                  onRemove={() => {
-                    setCurrentProductId(undefined);
-                    setCurrentMeasurement(undefined);
-                    setCurrentStep('product-selection');
-                  }}
+                  onRemove={goToProductSelection}
                 />
               </CardContent>
             </Card>
