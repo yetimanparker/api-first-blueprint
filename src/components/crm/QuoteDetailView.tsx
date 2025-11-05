@@ -33,6 +33,7 @@ interface Quote {
   project_state?: string;
   project_zip_code?: string;
   notes?: string;
+  clarifying_answers?: Record<string, string> | null;
 }
 
 interface QuoteDetailViewProps {
@@ -619,6 +620,23 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
           </CardHeader>
           <CardContent>
             <p className="text-sm whitespace-pre-wrap">{quote.notes}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Clarifying Questions & Answers */}
+      {quote.clarifying_answers && Object.keys(quote.clarifying_answers).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Project Questions & Answers</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {Object.entries(quote.clarifying_answers).map(([questionId, answer], index) => (
+              <div key={questionId} className="space-y-1">
+                <p className="font-medium text-sm">Question {index + 1}:</p>
+                <p className="whitespace-pre-wrap bg-muted p-3 rounded-lg">{answer}</p>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}

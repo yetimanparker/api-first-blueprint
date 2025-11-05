@@ -32,7 +32,9 @@ Deno.serve(async (req) => {
         widget_theme_color,
         service_area_enabled,
         decimal_precision,
-        currency_symbol
+        currency_symbol,
+        clarifying_questions_enabled,
+        clarifying_questions
       `)
       .eq('contractor_id', contractor_id)
       .maybeSingle();
@@ -52,6 +54,8 @@ Deno.serve(async (req) => {
       service_area_enabled: false,
       decimal_precision: 2,
       currency_symbol: '$',
+      clarifying_questions_enabled: false,
+      clarifying_questions: [],
     };
 
     return new Response(

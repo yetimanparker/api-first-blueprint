@@ -43,6 +43,7 @@ interface Quote {
   project_state?: string;
   project_zip_code?: string;
   notes?: string;
+  clarifying_answers?: Record<string, string> | null;
 }
 
 export default function CustomerDetail() {
@@ -75,15 +76,18 @@ export default function CustomerDetail() {
       if (customerError) throw customerError;
       setCustomer(customerData);
 
-      // Fetch customer quotes (include first_viewed_at)
+      // Fetch customer quotes (include first_viewed_at and clarifying_answers)
       const { data: quotesData, error: quotesError } = await supabase
         .from('quotes')
-        .select('*, first_viewed_at')
+        .select('*, first_viewed_at, clarifying_answers')
         .eq('customer_id', customerId)
         .order('created_at', { ascending: false });
 
       if (quotesError) throw quotesError;
-      setQuotes(quotesData || []);
+      setQuotes((quotesData || []).map(q => ({
+        ...q,
+        clarifying_answers: q.clarifying_answers as Record<string, string> | null
+      })));
 
     } catch (error) {
       console.error('Error fetching customer data:', error);

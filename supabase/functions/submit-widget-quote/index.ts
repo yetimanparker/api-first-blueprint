@@ -29,6 +29,7 @@ const submitQuoteSchema = z.object({
   quoteItems: z.array(quoteItemSchema).min(1, "At least one quote item required"),
   contractorId: z.string().uuid("Invalid contractor ID"),
   projectComments: z.string().max(2000, "Project comments too long").optional(),
+  clarifyingAnswers: z.record(z.string()).optional(),
 });
 
 // Simple in-memory rate limiting
@@ -89,7 +90,7 @@ serve(async (req) => {
       );
     }
 
-    const { customerInfo, quoteItems, contractorId, projectComments } = validationResult.data;
+    const { customerInfo, quoteItems, contractorId, projectComments, clarifyingAnswers } = validationResult.data;
 
     // Check rate limit
     if (!checkRateLimit(contractorId)) {
@@ -134,6 +135,16 @@ serve(async (req) => {
     };
 
     const sanitizedProjectComments = projectComments ? sanitizeText(projectComments) : undefined;
+
+    // Sanitize clarifying answers
+    const sanitizedClarifyingAnswers = clarifyingAnswers 
+      ? Object.fromEntries(
+          Object.entries(clarifyingAnswers).map(([key, value]) => [
+            key,
+            sanitizeText(value).slice(0, 2000)
+          ])
+        )
+      : {};
 
     // Log submission for security monitoring
     console.log(`Quote submitted for contractor: ${contractorId}, customer: ${sanitizedCustomerInfo.email}`);
@@ -214,6 +225,7 @@ serve(async (req) => {
         project_state: sanitizedCustomerInfo.state,
         project_zip_code: sanitizedCustomerInfo.zipCode,
         notes: sanitizedProjectComments,
+        clarifying_answers: sanitizedClarifyingAnswers,
       })
       .select()
       .single();

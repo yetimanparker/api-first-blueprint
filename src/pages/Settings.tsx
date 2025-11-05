@@ -10,8 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin, Navigation, Code, ExternalLink, Copy, Check } from "lucide-react";
+import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin, Navigation, Code, ExternalLink, Copy, Check, MessageSquare, Plus, Trash2 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -58,6 +59,12 @@ const settingsSchema = z.object({
   service_center_city: z.string().optional(),
   service_center_state: z.string().optional(),
   service_center_zip: z.string().optional(),
+  clarifying_questions_enabled: z.boolean(),
+  clarifying_questions: z.array(z.object({
+    id: z.string(),
+    question: z.string(),
+    required: z.boolean(),
+  })).optional(),
 });
 
 type ContractorFormData = z.infer<typeof contractorSchema>;
@@ -128,6 +135,8 @@ const Settings = () => {
       service_center_city: "",
       service_center_state: "",
       service_center_zip: "",
+      clarifying_questions_enabled: false,
+      clarifying_questions: [],
     },
   });
 
@@ -202,6 +211,8 @@ const Settings = () => {
             service_center_city: contractor?.city || "",
             service_center_state: contractor?.state || "",
             service_center_zip: contractor?.zip_code || "",
+            clarifying_questions_enabled: settings.clarifying_questions_enabled || false,
+            clarifying_questions: Array.isArray(settings.clarifying_questions) ? settings.clarifying_questions as Array<{id: string; question: string; required: boolean}> : [],
           });
         }
       }
@@ -303,6 +314,8 @@ const Settings = () => {
         service_area_center_lat: data.service_area_center_lat,
         service_area_center_lng: data.service_area_center_lng,
         service_area_zip_codes: data.service_area_zip_codes,
+        clarifying_questions_enabled: data.clarifying_questions_enabled,
+        clarifying_questions: data.clarifying_questions,
       };
 
       const { error } = await supabase
@@ -1223,6 +1236,119 @@ const Settings = () => {
                               />
                             )}
                           </>
+                        )}
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5" />
+                        Clarifying Questions
+                      </h3>
+                      <div className="space-y-4">
+                        <FormField
+                          control={settingsForm.control}
+                          name="clarifying_questions_enabled"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel>Enable Clarifying Questions</FormLabel>
+                                <FormDescription>
+                                  Ask customers additional questions after they click submit
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        {settingsForm.watch("clarifying_questions_enabled") && (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <Label>Questions</Label>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const currentQuestions = settingsForm.getValues("clarifying_questions") || [];
+                                  settingsForm.setValue("clarifying_questions", [
+                                    ...currentQuestions,
+                                    {
+                                      id: crypto.randomUUID(),
+                                      question: "",
+                                      required: false,
+                                    }
+                                  ]);
+                                }}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Question
+                              </Button>
+                            </div>
+
+                            {settingsForm.watch("clarifying_questions")?.map((q, index) => (
+                              <Card key={q.id} className="p-4">
+                                <div className="space-y-3">
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-sm font-medium mt-2">{index + 1}.</span>
+                                    <div className="flex-1 space-y-2">
+                                      <Input
+                                        placeholder="Enter your question (e.g., What is access like to the project area?)"
+                                        value={q.question}
+                                        onChange={(e) => {
+                                          const questions = settingsForm.getValues("clarifying_questions") || [];
+                                          questions[index].question = e.target.value;
+                                          settingsForm.setValue("clarifying_questions", [...questions]);
+                                        }}
+                                        maxLength={500}
+                                      />
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <Switch
+                                            checked={q.required}
+                                            onCheckedChange={(checked) => {
+                                              const questions = settingsForm.getValues("clarifying_questions") || [];
+                                              questions[index].required = checked;
+                                              settingsForm.setValue("clarifying_questions", [...questions]);
+                                            }}
+                                          />
+                                          <Label className="text-sm">Required</Label>
+                                        </div>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            const questions = settingsForm.getValues("clarifying_questions") || [];
+                                            settingsForm.setValue(
+                                              "clarifying_questions",
+                                              questions.filter((_, i) => i !== index)
+                                            );
+                                          }}
+                                        >
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </Card>
+                            ))}
+
+                            {(!settingsForm.watch("clarifying_questions") || settingsForm.watch("clarifying_questions")?.length === 0) && (
+                              <div className="text-center py-8 text-muted-foreground border rounded-lg">
+                                No questions added yet. Click "Add Question" to get started.
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>

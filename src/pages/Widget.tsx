@@ -16,6 +16,7 @@ import { IncrementConfirmationDialog } from '@/components/widget/IncrementConfir
 import ProductConfiguration from '@/components/widget/ProductConfiguration';
 import QuoteReview from '@/components/widget/QuoteReview';
 import QuoteSuccess from '@/components/widget/QuoteSuccess';
+import { ClarifyingQuestionsDialog } from '@/components/widget/ClarifyingQuestionsDialog';
 import { WidgetState, WorkflowStep, CustomerInfo, QuoteItem, MeasurementData } from '@/types/widget';
 
 const Widget = () => {
@@ -45,6 +46,8 @@ const Widget = () => {
   const [widgetCategories, setWidgetCategories] = useState<Array<{ id: string; name: string; color_hex: string }>>([]);
   const [widgetSubcategories, setWidgetSubcategories] = useState<Array<{ id: string; category_id: string; name: string; is_active: boolean; display_order: number }>>([]);
   const [widgetProducts, setWidgetProducts] = useState<any[]>([]);
+  const [clarifyingQuestions, setClarifyingQuestions] = useState<Array<{id: string; question: string; required: boolean}>>([]);
+  const [clarifyingQuestionsEnabled, setClarifyingQuestionsEnabled] = useState(false);
 
   // Use debounced service area validation
   const { isServiceAreaValid, isValidating, manualValidate } = useDebouncedServiceArea({
@@ -119,6 +122,12 @@ const Widget = () => {
       
       console.log('Initializing widget with step:', initialStep);
       console.log('Settings:', settings);
+      
+      // Store clarifying questions settings
+      if (settings.clarifying_questions_enabled && settings.clarifying_questions) {
+        setClarifyingQuestionsEnabled(true);
+        setClarifyingQuestions(settings.clarifying_questions as Array<{id: string; question: string; required: boolean}>);
+      }
       
       setWidgetState(prev => ({
         ...prev,

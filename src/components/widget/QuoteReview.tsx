@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { ClarifyingQuestionsDialog } from '@/components/widget/ClarifyingQuestionsDialog';
 import { Input } from '@/components/ui/input';
 import { Loader2, FileText, DollarSign, Plus, MessageSquare, Calculator, Trash2, User } from 'lucide-react';
 import { QuoteItem, CustomerInfo, WorkflowStep } from '@/types/widget';
@@ -35,6 +36,8 @@ interface QuoteReviewProps {
   onAddAnother?: () => void;
   onRemoveItem?: (itemId: string) => void;
   onQuoteSubmitted?: (quoteNumber: string) => void;
+  clarifyingQuestionsEnabled?: boolean;
+  clarifyingQuestions?: Array<{id: string; question: string; required: boolean}>;
 }
 
 const QuoteReview = ({ 
@@ -48,7 +51,9 @@ const QuoteReview = ({
   onUpdateCustomerInfo,
   onAddAnother,
   onRemoveItem,
-  onQuoteSubmitted
+  onQuoteSubmitted,
+  clarifyingQuestionsEnabled = false,
+  clarifyingQuestions = []
 }: QuoteReviewProps) => {
   console.log('🔄 QuoteReview v2.0 - Variations/Addons always visible with toggle - ' + new Date().toISOString());
   console.log('📦 Quote Items Data:', JSON.stringify(quoteItems, null, 2));
@@ -59,6 +64,7 @@ const QuoteReview = ({
   const [dialogCustomerInfo, setDialogCustomerInfo] = useState<Partial<CustomerInfo>>(customerInfo);
   const [dialogErrors, setDialogErrors] = useState<Record<string, string>>({});
   const [showPredictions, setShowPredictions] = useState(false);
+  const [showClarifyingDialog, setShowClarifyingDialog] = useState(false);
   const { toast } = useToast();
   const quoteSummaryRef = useRef<HTMLDivElement>(null);
   const { getAutocomplete, getPlaceDetails, predictions, loading } = useGooglePlaces();
@@ -251,7 +257,7 @@ const QuoteReview = ({
       return;
     }
 
-    // Always validate required fields before submission (database requires these)
+    // Always validate required fields before submission
     const missingRequiredFields = 
       !customerInfo.firstName?.trim() || 
       !customerInfo.lastName?.trim() || 
@@ -263,22 +269,22 @@ const QuoteReview = ({
       return;
     }
 
-    // Validate email format if provided
-    if (customerInfo.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerInfo.email)) {
-      toast({
-        title: "Invalid Email",
-        description: "Please provide a valid email address",
-        variant: "destructive",
-      });
-      setShowContactDialog(true);
+    // Check if clarifying questions should be shown
+    if (clarifyingQuestionsEnabled && clarifyingQuestions.length > 0) {
+      setShowClarifyingDialog(true);
       return;
     }
 
     // Otherwise proceed with submission
-    submitQuote(customerInfo);
+    submitQuote(customerInfo, {});
   };
 
-  const submitQuote = async (contactInfo: Partial<CustomerInfo>) => {
+  const handleClarifyingQuestionsSubmit = (answers: Record<string, string>) => {
+    setShowClarifyingDialog(false);
+    submitQuote(customerInfo, answers);
+  };
+
+  const submitQuote = async (contactInfo: Partial<CustomerInfo>, clarifyingAnswers: Record<string, string>) => {
     setIsSubmitting(true);
 
     try {
@@ -332,6 +338,7 @@ const QuoteReview = ({
           quoteItems: quoteItemsData,
           contractorId,
           projectComments,
+          clarifyingAnswers,
         },
       });
 

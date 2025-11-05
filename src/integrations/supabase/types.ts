@@ -17,6 +17,8 @@ export type Database = {
       contractor_settings: {
         Row: {
           auto_activate_products: boolean
+          clarifying_questions: Json | null
+          clarifying_questions_enabled: boolean
           contact_capture_timing: string
           contractor_id: string
           created_at: string
@@ -49,6 +51,8 @@ export type Database = {
         }
         Insert: {
           auto_activate_products?: boolean
+          clarifying_questions?: Json | null
+          clarifying_questions_enabled?: boolean
           contact_capture_timing?: string
           contractor_id: string
           created_at?: string
@@ -81,6 +85,8 @@ export type Database = {
         }
         Update: {
           auto_activate_products?: boolean
+          clarifying_questions?: Json | null
+          clarifying_questions_enabled?: boolean
           contact_capture_timing?: string
           contractor_id?: string
           created_at?: string
@@ -769,6 +775,7 @@ export type Database = {
         Row: {
           accepted_at: string | null
           access_token: string | null
+          clarifying_answers: Json | null
           contractor_id: string
           created_at: string
           customer_id: string
@@ -790,6 +797,7 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           access_token?: string | null
+          clarifying_answers?: Json | null
           contractor_id: string
           created_at?: string
           customer_id: string
@@ -811,6 +819,7 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           access_token?: string | null
+          clarifying_answers?: Json | null
           contractor_id?: string
           created_at?: string
           customer_id?: string
