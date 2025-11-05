@@ -1924,25 +1924,28 @@ const MeasurementTools = ({
     }
   }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement, pointLocations, measurementType]);
 
-  // Clear dimensional interactive elements when items are added to quote
+  // Clear interactive elements when items are added to quote
   useEffect(() => {
-    if (existingQuoteItems.length > 0 && measurementType === 'dimensional' && currentShapeRef.current) {
-      console.log('🧹 Clearing dimensional interactive elements as items exist in quote');
+    if (existingQuoteItems.length > 0 && currentShapeRef.current) {
+      console.log('🧹 Clearing interactive drawing elements as items exist in quote');
       
-      // Clear current shape (polygon)
+      // Clear current shape (polygon/polyline)
       if (currentShapeRef.current) {
         currentShapeRef.current.setMap(null);
         currentShapeRef.current = null;
       }
       
-      // Clear dimensional handles
-      if (rotationHandle) {
-        rotationHandle.setMap(null);
-        setRotationHandle(null);
-      }
-      if (dragHandle) {
-        dragHandle.setMap(null);
-        setDragHandle(null);
+      // Clear dimensional handles (only for dimensional measurements)
+      if (measurementType === 'dimensional') {
+        if (rotationHandle) {
+          rotationHandle.setMap(null);
+          setRotationHandle(null);
+        }
+        if (dragHandle) {
+          dragHandle.setMap(null);
+          setDragHandle(null);
+        }
+        setIsDimensionalPlaced(false);
       }
       
       // Clear measurement label
@@ -1950,8 +1953,6 @@ const MeasurementTools = ({
         measurementLabelRef.current.setMap(null);
         measurementLabelRef.current = null;
       }
-      
-      setIsDimensionalPlaced(false);
     }
   }, [existingQuoteItems.length, measurementType]);
 
