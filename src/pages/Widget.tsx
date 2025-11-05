@@ -637,7 +637,7 @@ const Widget = () => {
         )}
 
         {/* Product Selection Section */}
-        {isStepVisible('product-selection') && !widgetState.currentProductId && (
+        {isStepVisible('product-selection') && !widgetState.currentProductId && widgetState.currentStep !== 'confirmation' && (
           <div id="step-product-selection" className="w-full py-6">
             <ProductSelector
               categories={widgetCategories}
@@ -668,7 +668,7 @@ const Widget = () => {
         )}
 
         {/* Measurement Section - Full width, always visible once reached */}
-        {isStepVisible('measurement') && widgetState.currentProductId && (
+        {isStepVisible('measurement') && widgetState.currentProductId && widgetState.currentStep !== 'confirmation' && (
           <div id="step-measurement" className="w-full mb-2">
             <MeasurementTools
               contractorId={contractorId!}
@@ -701,7 +701,7 @@ const Widget = () => {
         )}
         
         {/* Product Configuration Section - Appears below map */}
-        {isStepVisible('product-configuration') && widgetState.currentMeasurement && widgetProducts.length > 0 && (
+        {isStepVisible('product-configuration') && widgetState.currentStep !== 'confirmation' && widgetState.currentMeasurement && widgetProducts.length > 0 && (
           <div id="step-product-configuration" className="px-4 py-0 bg-background">
             <ProductConfiguration
               contractorId={contractorId!}
