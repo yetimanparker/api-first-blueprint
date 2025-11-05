@@ -277,6 +277,12 @@ const Settings = () => {
   };
 
   const onSettingsSubmit = async (data: SettingsFormData) => {
+    console.log('💾 Saving settings with data:', {
+      clarifying_questions_enabled: data.clarifying_questions_enabled,
+      clarifying_questions: data.clarifying_questions,
+      allData: data
+    });
+    
     if (!contractorId) {
       toast({
         title: "Error",
@@ -318,19 +324,27 @@ const Settings = () => {
         clarifying_questions: data.clarifying_questions,
       };
 
+      console.log('📤 Sending to database:', settingsData);
+
       const { error } = await supabase
         .from("contractor_settings")
         .upsert(settingsData, {
           onConflict: 'contractor_id'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
+
+      console.log('✅ Settings saved successfully');
 
       toast({
         title: "Success",
         description: "Widget settings saved successfully",
       });
     } catch (error: any) {
+      console.error('❌ Save error:', error);
       toast({
         title: "Error",
         description: error.message,
