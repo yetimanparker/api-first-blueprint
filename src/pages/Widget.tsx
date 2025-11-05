@@ -344,14 +344,19 @@ const Widget = () => {
   };
 
   const addQuoteItem = (item: QuoteItem) => {
+    console.log('🟢 Widget.addQuoteItem called with item:', item);
+    
     // Finalize the measurement (make nodes non-editable) before adding to quote
     if ((window as any).__finalizeMeasurement) {
       (window as any).__finalizeMeasurement();
+      console.log('✅ Finalized measurement - nodes made non-editable');
     }
     
     const nextStep = settings.contact_capture_timing === 'after_quote' 
       ? 'contact-after' 
       : 'quote-review';
+    
+    console.log('🔄 Transitioning from product-configuration to:', nextStep);
     
     setWidgetState(prev => ({
       ...prev,

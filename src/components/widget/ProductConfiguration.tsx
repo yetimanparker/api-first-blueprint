@@ -284,19 +284,31 @@ const ProductConfiguration = ({
   };
 
   const handleAddToQuote = () => {
-    if (!product) return;
+    if (!product) {
+      console.error('❌ handleAddToQuote: No product found');
+      return;
+    }
 
-    console.log('🟡 ProductConfiguration.handleAddToQuote - measurement prop:', {
+    console.log('🟡 ProductConfiguration.handleAddToQuote - Starting');
+    console.log('📊 Measurement prop:', {
       isDimensional: measurement.isDimensional,
       centerPoint: measurement.centerPoint,
       rotation: measurement.rotation,
       value: measurement.value,
+      type: measurement.type,
+      unit: measurement.unit,
       coordinates: measurement.coordinates?.length
+    });
+    console.log('📦 Product:', {
+      id: product.id,
+      name: product.name,
+      unit_type: product.unit_type
     });
 
     // Validate required variation
     const hasRequiredVariations = variations.some(v => v.is_required);
     if (hasRequiredVariations && !selectedVariationId) {
+      console.error('❌ Required variation not selected');
       setVariationError("Please select a variation");
       return;
     }
@@ -361,13 +373,18 @@ const ProductConfiguration = ({
     };
 
     console.log('🔴 ProductConfiguration - Created quoteItem:', {
+      productName: quoteItem.productName,
+      quantity: quoteItem.quantity,
+      lineTotal: quoteItem.lineTotal,
       isDimensional: quoteItem.measurement.isDimensional,
       centerPoint: quoteItem.measurement.centerPoint,
       rotation: quoteItem.measurement.rotation,
       coordinates: quoteItem.measurement.coordinates?.length
     });
 
+    console.log('🚀 Calling onAddToQuote with quoteItem');
     onAddToQuote(quoteItem);
+    console.log('✅ onAddToQuote completed, setting isAdded to true');
     setIsAdded(true);
   };
 
