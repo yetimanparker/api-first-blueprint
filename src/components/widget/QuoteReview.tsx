@@ -243,7 +243,7 @@ const QuoteReview = ({
       onUpdateCustomerInfo(dialogCustomerInfo);
       setShowContactDialog(false);
       // Now submit the quote with the updated info
-      submitQuote(dialogCustomerInfo);
+      submitQuote(dialogCustomerInfo, {});
     }
   };
 

@@ -16,6 +16,8 @@ export interface GlobalSettings extends PriceRangeSettings {
   widget_theme_color: string;
   contact_capture_timing: 'before_quote' | 'after_quote' | 'on_submit';
   pricing_visibility: 'before_submit' | 'after_submit';
+  clarifying_questions_enabled?: boolean;
+  clarifying_questions?: Array<{id: string; question: string; required: boolean}>;
 }
 
 export function useGlobalSettings(contractorId?: string) {
@@ -69,6 +71,8 @@ export function useGlobalSettings(contractorId?: string) {
           widget_theme_color: '#3B82F6',
           contact_capture_timing: 'before_quote',
           pricing_visibility: 'before_submit',
+          clarifying_questions_enabled: false,
+          clarifying_questions: [],
         });
         return;
       }
@@ -124,6 +128,8 @@ export function useGlobalSettings(contractorId?: string) {
           widget_theme_color: contractorSettings.widget_theme_color || '#3B82F6',
           contact_capture_timing: (contractorSettings.contact_capture_timing as any) || 'before_quote',
           pricing_visibility: (contractorSettings.pricing_visibility as any) || 'before_submit',
+          clarifying_questions_enabled: contractorSettings.clarifying_questions_enabled || false,
+          clarifying_questions: Array.isArray(contractorSettings.clarifying_questions) ? contractorSettings.clarifying_questions as Array<{id: string; question: string; required: boolean}> : [],
         });
       } else {
         // Use default settings if no settings found
@@ -147,6 +153,8 @@ export function useGlobalSettings(contractorId?: string) {
           widget_theme_color: '#3B82F6',
           contact_capture_timing: 'before_quote',
           pricing_visibility: 'before_submit',
+          clarifying_questions_enabled: false,
+          clarifying_questions: [],
         });
       }
     } catch (err: any) {
