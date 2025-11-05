@@ -117,6 +117,7 @@ const MeasurementTools = ({
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const segmentLabelsRef = useRef<google.maps.Marker[]>([]); // Track individual segment distance labels
   const currentEdgeLabelsRef = useRef<google.maps.Marker[]>([]); // Track edge measurements for current shape
+  const overlayViewRef = useRef<google.maps.OverlayView | null>(null); // Persistent overlay for coordinate conversion
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -288,6 +289,14 @@ const MeasurementTools = ({
 
       console.log('Map instance created successfully');
       mapRef.current = map;
+      
+      // Create persistent overlay view for pixel-to-latlng conversion
+      const overlay = new google.maps.OverlayView();
+      overlay.onAdd = function() {};
+      overlay.draw = function() {};
+      overlay.onRemove = function() {};
+      overlay.setMap(map);
+      overlayViewRef.current = overlay;
       
       // Track zoom changes for dynamic font sizing
       map.addListener('zoom_changed', () => {
@@ -1062,29 +1071,29 @@ const MeasurementTools = ({
           if (now - lastUpdate < 30) return;
           lastUpdate = now;
           
-          // Convert pixel coordinates to lat/lng using Maps API
+          // Convert pixel coordinates to lat/lng using persistent overlay view
+          if (!overlayViewRef.current) {
+            console.log('❌ No overlay view available for coordinate conversion');
+            return;
+          }
+          
+          const projection = overlayViewRef.current.getProjection();
+          if (!projection) {
+            console.log('❌ Projection not ready yet');
+            return;
+          }
+          
           const bounds = mapDiv.getBoundingClientRect();
           const x = e.clientX - bounds.left;
           const y = e.clientY - bounds.top;
           
-          // Use overlay view to convert pixel to lat/lng
-          const overlay = new google.maps.OverlayView();
-          overlay.onAdd = function() {};
-          overlay.draw = function() {};
-          overlay.onRemove = function() {};
-          overlay.setMap(map);
-          
-          const projection = overlay.getProjection();
-          if (!projection) {
-            overlay.setMap(null);
-            return;
-          }
-          
           const point = new google.maps.Point(x, y);
           const latLng = projection.fromContainerPixelToLatLng(point);
-          overlay.setMap(null);
           
-          if (!latLng) return;
+          if (!latLng) {
+            console.log('❌ Could not convert pixel to latlng');
+            return;
+          }
           
           console.log('🖱️ Mouse move tracked, current path length:', currentPathRef.current.length);
           
