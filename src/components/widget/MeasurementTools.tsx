@@ -623,39 +623,48 @@ const MeasurementTools = ({
   ) => {
     if (!mapRef.current) return;
     
+    // Format distance with appropriate precision
+    let formattedValue: string;
+    if (value < 1) {
+      formattedValue = value.toFixed(1);
+    } else if (value < 10) {
+      formattedValue = (Math.round(value * 10) / 10).toFixed(1);
+    } else {
+      formattedValue = Math.round(value).toString();
+    }
+    
     const displayText = value > 0 
-      ? `Drawing: ${value.toLocaleString()} ${unit}` 
-      : `Click to start ${measurementType === 'area' ? 'polygon' : 'line'}`;
+      ? `${formattedValue} ${unit}` 
+      : `Click to start`;
+    
+    // Get the current measurement color
+    const color = getNextMeasurementColor();
     
     if (tempMeasurementOverlay) {
       // Update existing overlay
       tempMeasurementOverlay.setPosition(position);
       tempMeasurementOverlay.setLabel({
         text: displayText,
-        color: '#1a1a1a',
-        fontSize: '14px',
-        fontWeight: 'bold',
+        color: color,
+        fontSize: `${getZoomBasedFontSize(currentZoom) + 2}px`,
+        fontWeight: '900',
       });
     } else {
-      // Create new overlay
+      // Create new overlay - just label, no visible icon
       const marker = new google.maps.Marker({
         position: position,
         map: mapRef.current,
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: '#ffffff',
-          fillOpacity: 0.9,
-          strokeColor: '#3B82F6',
-          strokeWeight: 2,
+          scale: 0, // Invisible
         },
         label: {
           text: displayText,
-          color: '#1a1a1a',
-          fontSize: '14px',
-          fontWeight: 'bold',
+          color: color,
+          fontSize: `${getZoomBasedFontSize(currentZoom) + 2}px`,
+          fontWeight: '900',
         },
-        zIndex: 9999,
+        zIndex: 99999,
       });
       setTempMeasurementOverlay(marker);
     }
@@ -1302,7 +1311,17 @@ const MeasurementTools = ({
   ): google.maps.Marker => {
     // Calculate distance between two points
     const distance = google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
-    const feet = Math.ceil(distance * 3.28084);
+    const feet = distance * 3.28084;
+    
+    // Format distance with appropriate precision
+    let formattedDistance: string;
+    if (feet < 1) {
+      formattedDistance = `${feet.toFixed(1)} ft`;
+    } else if (feet < 10) {
+      formattedDistance = `${(Math.round(feet * 10) / 10).toFixed(1)} ft`;
+    } else {
+      formattedDistance = `${Math.round(feet)} ft`;
+    }
     
     // Calculate midpoint for label position
     const midLat = (point1.lat() + point2.lat()) / 2;
@@ -1313,7 +1332,10 @@ const MeasurementTools = ({
     const currentZoom = mapRef.current?.getZoom() || 19;
     const fontSize = getZoomBasedFontSize(currentZoom);
     
-    // Create label marker
+    // Get the current measurement color
+    const color = getNextMeasurementColor();
+    
+    // Create label marker with a more visible style
     const marker = new google.maps.Marker({
       position: midpoint,
       map: mapRef.current,
@@ -1322,11 +1344,10 @@ const MeasurementTools = ({
         scale: 0, // Invisible circle, just showing label
       },
       label: {
-        text: `${feet.toLocaleString()} ft`,
-        color: '#ffffff',
-        fontSize: `${fontSize}px`,
-        fontWeight: '700',
-        className: 'segment-label'
+        text: formattedDistance,
+        color: color,
+        fontSize: `${fontSize + 1}px`, // Slightly larger for visibility
+        fontWeight: '800',
       },
       zIndex: 10000 + segmentIndex,
     });
