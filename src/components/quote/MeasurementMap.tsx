@@ -115,20 +115,18 @@ export default function MeasurementMap({ measurements, center, className = "" }:
               map: map,
             });
 
-            // Add info window
+            // Add center label with total area
             const center = getPolygonCenter(path);
-            const infoWindow = new google.maps.InfoWindow({
-              content: `
-                <div style="padding: 8px;">
-                  <strong>${measurement.productName}</strong><br/>
-                  ${measurement.value.toLocaleString()} ${measurement.unit}
-                </div>
-              `,
+            new google.maps.Marker({
               position: center,
-            });
-
-            polygon.addListener('click', () => {
-              infoWindow.open(map);
+              map: map,
+              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+              label: {
+                text: `${measurement.value.toLocaleString()} sq ft`,
+                color: color,
+                fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+                fontWeight: 'bold',
+              },
             });
 
             // Add side dimension labels for dimensional products
@@ -152,47 +150,60 @@ export default function MeasurementMap({ measurements, center, className = "" }:
               map: map,
             });
 
-            // Add markers at endpoints
-            new google.maps.Marker({
-              position: path[0],
-              map: map,
-              icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 6,
-                fillColor: color,
-                fillOpacity: 1,
-                strokeColor: '#ffffff',
-                strokeWeight: 2,
-              },
+            // Add vertex markers at each point
+            path.forEach((point, idx) => {
+              new google.maps.Marker({
+                position: point,
+                map: map,
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 6,
+                  fillColor: color,
+                  fillOpacity: 1,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2,
+                },
+              });
             });
 
-            new google.maps.Marker({
-              position: path[path.length - 1],
-              map: map,
-              icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 6,
-                fillColor: color,
-                fillOpacity: 1,
-                strokeColor: '#ffffff',
-                strokeWeight: 2,
-              },
-            });
+            // Add segment measurements for multi-segment lines (only if >2 points)
+            if (path.length > 2) {
+              // Calculate and display each segment distance
+              for (let i = 0; i < path.length - 1; i++) {
+                const segmentDistance = google.maps.geometry.spherical.computeLength([path[i], path[i + 1]]);
+                const segmentDistanceFt = segmentDistance * 3.28084;
+                
+                // Calculate midpoint of segment
+                const midLat = (path[i].lat + path[i + 1].lat) / 2;
+                const midLng = (path[i].lng + path[i + 1].lng) / 2;
+                
+                // Add segment label
+                new google.maps.Marker({
+                  position: { lat: midLat, lng: midLng },
+                  map: map,
+                  icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+                  label: {
+                    text: `${segmentDistanceFt.toFixed(1)} ft`,
+                    color: color,
+                    fontSize: `${Math.max(11, getZoomBasedFontSize(currentZoom) - 2)}px`,
+                    fontWeight: 'normal',
+                  },
+                });
+              }
+            }
 
-            // Add info window at midpoint
+            // Add total measurement label
             const midIndex = Math.floor(path.length / 2);
-            const infoWindow = new google.maps.InfoWindow({
-              content: `
-                <div style="padding: 8px;">
-                  <strong>${measurement.productName}</strong><br/>
-                  ${measurement.value.toLocaleString()} ${measurement.unit}
-                </div>
-              `,
+            new google.maps.Marker({
               position: path[midIndex],
-            });
-
-            polyline.addListener('click', () => {
-              infoWindow.open(map);
+              map: map,
+              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+              label: {
+                text: `Total: ${measurement.value.toLocaleString()} ft`,
+                color: color,
+                fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+                fontWeight: 'bold',
+              },
             });
           } else if (measurement.type === 'point') {
             // Draw markers for point measurements (e.g., individual trees)
