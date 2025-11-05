@@ -113,11 +113,9 @@ const MeasurementTools = ({
   const isRenderingRef = useRef(false); // Guard against concurrent renders
   const currentPathRef = useRef<google.maps.LatLng[]>([]);
   const mouseMoveListenerRef = useRef<google.maps.MapsEventListener | null>(null);
-  const mouseMoveCleanupRef = useRef<(() => void) | null>(null); // DOM event cleanup
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const segmentLabelsRef = useRef<google.maps.Marker[]>([]); // Track individual segment distance labels
   const currentEdgeLabelsRef = useRef<google.maps.Marker[]>([]); // Track edge measurements for current shape
-  const overlayViewRef = useRef<google.maps.OverlayView | null>(null); // Persistent overlay for coordinate conversion
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -290,14 +288,6 @@ const MeasurementTools = ({
       console.log('Map instance created successfully');
       mapRef.current = map;
       
-      // Create persistent overlay view for pixel-to-latlng conversion
-      const overlay = new google.maps.OverlayView();
-      overlay.onAdd = function() {};
-      overlay.draw = function() {};
-      overlay.onRemove = function() {};
-      overlay.setMap(map);
-      overlayViewRef.current = overlay;
-      
       // Track zoom changes for dynamic font sizing
       map.addListener('zoom_changed', () => {
         const newZoom = map.getZoom();
@@ -315,25 +305,16 @@ const MeasurementTools = ({
       // Render existing measurements from quote items
       renderExistingMeasurements(map);
       
-      // Auto-start drawing after ensuring projection is ready
+      // Auto-start drawing after a brief delay to ensure everything is ready
       // But NOT if this is a manual entry measurement (user chose manual input)
       console.log('Map initialized, preparing to auto-start drawing');
-      
-      const checkProjectionAndStart = () => {
-        if (overlayViewRef.current?.getProjection()) {
-          console.log('✅ Projection ready, auto-starting drawing');
-          if (!showManualEntry && !isManualEntry) {
-            startDrawing();
-          } else {
-            console.log('Skipping auto-start drawing: manual entry mode');
-          }
+      setTimeout(() => {
+        if (!showManualEntry && !isManualEntry) {
+          startDrawing();
         } else {
-          console.log('⏳ Waiting for projection to be ready...');
-          setTimeout(checkProjectionAndStart, 100);
+          console.log('Skipping auto-start drawing: manual entry mode');
         }
-      };
-      
-      setTimeout(checkProjectionAndStart, 100);
+      }, 500);
       
     } catch (error) {
       console.error('Map initialization failed:', error);
@@ -642,57 +623,39 @@ const MeasurementTools = ({
   ) => {
     if (!mapRef.current) return;
     
-    // Format distance with appropriate precision
-    let formattedValue: string;
-    if (value < 1) {
-      formattedValue = value.toFixed(1);
-    } else if (value < 10) {
-      formattedValue = (Math.round(value * 10) / 10).toFixed(1);
-    } else {
-      formattedValue = Math.round(value).toString();
-    }
-    
     const displayText = value > 0 
-      ? `${formattedValue} ${unit}` 
-      : `Click to start`;
+      ? `Drawing: ${value.toLocaleString()} ${unit}` 
+      : `Click to start ${measurementType === 'area' ? 'polygon' : 'line'}`;
     
     if (tempMeasurementOverlay) {
       // Update existing overlay
       tempMeasurementOverlay.setPosition(position);
-      tempMeasurementOverlay.setIcon({
-        path: google.maps.SymbolPath.CIRCLE,
-        fillColor: '#000000',
-        fillOpacity: 0.8,
-        strokeColor: '#ffffff',
-        strokeWeight: 2,
-        scale: value > 0 ? 8 : 12, // Slightly larger for "Click to start"
-      });
       tempMeasurementOverlay.setLabel({
         text: displayText,
-        color: '#ffffff',
-        fontSize: `${getZoomBasedFontSize(currentZoom) + 3}px`,
-        fontWeight: '900',
+        color: '#1a1a1a',
+        fontSize: '14px',
+        fontWeight: 'bold',
       });
     } else {
-      // Create new overlay with high visibility (always visible background)
+      // Create new overlay
       const marker = new google.maps.Marker({
         position: position,
         map: mapRef.current,
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          fillColor: '#000000',
-          fillOpacity: 0.8,
-          strokeColor: '#ffffff',
+          scale: 8,
+          fillColor: '#ffffff',
+          fillOpacity: 0.9,
+          strokeColor: '#3B82F6',
           strokeWeight: 2,
-          scale: value > 0 ? 8 : 12, // Slightly larger for "Click to start"
         },
         label: {
           text: displayText,
-          color: '#ffffff',
-          fontSize: `${getZoomBasedFontSize(currentZoom) + 3}px`,
-          fontWeight: '900',
+          color: '#1a1a1a',
+          fontSize: '14px',
+          fontWeight: 'bold',
         },
-        zIndex: 99999,
+        zIndex: 9999,
       });
       setTempMeasurementOverlay(marker);
     }
@@ -1061,115 +1024,40 @@ const MeasurementTools = ({
         setIsDrawingInProgress(true);
         currentPathRef.current = [];
         
-        // Start tracking mouse movements using DOM events (Drawing Manager blocks map events)
+        // Start tracking mouse movements
         if (mouseMoveListenerRef.current) {
           google.maps.event.removeListener(mouseMoveListenerRef.current);
-          mouseMoveListenerRef.current = null;
-        }
-        if (mouseMoveCleanupRef.current) {
-          mouseMoveCleanupRef.current();
-          mouseMoveCleanupRef.current = null;
         }
         
-        // Track mouse on the map container div to bypass drawing manager event blocking
-        const mapDiv = map.getDiv();
+        // Throttle mouse move updates
         let lastUpdate = 0;
-        let activeOverlay: google.maps.Polyline | google.maps.Polygon | null = null;
-        
-        // Listen for when Drawing Manager creates a new overlay (starts drawing)
-        const overlayListener = google.maps.event.addListener(map, 'mousedown', () => {
-          // Small delay to let Drawing Manager create the overlay
-          setTimeout(() => {
-            // Try to find the overlay being drawn
-            const overlays = drawingManager.getDrawingMode();
-            console.log('🎨 Drawing started, mode:', overlays);
-          }, 10);
+        mouseMoveListenerRef.current = map.addListener('mousemove', (event: google.maps.MapMouseEvent) => {
+          const now = Date.now();
+          if (!event.latLng || now - lastUpdate < 50) return;
+          lastUpdate = now;
+          
+          // If we have at least one point, show temp segment distance to cursor
+          if (currentPathRef.current.length > 0) {
+            const lastPoint = currentPathRef.current[currentPathRef.current.length - 1];
+            const distance = google.maps.geometry.spherical.computeDistanceBetween(lastPoint, event.latLng);
+            const feet = Math.ceil(distance * 3.28084);
+            
+            updateTempMeasurementOverlay(
+              feet,
+              'ft',
+              event.latLng
+            );
+          }
         });
         
-        const handleMouseMove = (e: MouseEvent) => {
-          console.log('🖱️ MOUSEMOVE fired');
-          
-          const now = Date.now();
-          if (now - lastUpdate < 30) {
-            console.log('⏱️ Throttled');
-            return;
-          }
-          lastUpdate = now;
-          console.log('✅ Throttle passed');
-          
-          // Get the path from the Drawing Manager's active overlay
-          // The Drawing Manager creates a temporary polyline/polygon as you click
-          // We need to extract its path
-          const overlays = Array.from(document.querySelectorAll('area[id^="gmimap"]'));
-          console.log('🔍 Found overlays:', overlays.length);
-          
-          // Try to get path from currentPathRef or from any existing polyline on the map
-          if (currentPathRef.current.length === 0) {
-            console.log('⏸️ No points in currentPathRef yet');
-            return;
-          }
-          console.log(`📍 ${currentPathRef.current.length} points exist, calculating distance`);
-          
-          // Convert pixel coordinates to lat/lng using persistent overlay view
-          if (!overlayViewRef.current) {
-            console.log('❌ No overlay view');
-            return;
-          }
-          
-          const projection = overlayViewRef.current.getProjection();
-          if (!projection) {
-            console.log('❌ Projection not ready');
-            return;
-          }
-          console.log('✅ Projection available');
-          
-          const bounds = mapDiv.getBoundingClientRect();
-          const x = e.clientX - bounds.left;
-          const y = e.clientY - bounds.top;
-          
-          const point = new google.maps.Point(x, y);
-          const latLng = projection.fromContainerPixelToLatLng(point);
-          
-          if (!latLng) {
-            console.log('❌ Could not convert pixel to latlng');
-            return;
-          }
-          console.log('✅ Coordinate conversion successful');
-          
-          // Show distance from last point
-          const lastPoint = currentPathRef.current[currentPathRef.current.length - 1];
-          const distance = google.maps.geometry.spherical.computeDistanceBetween(lastPoint, latLng);
-          const feet = Math.ceil(distance * 3.28084);
-          
-          console.log('📏 Real-time measurement:', feet, 'ft from last point');
-          
-          updateTempMeasurementOverlay(
-            feet,
-            'ft',
-            latLng
-          );
-        };
-        
-        mapDiv.addEventListener('mousemove', handleMouseMove);
-        mouseMoveCleanupRef.current = () => {
-          mapDiv.removeEventListener('mousemove', handleMouseMove);
-          google.maps.event.removeListener(overlayListener);
-        };
-        
-        // Track Drawing Manager clicks to populate currentPathRef
-        // This fires BEFORE the overlay is complete
+        // Track clicks to build path and create segment labels
         if (clickListenerRef.current) {
           google.maps.event.removeListener(clickListenerRef.current);
         }
-        
-        // Use a better approach: listen to map clicks that happen during drawing mode
-        clickListenerRef.current = google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
-          if (event.latLng && (mode === google.maps.drawing.OverlayType.POLYLINE || mode === google.maps.drawing.OverlayType.POLYGON)) {
-            console.log('✅ Click detected during drawing, adding point:', event.latLng.lat(), event.latLng.lng());
+        clickListenerRef.current = map.addListener('click', (event: google.maps.MapMouseEvent) => {
+          if (event.latLng && isDrawingInProgress) {
             const previousPoint = currentPathRef.current[currentPathRef.current.length - 1];
             currentPathRef.current.push(event.latLng);
-            
-            console.log('📊 currentPathRef now has', currentPathRef.current.length, 'points');
             
             // If we have at least 2 points, create a segment label
             if (previousPoint) {
@@ -1414,17 +1302,7 @@ const MeasurementTools = ({
   ): google.maps.Marker => {
     // Calculate distance between two points
     const distance = google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
-    const feet = distance * 3.28084;
-    
-    // Format distance with appropriate precision
-    let formattedDistance: string;
-    if (feet < 1) {
-      formattedDistance = `${feet.toFixed(1)} ft`;
-    } else if (feet < 10) {
-      formattedDistance = `${(Math.round(feet * 10) / 10).toFixed(1)} ft`;
-    } else {
-      formattedDistance = `${Math.round(feet)} ft`;
-    }
+    const feet = Math.ceil(distance * 3.28084);
     
     // Calculate midpoint for label position
     const midLat = (point1.lat() + point2.lat()) / 2;
@@ -1435,23 +1313,20 @@ const MeasurementTools = ({
     const currentZoom = mapRef.current?.getZoom() || 19;
     const fontSize = getZoomBasedFontSize(currentZoom);
     
-    // Create label marker with high visibility - white text is most visible on satellite
+    // Create label marker
     const marker = new google.maps.Marker({
       position: midpoint,
       map: mapRef.current,
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
-        fillColor: '#000000',
-        fillOpacity: 0.6,
-        strokeColor: '#ffffff',
-        strokeWeight: 2,
-        scale: 6,
+        scale: 0, // Invisible circle, just showing label
       },
       label: {
-        text: formattedDistance,
+        text: `${feet.toLocaleString()} ft`,
         color: '#ffffff',
-        fontSize: `${fontSize + 2}px`,
-        fontWeight: '900',
+        fontSize: `${fontSize}px`,
+        fontWeight: '700',
+        className: 'segment-label'
       },
       zIndex: 10000 + segmentIndex,
     });
