@@ -115,6 +115,7 @@ const MeasurementTools = ({
   const mouseMoveListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const segmentLabelsRef = useRef<google.maps.Marker[]>([]); // Track individual segment distance labels
+  const currentEdgeLabelsRef = useRef<google.maps.Marker[]>([]); // Track edge measurements for current shape
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -1157,6 +1158,16 @@ const MeasurementTools = ({
           mapColor: mapColor
         });
         
+        // Add edge measurements for the polygon
+        const latLngs = coordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
+        currentEdgeLabelsRef.current = renderEdgeMeasurements(
+          mapRef.current!,
+          latLngs,
+          mapColor,
+          currentZoom,
+          true  // closed shape (polygon)
+        );
+        
         const updateMeasurement = () => {
           const newArea = google.maps.geometry.spherical.computeArea(path);
           const newSqFt = Math.ceil(newArea * 10.764);
@@ -1180,6 +1191,17 @@ const MeasurementTools = ({
             manualEntry: false,
             mapColor: mapColor
           });
+          
+          // Update edge measurements
+          currentEdgeLabelsRef.current.forEach(label => label.setMap(null));
+          const updatedLatLngs = newCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
+          currentEdgeLabelsRef.current = renderEdgeMeasurements(
+            mapRef.current!,
+            updatedLatLngs,
+            mapColor,
+            currentZoom,
+            true
+          );
         };
         
         updateMeasurementLabel(polygon, sqFt, 'sq ft');
@@ -1216,6 +1238,16 @@ const MeasurementTools = ({
           mapColor: mapColor
         });
         
+        // Add edge measurements for the polyline
+        const latLngs = coordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
+        currentEdgeLabelsRef.current = renderEdgeMeasurements(
+          mapRef.current!,
+          latLngs,
+          mapColor,
+          currentZoom,
+          false  // open shape (polyline)
+        );
+        
         const updateMeasurement = () => {
           const newLength = google.maps.geometry.spherical.computeLength(path);
           const newFeet = Math.ceil(newLength * 3.28084);
@@ -1239,6 +1271,17 @@ const MeasurementTools = ({
             manualEntry: false,
             mapColor: mapColor
           });
+          
+          // Update edge measurements
+          currentEdgeLabelsRef.current.forEach(label => label.setMap(null));
+          const updatedLatLngs = newCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
+          currentEdgeLabelsRef.current = renderEdgeMeasurements(
+            mapRef.current!,
+            updatedLatLngs,
+            mapColor,
+            currentZoom,
+            false
+          );
         };
         
         updateMeasurementLabel(polyline, feet, 'ft');
@@ -1702,6 +1745,10 @@ const MeasurementTools = ({
     // Clear segment labels
     segmentLabelsRef.current.forEach(label => label.setMap(null));
     segmentLabelsRef.current = [];
+    
+    // Clear current edge measurement labels
+    currentEdgeLabelsRef.current.forEach(label => label.setMap(null));
+    currentEdgeLabelsRef.current = [];
     
     // Clear dimensional side labels (width/length labels)
     dimensionalSideLabelsRef.current.forEach(label => label.setMap(null));
