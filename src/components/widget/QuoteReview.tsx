@@ -252,7 +252,10 @@ const QuoteReview = ({
       
       if (clarifyingQuestionsEnabled && clarifyingQuestions.length > 0) {
         console.log('✅ Showing clarifying questions dialog after contact form');
-        setShowClarifyingDialog(true);
+        // Add a small delay to ensure contact dialog closes completely before opening clarifying questions
+        setTimeout(() => {
+          setShowClarifyingDialog(true);
+        }, 150);
       } else {
         console.log('➡️ No clarifying questions, submitting directly');
         submitQuote(dialogCustomerInfo, {});
