@@ -1071,15 +1071,18 @@ const MeasurementTools = ({
           if (now - lastUpdate < 30) return;
           lastUpdate = now;
           
+          // Only show measurements AFTER first point is placed
+          if (currentPathRef.current.length === 0) {
+            return; // No label until first click
+          }
+          
           // Convert pixel coordinates to lat/lng using persistent overlay view
           if (!overlayViewRef.current) {
-            console.log('❌ No overlay view available for coordinate conversion');
             return;
           }
           
           const projection = overlayViewRef.current.getProjection();
           if (!projection) {
-            console.log('❌ Projection not ready yet');
             return;
           }
           
@@ -1091,34 +1094,21 @@ const MeasurementTools = ({
           const latLng = projection.fromContainerPixelToLatLng(point);
           
           if (!latLng) {
-            console.log('❌ Could not convert pixel to latlng');
             return;
           }
           
-          console.log('🖱️ Mouse move tracked, current path length:', currentPathRef.current.length);
+          // Show distance from last point
+          const lastPoint = currentPathRef.current[currentPathRef.current.length - 1];
+          const distance = google.maps.geometry.spherical.computeDistanceBetween(lastPoint, latLng);
+          const feet = Math.ceil(distance * 3.28084);
           
-          // Always show temp overlay - either "Click to start" or distance from last point
-          if (currentPathRef.current.length > 0) {
-            const lastPoint = currentPathRef.current[currentPathRef.current.length - 1];
-            const distance = google.maps.geometry.spherical.computeDistanceBetween(lastPoint, latLng);
-            const feet = Math.ceil(distance * 3.28084);
-            
-            console.log('📏 Calculated distance:', feet, 'ft from last point');
-            
-            updateTempMeasurementOverlay(
-              feet,
-              'ft',
-              latLng
-            );
-          } else {
-            // No points yet - show "Click to start" message
-            console.log('👆 No points yet, showing "Click to start"');
-            updateTempMeasurementOverlay(
-              0,
-              'ft',
-              latLng
-            );
-          }
+          console.log('📏 Real-time measurement:', feet, 'ft from last point');
+          
+          updateTempMeasurementOverlay(
+            feet,
+            'ft',
+            latLng
+          );
         };
         
         mapDiv.addEventListener('mousemove', handleMouseMove);
