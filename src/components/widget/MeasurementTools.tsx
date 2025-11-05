@@ -1885,11 +1885,22 @@ const MeasurementTools = ({
       
       // Scroll to show the measurement tools after completing measurement
       setTimeout(() => {
-        const bottomControls = document.querySelector('.measurement-controls');
+        const bottomControls = document.getElementById('measurement-action-buttons');
         if (bottomControls) {
-          bottomControls.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          // Get the sticky header height to offset scroll properly
+          const header = document.querySelector('.sticky.top-0');
+          const headerHeight = header?.getBoundingClientRect().height || 0;
+          
+          // Calculate position to scroll the buttons into view with proper offset
+          const elementPosition = bottomControls.getBoundingClientRect().top + window.pageYOffset;
+          const offsetPosition = elementPosition - headerHeight - 100; // Extra padding to show full buttons
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
         }
-      }, 300);
+      }, 500);
     }
     // Handle area/linear measurements (allow 0 measurements so user can remeasure)
     else if (mapMeasurement !== null && mapMeasurement !== undefined && !isDrawing && !showManualEntry && !currentMeasurement && currentShapeRef.current) {
@@ -1948,11 +1959,22 @@ const MeasurementTools = ({
       
       // Scroll to show the measurement tools after completing measurement
       setTimeout(() => {
-        const bottomControls = document.querySelector('.measurement-controls');
+        const bottomControls = document.getElementById('measurement-action-buttons');
         if (bottomControls) {
-          bottomControls.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          // Get the sticky header height to offset scroll properly
+          const header = document.querySelector('.sticky.top-0');
+          const headerHeight = header?.getBoundingClientRect().height || 0;
+          
+          // Calculate position to scroll the buttons into view with proper offset
+          const elementPosition = bottomControls.getBoundingClientRect().top + window.pageYOffset;
+          const offsetPosition = elementPosition - headerHeight - 100; // Extra padding to show full buttons
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
         }
-      }, 300);
+      }, 500);
     }
   }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement, pointLocations, measurementType]);
 
@@ -2289,7 +2311,7 @@ const MeasurementTools = ({
 
       {/* Bottom Control Bar and Measurement Display */}
       {!mapLoading && !mapError && !isConfigurationMode && currentStep === 'measurement' && (
-        <div className="bg-background border-t px-3 sm:px-6 py-2 measurement-controls">
+        <div id="measurement-action-buttons" className="bg-background border-t px-3 sm:px-6 py-2 measurement-controls">
           <div className="max-w-7xl mx-auto">
             {/* Show Next Button when measurement is complete */}
             {currentMeasurement && (
