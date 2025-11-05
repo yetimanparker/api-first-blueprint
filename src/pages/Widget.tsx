@@ -124,9 +124,18 @@ const Widget = () => {
       console.log('Settings:', settings);
       
       // Store clarifying questions settings
+      console.log('🔍 Clarifying Questions Settings:', {
+        enabled: settings.clarifying_questions_enabled,
+        questions: settings.clarifying_questions,
+        questionsLength: settings.clarifying_questions?.length
+      });
+      
       if (settings.clarifying_questions_enabled && settings.clarifying_questions) {
+        console.log('✅ Setting clarifying questions enabled with', settings.clarifying_questions.length, 'questions');
         setClarifyingQuestionsEnabled(true);
         setClarifyingQuestions(settings.clarifying_questions as Array<{id: string; question: string; required: boolean}>);
+      } else {
+        console.log('❌ Clarifying questions NOT enabled or no questions found');
       }
       
       setWidgetState(prev => ({

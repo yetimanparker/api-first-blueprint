@@ -248,6 +248,13 @@ const QuoteReview = ({
   };
 
   const handleSubmitQuote = async () => {
+    console.log('🚀 handleSubmitQuote called');
+    console.log('📋 Clarifying Questions Props:', {
+      enabled: clarifyingQuestionsEnabled,
+      questionsLength: clarifyingQuestions.length,
+      questions: clarifyingQuestions
+    });
+    
     if (!contractorId) {
       toast({
         title: "Error",
@@ -264,17 +271,26 @@ const QuoteReview = ({
       (settings.require_email !== false && !customerInfo.email?.trim());
 
     if (missingRequiredFields) {
+      console.log('⚠️ Missing required fields, showing contact dialog');
       setDialogCustomerInfo(customerInfo);
       setShowContactDialog(true);
       return;
     }
 
     // Check if clarifying questions should be shown
+    console.log('🔍 Checking clarifying questions:', {
+      enabled: clarifyingQuestionsEnabled,
+      hasQuestions: clarifyingQuestions.length > 0,
+      shouldShow: clarifyingQuestionsEnabled && clarifyingQuestions.length > 0
+    });
+    
     if (clarifyingQuestionsEnabled && clarifyingQuestions.length > 0) {
+      console.log('✅ Showing clarifying questions dialog');
       setShowClarifyingDialog(true);
       return;
     }
 
+    console.log('➡️ Proceeding to submit quote directly');
     // Otherwise proceed with submission
     submitQuote(customerInfo, {});
   };
