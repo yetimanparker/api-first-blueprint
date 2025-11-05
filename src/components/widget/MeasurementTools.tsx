@@ -2251,18 +2251,20 @@ const MeasurementTools = ({
                     <ArrowLeft className="h-4 w-4" />
                     Switch Product
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={() => {
-                      setShowManualEntry(true);
-                      clearMapDrawing();
-                    }}
-                    className="w-full sm:w-auto gap-2 text-orange-600 hover:text-orange-700"
-                  >
-                    <PencilRuler className="h-4 w-4" />
-                    Enter Manually
-                  </Button>
+                  {measurementType !== 'dimensional' && (
+                    <Button
+                      variant="outline"
+                      size="default"
+                      onClick={() => {
+                        setShowManualEntry(true);
+                        clearMapDrawing();
+                      }}
+                      className="w-full sm:w-auto gap-2 text-orange-600 hover:text-orange-700"
+                    >
+                      <PencilRuler className="h-4 w-4" />
+                      Enter Manually
+                    </Button>
+                  )}
                 </>
               )}
               {isConfigurationMode && currentMeasurement && (
