@@ -1074,6 +1074,17 @@ const MeasurementTools = ({
         // Track mouse on the map container div to bypass drawing manager event blocking
         const mapDiv = map.getDiv();
         let lastUpdate = 0;
+        let activeOverlay: google.maps.Polyline | google.maps.Polygon | null = null;
+        
+        // Listen for when Drawing Manager creates a new overlay (starts drawing)
+        const overlayListener = google.maps.event.addListener(map, 'mousedown', () => {
+          // Small delay to let Drawing Manager create the overlay
+          setTimeout(() => {
+            // Try to find the overlay being drawn
+            const overlays = drawingManager.getDrawingMode();
+            console.log('🎨 Drawing started, mode:', overlays);
+          }, 10);
+        });
         
         const handleMouseMove = (e: MouseEvent) => {
           console.log('🖱️ MOUSEMOVE fired');
@@ -1086,9 +1097,15 @@ const MeasurementTools = ({
           lastUpdate = now;
           console.log('✅ Throttle passed');
           
-          // Only show measurements AFTER first point is placed
+          // Get the path from the Drawing Manager's active overlay
+          // The Drawing Manager creates a temporary polyline/polygon as you click
+          // We need to extract its path
+          const overlays = Array.from(document.querySelectorAll('area[id^="gmimap"]'));
+          console.log('🔍 Found overlays:', overlays.length);
+          
+          // Try to get path from currentPathRef or from any existing polyline on the map
           if (currentPathRef.current.length === 0) {
-            console.log('⏸️ No points yet, waiting for first click');
+            console.log('⏸️ No points in currentPathRef yet');
             return;
           }
           console.log(`📍 ${currentPathRef.current.length} points exist, calculating distance`);
@@ -1136,16 +1153,23 @@ const MeasurementTools = ({
         mapDiv.addEventListener('mousemove', handleMouseMove);
         mouseMoveCleanupRef.current = () => {
           mapDiv.removeEventListener('mousemove', handleMouseMove);
+          google.maps.event.removeListener(overlayListener);
         };
         
-        // Track clicks to build path and create segment labels
+        // Track Drawing Manager clicks to populate currentPathRef
+        // This fires BEFORE the overlay is complete
         if (clickListenerRef.current) {
           google.maps.event.removeListener(clickListenerRef.current);
         }
-        clickListenerRef.current = map.addListener('click', (event: google.maps.MapMouseEvent) => {
-          if (event.latLng && isDrawingInProgress) {
+        
+        // Use a better approach: listen to map clicks that happen during drawing mode
+        clickListenerRef.current = google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
+          if (event.latLng && (mode === google.maps.drawing.OverlayType.POLYLINE || mode === google.maps.drawing.OverlayType.POLYGON)) {
+            console.log('✅ Click detected during drawing, adding point:', event.latLng.lat(), event.latLng.lng());
             const previousPoint = currentPathRef.current[currentPathRef.current.length - 1];
             currentPathRef.current.push(event.latLng);
+            
+            console.log('📊 currentPathRef now has', currentPathRef.current.length, 'points');
             
             // If we have at least 2 points, create a segment label
             if (previousPoint) {
