@@ -2331,7 +2331,7 @@ const MeasurementTools = ({
                   disabled={currentMeasurement.value === 0}
                   className="flex-1 sm:flex-none sm:w-auto min-w-[160px] px-4 sm:px-8 shadow-lg gap-2 sm:gap-3"
                 >
-                  <span>NEXT (configure)</span>
+                  <span>NEXT</span>
                   <span className="text-success-foreground/90 font-semibold">
                     ({currentMeasurement.value.toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : currentMeasurement.type === 'linear' ? 'ft' : 'items'})
                   </span>
