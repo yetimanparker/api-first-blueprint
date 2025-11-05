@@ -1885,7 +1885,7 @@ const MeasurementTools = ({
       
       // Scroll to show the measurement tools after completing measurement
       setTimeout(() => {
-        const bottomControls = document.getElementById('measurement-action-buttons');
+        const bottomControls = document.getElementById('action-buttons-row');
         if (bottomControls) {
           // Get the sticky header height to offset scroll properly
           const header = document.querySelector('.sticky.top-0');
@@ -1959,7 +1959,7 @@ const MeasurementTools = ({
       
       // Scroll to show the measurement tools after completing measurement
       setTimeout(() => {
-        const bottomControls = document.getElementById('measurement-action-buttons');
+        const bottomControls = document.getElementById('action-buttons-row');
         if (bottomControls) {
           // Get the sticky header height to offset scroll properly
           const header = document.querySelector('.sticky.top-0');
