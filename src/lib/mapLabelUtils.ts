@@ -117,3 +117,102 @@ export function renderDimensionalProductLabels(
   
   return [widthLabel, lengthLabel];
 }
+
+/**
+ * Calculate distance between two lat/lng points in feet using Haversine formula
+ * 
+ * @param point1 - First coordinate {lat, lng}
+ * @param point2 - Second coordinate {lat, lng}
+ * @returns Distance in feet
+ */
+export function calculateDistanceInFeet(
+  point1: {lat: number, lng: number},
+  point2: {lat: number, lng: number}
+): number {
+  const R = 20925721.784; // Earth's radius in feet
+  const dLat = (point2.lat - point1.lat) * Math.PI / 180;
+  const dLng = (point2.lng - point1.lng) * Math.PI / 180;
+  
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+  
+  return distance;
+}
+
+/**
+ * Render edge measurements (distance labels) between nodes of a polygon or polyline
+ * 
+ * @param map - Google Maps instance
+ * @param coordinates - Array of coordinates defining the shape
+ * @param color - Color for the labels
+ * @param currentZoom - Current map zoom level for font sizing
+ * @param isClosedShape - Whether to connect last point to first (true for polygons)
+ * @returns Array of marker references for edge labels
+ */
+export function renderEdgeMeasurements(
+  map: google.maps.Map,
+  coordinates: Array<{lat: number, lng: number}>,
+  color: string,
+  currentZoom: number,
+  isClosedShape: boolean = true
+): google.maps.Marker[] {
+  const edgeLabels: google.maps.Marker[] = [];
+  
+  // Calculate and render label for each edge
+  for (let i = 0; i < coordinates.length; i++) {
+    const point1 = coordinates[i];
+    const point2 = isClosedShape 
+      ? coordinates[(i + 1) % coordinates.length]  // Wrap to start for closed shapes
+      : coordinates[i + 1];  // Don't wrap for open shapes (polylines)
+    
+    // Skip if point2 doesn't exist (end of polyline)
+    if (!point2) continue;
+    
+    // Calculate distance in feet
+    const distanceFeet = calculateDistanceInFeet(point1, point2);
+    
+    // Skip very small edges (< 0.5 ft)
+    if (distanceFeet < 0.5) continue;
+    
+    // Calculate midpoint for label placement
+    const midpoint = {
+      lat: (point1.lat + point2.lat) / 2,
+      lng: (point1.lng + point2.lng) / 2
+    };
+    
+    // Format distance with appropriate precision
+    let distanceText: string;
+    if (distanceFeet < 1) {
+      distanceText = `${distanceFeet.toFixed(1)} ft`;
+    } else if (distanceFeet < 10) {
+      distanceText = `${Math.round(distanceFeet * 10) / 10} ft`;
+    } else {
+      distanceText = `${Math.round(distanceFeet)} ft`;
+    }
+    
+    // Create edge label marker
+    const edgeLabel = new google.maps.Marker({
+      position: midpoint,
+      map: map,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 0,
+      },
+      label: {
+        text: distanceText,
+        color: color,
+        fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+        fontWeight: '500',
+      },
+      zIndex: 2
+    });
+    
+    edgeLabels.push(edgeLabel);
+  }
+  
+  return edgeLabels;
+}

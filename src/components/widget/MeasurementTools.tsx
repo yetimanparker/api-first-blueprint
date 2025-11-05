@@ -10,7 +10,7 @@ import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft } from 'l
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
-import { getZoomBasedFontSize, getZoomBasedMarkerScale, renderDimensionalProductLabels } from '@/lib/mapLabelUtils';
+import { getZoomBasedFontSize, getZoomBasedMarkerScale, renderDimensionalProductLabels, renderEdgeMeasurements } from '@/lib/mapLabelUtils';
 import { calculateRotatedRectangle } from '@/components/widget/DimensionalPlacement';
 
 interface MeasurementToolsProps {
@@ -821,6 +821,16 @@ const MeasurementTools = ({
           });
           previousLabelsRef.current.push(marker);
           
+          // Add edge measurements for each side of the polygon
+          const edgeLabels = renderEdgeMeasurements(
+            map,
+            latLngs,
+            color,
+            currentZoom,
+            true  // closed shape (polygon)
+          );
+          previousLabelsRef.current.push(...edgeLabels);
+          
           // Add side dimension labels for dimensional products
           if (item.measurement.isDimensional && item.measurement.dimensions) {
             const width = item.measurement.dimensions.width;
@@ -904,6 +914,16 @@ const MeasurementTools = ({
           },
         });
         previousLabelsRef.current.push(marker);
+        
+        // Add edge measurements for each segment of the polyline
+        const edgeLabels = renderEdgeMeasurements(
+          map,
+          latLngs,
+          color,
+          currentZoom,
+          false  // open shape (polyline)
+        );
+        previousLabelsRef.current.push(...edgeLabels);
       } else if (item.measurement.type === 'point' && item.measurement.pointLocations) {
         // Render point measurements
         console.log(`  ➡️ Rendering ${item.measurement.pointLocations.length} point markers with color ${color}`);
