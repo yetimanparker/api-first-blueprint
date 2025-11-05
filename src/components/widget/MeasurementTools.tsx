@@ -1683,6 +1683,10 @@ const MeasurementTools = ({
     segmentLabelsRef.current.forEach(label => label.setMap(null));
     segmentLabelsRef.current = [];
     
+    // Clear dimensional side labels (width/length labels)
+    dimensionalSideLabelsRef.current.forEach(label => label.setMap(null));
+    dimensionalSideLabelsRef.current = [];
+    
     setIsDrawingInProgress(false);
     currentPathRef.current = [];
     
