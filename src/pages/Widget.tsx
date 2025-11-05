@@ -770,6 +770,8 @@ const Widget = () => {
                 }
               }}
               onQuoteSubmitted={handleQuoteSubmitted}
+              clarifyingQuestionsEnabled={clarifyingQuestionsEnabled}
+              clarifyingQuestions={clarifyingQuestions}
             />
           </div>
         )}
