@@ -1887,7 +1887,7 @@ const MeasurementTools = ({
       setTimeout(() => {
         const bottomControls = document.querySelector('.measurement-controls');
         if (bottomControls) {
-          bottomControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          bottomControls.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
       }, 300);
     }
@@ -1950,7 +1950,7 @@ const MeasurementTools = ({
       setTimeout(() => {
         const bottomControls = document.querySelector('.measurement-controls');
         if (bottomControls) {
-          bottomControls.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          bottomControls.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
       }, 300);
     }
