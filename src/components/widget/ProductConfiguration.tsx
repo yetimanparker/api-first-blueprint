@@ -457,8 +457,11 @@ const ProductConfiguration = ({
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Custom Dimension Editing for Fixed Dimension Products */}
-          {(product as any).has_fixed_dimensions && (product as any).allow_dimension_editing && (
+          {/* Custom Dimension Editing for Fixed Dimension Products (Manual Entry Only) */}
+          {(product as any).has_fixed_dimensions && 
+           (product as any).allow_dimension_editing && 
+           measurement.manualEntry && 
+           !measurement.isDimensional && (
             <div className="space-y-4 p-4 bg-muted/50 rounded-lg border-2 border-primary/20">
               <div className="flex items-center gap-2 mb-2">
                 <Calculator className="h-5 w-5 text-primary" />
