@@ -244,22 +244,9 @@ const QuoteReview = ({
       onUpdateCustomerInfo(dialogCustomerInfo);
       setShowContactDialog(false);
       
-      // Check if clarifying questions should be shown BEFORE submitting
-      console.log('🔍 After contact form - checking clarifying questions:', {
-        enabled: clarifyingQuestionsEnabled,
-        hasQuestions: clarifyingQuestions.length > 0
-      });
-      
-      if (clarifyingQuestionsEnabled && clarifyingQuestions.length > 0) {
-        console.log('✅ Showing clarifying questions dialog after contact form');
-        // Add a small delay to ensure contact dialog closes completely before opening clarifying questions
-        setTimeout(() => {
-          setShowClarifyingDialog(true);
-        }, 150);
-      } else {
-        console.log('➡️ No clarifying questions, submitting directly');
-        submitQuote(dialogCustomerInfo, {});
-      }
+      // After contact form, submit with clarifying answers (already collected)
+      console.log('➡️ Contact info complete, submitting quote with clarifying answers');
+      submitQuote(dialogCustomerInfo, clarifyingAnswersRef.current);
     }
   };
 
@@ -280,7 +267,20 @@ const QuoteReview = ({
       return;
     }
 
-    // Always validate required fields before submission
+    // CHECK CLARIFYING QUESTIONS FIRST (before contact info)
+    console.log('🔍 Checking clarifying questions FIRST:', {
+      enabled: clarifyingQuestionsEnabled,
+      hasQuestions: clarifyingQuestions.length > 0,
+      shouldShow: clarifyingQuestionsEnabled && clarifyingQuestions.length > 0
+    });
+    
+    if (clarifyingQuestionsEnabled && clarifyingQuestions.length > 0) {
+      console.log('✅ Showing clarifying questions dialog FIRST');
+      setShowClarifyingDialog(true);
+      return;
+    }
+
+    // Then validate required fields
     const missingRequiredFields = 
       !customerInfo.firstName?.trim() || 
       !customerInfo.lastName?.trim() || 
@@ -293,26 +293,35 @@ const QuoteReview = ({
       return;
     }
 
-    // Check if clarifying questions should be shown
-    console.log('🔍 Checking clarifying questions:', {
-      enabled: clarifyingQuestionsEnabled,
-      hasQuestions: clarifyingQuestions.length > 0,
-      shouldShow: clarifyingQuestionsEnabled && clarifyingQuestions.length > 0
-    });
-    
-    if (clarifyingQuestionsEnabled && clarifyingQuestions.length > 0) {
-      console.log('✅ Showing clarifying questions dialog');
-      setShowClarifyingDialog(true);
-      return;
-    }
-
     console.log('➡️ Proceeding to submit quote directly');
     // Otherwise proceed with submission
     submitQuote(customerInfo, {});
   };
 
+  const clarifyingAnswersRef = useRef<Record<string, string>>({});
+
   const handleClarifyingQuestionsSubmit = (answers: Record<string, string>) => {
+    console.log('✅ Clarifying questions submitted, storing answers');
+    clarifyingAnswersRef.current = answers;
     setShowClarifyingDialog(false);
+    
+    // After clarifying questions, check if contact info is complete
+    const missingRequiredFields = 
+      !customerInfo.firstName?.trim() || 
+      !customerInfo.lastName?.trim() || 
+      (settings.require_email !== false && !customerInfo.email?.trim());
+
+    if (missingRequiredFields) {
+      console.log('⚠️ Missing required fields after clarifying questions, showing contact dialog');
+      setDialogCustomerInfo(customerInfo);
+      setTimeout(() => {
+        setShowContactDialog(true);
+      }, 150);
+      return;
+    }
+
+    // If all info is complete, submit directly
+    console.log('✅ All info complete, submitting quote');
     submitQuote(customerInfo, answers);
   };
 
