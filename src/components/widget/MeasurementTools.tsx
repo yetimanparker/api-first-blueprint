@@ -1883,25 +1883,28 @@ const MeasurementTools = ({
       setCurrentMeasurement(measurement);
       onMeasurementComplete(measurement);
       
-      // Scroll to show the measurement tools after completing measurement
-      setTimeout(() => {
+      // Scroll to show the measurement tools after completing measurement with retry
+      const scrollToButtons = (attempts = 0) => {
         const bottomControls = document.getElementById('measurement-action-buttons');
-        console.log('🔍 Autoscroll: Looking for measurement-action-buttons element:', bottomControls ? 'Found' : 'Not found');
+        console.log(`🔍 Autoscroll attempt ${attempts + 1}: Looking for measurement-action-buttons:`, bottomControls ? 'Found' : 'Not found');
+        
         if (bottomControls) {
-          // Get the sticky header height to offset scroll properly
           const header = document.querySelector('.sticky.top-0');
           const headerHeight = header?.getBoundingClientRect().height || 0;
-          
-          // Calculate position to scroll the buttons into view with proper offset
           const elementPosition = bottomControls.getBoundingClientRect().top + window.pageYOffset;
-          const offsetPosition = elementPosition - headerHeight - 100; // Extra padding to show full buttons
+          const offsetPosition = elementPosition - headerHeight - 100;
           
           window.scrollTo({
             top: offsetPosition,
             behavior: 'smooth'
           });
+        } else if (attempts < 10) {
+          setTimeout(() => scrollToButtons(attempts + 1), 200);
+        } else {
+          console.log('❌ Failed to find measurement-action-buttons after 10 attempts');
         }
-      }, 500);
+      };
+      setTimeout(() => scrollToButtons(), 300);
     }
     // Handle area/linear measurements (allow 0 measurements so user can remeasure)
     else if (mapMeasurement !== null && mapMeasurement !== undefined && !isDrawing && !showManualEntry && !currentMeasurement && currentShapeRef.current) {
@@ -1958,25 +1961,28 @@ const MeasurementTools = ({
         onMeasurementComplete(measurement);
       }
       
-      // Scroll to show the measurement tools after completing measurement
-      setTimeout(() => {
+      // Scroll to show the measurement tools after completing measurement with retry
+      const scrollToButtons = (attempts = 0) => {
         const bottomControls = document.getElementById('measurement-action-buttons');
-        console.log('🔍 Autoscroll: Looking for measurement-action-buttons element:', bottomControls ? 'Found' : 'Not found');
+        console.log(`🔍 Autoscroll attempt ${attempts + 1}: Looking for measurement-action-buttons:`, bottomControls ? 'Found' : 'Not found');
+        
         if (bottomControls) {
-          // Get the sticky header height to offset scroll properly
           const header = document.querySelector('.sticky.top-0');
           const headerHeight = header?.getBoundingClientRect().height || 0;
-          
-          // Calculate position to scroll the buttons into view with proper offset
           const elementPosition = bottomControls.getBoundingClientRect().top + window.pageYOffset;
-          const offsetPosition = elementPosition - headerHeight - 100; // Extra padding to show full buttons
+          const offsetPosition = elementPosition - headerHeight - 100;
           
           window.scrollTo({
             top: offsetPosition,
             behavior: 'smooth'
           });
+        } else if (attempts < 10) {
+          setTimeout(() => scrollToButtons(attempts + 1), 200);
+        } else {
+          console.log('❌ Failed to find measurement-action-buttons after 10 attempts');
         }
-      }, 500);
+      };
+      setTimeout(() => scrollToButtons(), 300);
     }
   }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement, pointLocations, measurementType]);
 

@@ -228,42 +228,38 @@ const Widget = () => {
         // Delay initial attempt to ensure DOM is ready
         setTimeout(attemptScroll, 200);
       } else if (widgetState.currentStep === 'measurement') {
-        // For measurement step, scroll to show the action buttons
-        setTimeout(() => {
+        // For measurement step, scroll to show the action buttons with retry
+        const scrollToButtons = (attempts = 0) => {
           const actionButtonsRow = document.getElementById('measurement-action-buttons');
+          console.log(`📍 Widget autoscroll attempt ${attempts + 1}:`, actionButtonsRow ? 'Found' : 'Not found');
           
           if (actionButtonsRow) {
-            console.log('📍 Found action buttons row, scrolling into view');
-            
-            // Get the sticky header height to offset scroll properly
             const header = document.querySelector('.sticky.top-0');
             const headerHeight = header?.getBoundingClientRect().height || 0;
-            
-            // Calculate position to scroll to
             const elementPosition = actionButtonsRow.getBoundingClientRect().top + window.pageYOffset;
-            const offsetPosition = elementPosition - headerHeight - 20; // 20px extra padding
+            const offsetPosition = elementPosition - headerHeight - 20;
             
             window.scrollTo({
               top: offsetPosition,
               behavior: 'smooth'
             });
+          } else if (attempts < 10) {
+            setTimeout(() => scrollToButtons(attempts + 1), 200);
           } else {
-            console.log('⚠️ Action buttons row not found, falling back to measurement header scroll');
-            // Fallback to original behavior if action buttons not found
+            console.log('⚠️ Action buttons not found after 10 attempts, falling back');
             const measurementHeader = document.querySelector('[class*="bg-background border-b"]') as HTMLElement;
-            
             if (measurementHeader) {
               const yOffset = -100;
               const elementPosition = measurementHeader.getBoundingClientRect().top + window.pageYOffset;
               const offsetPosition = elementPosition + yOffset;
-              
               window.scrollTo({
                 top: offsetPosition,
                 behavior: 'smooth'
               });
             }
           }
-        }, 800);
+        };
+        setTimeout(() => scrollToButtons(), 300);
       } else if (widgetState.currentStep === 'product-configuration') {
         // For product-configuration, scroll to show the configuration section
         setTimeout(() => {
