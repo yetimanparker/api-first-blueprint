@@ -14,7 +14,7 @@ interface Question {
 interface ClarifyingQuestionsDialogProps {
   open: boolean;
   questions: Question[];
-  onSubmit: (answers: Record<string, string>) => void;
+  onSubmit: (answers: Array<{ question: string; answer: string }>) => void;
   onCancel: () => void;
 }
 
@@ -47,7 +47,15 @@ export const ClarifyingQuestionsDialog = ({
       return;
     }
 
-    onSubmit(answers);
+    // Convert answers to array with question text included
+    const answersArray = questions
+      .filter(q => answers[q.id]?.trim())
+      .map(q => ({
+        question: q.question,
+        answer: answers[q.id].trim()
+      }));
+
+    onSubmit(answersArray);
   };
 
   return (

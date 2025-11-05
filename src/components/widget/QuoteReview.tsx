@@ -40,6 +40,11 @@ interface QuoteReviewProps {
   clarifyingQuestions?: Array<{id: string; question: string; required: boolean}>;
 }
 
+interface ClarifyingAnswer {
+  question: string;
+  answer: string;
+}
+
 const QuoteReview = ({ 
   quoteItems, 
   customerInfo, 
@@ -246,7 +251,7 @@ const QuoteReview = ({
       
       // After contact form, submit with clarifying answers (already collected)
       console.log('➡️ Contact info complete, submitting quote with clarifying answers');
-      submitQuote(dialogCustomerInfo, clarifyingAnswersRef.current);
+      submitQuote(dialogCustomerInfo, clarifyingAnswersRef.current || []);
     }
   };
 
@@ -295,12 +300,12 @@ const QuoteReview = ({
 
     console.log('➡️ Proceeding to submit quote directly');
     // Otherwise proceed with submission
-    submitQuote(customerInfo, {});
+    submitQuote(customerInfo, []);
   };
 
-  const clarifyingAnswersRef = useRef<Record<string, string>>({});
+  const clarifyingAnswersRef = useRef<ClarifyingAnswer[]>([]);
 
-  const handleClarifyingQuestionsSubmit = (answers: Record<string, string>) => {
+  const handleClarifyingQuestionsSubmit = (answers: ClarifyingAnswer[]) => {
     console.log('✅ Clarifying questions submitted, storing answers');
     clarifyingAnswersRef.current = answers;
     setShowClarifyingDialog(false);
@@ -325,7 +330,7 @@ const QuoteReview = ({
     submitQuote(customerInfo, answers);
   };
 
-  const submitQuote = async (contactInfo: Partial<CustomerInfo>, clarifyingAnswers: Record<string, string>) => {
+  const submitQuote = async (contactInfo: Partial<CustomerInfo>, clarifyingAnswers: ClarifyingAnswer[]) => {
     setIsSubmitting(true);
 
     try {

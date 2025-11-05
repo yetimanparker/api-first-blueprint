@@ -43,7 +43,7 @@ interface Quote {
   project_state?: string;
   project_zip_code?: string;
   notes?: string;
-  clarifying_answers?: Record<string, string> | null;
+  clarifying_answers?: Array<{ question: string; answer: string }> | null;
 }
 
 export default function CustomerDetail() {
@@ -86,7 +86,7 @@ export default function CustomerDetail() {
       if (quotesError) throw quotesError;
       setQuotes((quotesData || []).map(q => ({
         ...q,
-        clarifying_answers: q.clarifying_answers as Record<string, string> | null
+        clarifying_answers: q.clarifying_answers as Array<{ question: string; answer: string }> | null
       })));
 
     } catch (error) {

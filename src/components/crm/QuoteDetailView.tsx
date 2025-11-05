@@ -33,7 +33,7 @@ interface Quote {
   project_state?: string;
   project_zip_code?: string;
   notes?: string;
-  clarifying_answers?: Record<string, string> | null;
+  clarifying_answers?: Array<{ question: string; answer: string }> | null;
 }
 
 interface QuoteDetailViewProps {
@@ -625,16 +625,16 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
       )}
 
       {/* Clarifying Questions & Answers */}
-      {quote.clarifying_answers && Object.keys(quote.clarifying_answers).length > 0 && (
+      {quote.clarifying_answers && Array.isArray(quote.clarifying_answers) && quote.clarifying_answers.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Project Questions & Answers</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {Object.entries(quote.clarifying_answers).map(([questionId, answer], index) => (
-              <div key={questionId} className="space-y-1">
-                <p className="font-medium text-sm">Question {index + 1}:</p>
-                <p className="whitespace-pre-wrap bg-muted p-3 rounded-lg">{answer}</p>
+            {quote.clarifying_answers.map((qa, index) => (
+              <div key={index} className="space-y-2">
+                <p className="font-medium text-sm">Q{index + 1}: {qa.question}</p>
+                <p className="whitespace-pre-wrap bg-muted p-3 rounded-lg text-sm">{qa.answer}</p>
               </div>
             ))}
           </CardContent>

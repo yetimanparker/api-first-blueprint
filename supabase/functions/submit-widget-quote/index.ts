@@ -24,12 +24,17 @@ const quoteItemSchema = z.object({
   notes: z.string().max(1000, "Notes too long").optional(),
 });
 
+const clarifyingAnswerSchema = z.object({
+  question: z.string().max(500, "Question too long"),
+  answer: z.string().max(2000, "Answer too long"),
+});
+
 const submitQuoteSchema = z.object({
   customerInfo: customerInfoSchema,
   quoteItems: z.array(quoteItemSchema).min(1, "At least one quote item required"),
   contractorId: z.string().uuid("Invalid contractor ID"),
   projectComments: z.string().max(2000, "Project comments too long").optional(),
-  clarifyingAnswers: z.record(z.string()).optional(),
+  clarifyingAnswers: z.array(clarifyingAnswerSchema).optional(),
 });
 
 // Simple in-memory rate limiting
@@ -138,13 +143,11 @@ serve(async (req) => {
 
     // Sanitize clarifying answers
     const sanitizedClarifyingAnswers = clarifyingAnswers 
-      ? Object.fromEntries(
-          Object.entries(clarifyingAnswers).map(([key, value]) => [
-            key,
-            sanitizeText(value).slice(0, 2000)
-          ])
-        )
-      : {};
+      ? clarifyingAnswers.map(qa => ({
+          question: sanitizeText(qa.question).slice(0, 500),
+          answer: sanitizeText(qa.answer).slice(0, 2000)
+        }))
+      : [];
 
     // Log submission for security monitoring
     console.log(`Quote submitted for contractor: ${contractorId}, customer: ${sanitizedCustomerInfo.email}`);
