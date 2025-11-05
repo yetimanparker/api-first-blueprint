@@ -344,6 +344,11 @@ const Widget = () => {
   };
 
   const addQuoteItem = (item: QuoteItem) => {
+    // Finalize the measurement (make nodes non-editable) before adding to quote
+    if ((window as any).__finalizeMeasurement) {
+      (window as any).__finalizeMeasurement();
+    }
+    
     const nextStep = settings.contact_capture_timing === 'after_quote' 
       ? 'contact-after' 
       : 'quote-review';
@@ -675,6 +680,7 @@ const Widget = () => {
               existingQuoteItems={widgetState.quoteItems}
               onResetToMeasurement={resetToMeasurement}
               isManualEntry={widgetState.currentMeasurement?.manualEntry === true}
+              onFinalizeMeasurement={() => {}}
               onAddressSelect={(address) => {
                 updateCustomerInfo({
                   address: `${address.streetAddress}, ${address.city}, ${address.state} ${address.zipCode}`,

@@ -38,6 +38,7 @@ interface MeasurementToolsProps {
   onAddressSelect?: (address: ParsedAddress) => void;
   onResetToMeasurement?: () => void;
   isManualEntry?: boolean;
+  onFinalizeMeasurement?: () => void;
 }
 
 interface Product {
@@ -64,7 +65,8 @@ const MeasurementTools = ({
   existingQuoteItems = [],
   onAddressSelect,
   onResetToMeasurement,
-  isManualEntry = false
+  isManualEntry = false,
+  onFinalizeMeasurement
 }: MeasurementToolsProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1924,10 +1926,41 @@ const MeasurementTools = ({
     }
   }, [mapMeasurement, isDrawing, showManualEntry, currentMeasurement, pointLocations, measurementType]);
 
-  // Clear interactive elements when items are added to quote
+  // Expose finalize method to parent component
   useEffect(() => {
-    if (existingQuoteItems.length > 0 && currentShapeRef.current) {
-      console.log('🧹 Clearing interactive drawing elements as items exist in quote');
+    if (onFinalizeMeasurement && currentShapeRef.current) {
+      // Replace the callback with our finalize logic
+      const originalCallback = onFinalizeMeasurement;
+      (window as any).__finalizeMeasurement = () => {
+        console.log('🔒 Finalizing measurement - making non-editable');
+        
+        // Make the current shape non-editable instead of removing it
+        if (currentShapeRef.current) {
+          currentShapeRef.current.setEditable(false);
+          console.log('✅ Measurement locked - nodes removed');
+        }
+        
+        // Clear dimensional handles (only for dimensional measurements)
+        if (measurementType === 'dimensional') {
+          if (rotationHandle) {
+            rotationHandle.setMap(null);
+            setRotationHandle(null);
+          }
+          if (dragHandle) {
+            dragHandle.setMap(null);
+            setDragHandle(null);
+          }
+          setIsDimensionalPlaced(false);
+        }
+      };
+    }
+  }, [onFinalizeMeasurement, measurementType, rotationHandle, dragHandle]);
+
+  // Clear interactive elements when navigating away from configuration
+  useEffect(() => {
+    // Only clear if we're NOT in configuration mode and have existing items
+    if (existingQuoteItems.length > 0 && currentStep !== 'product-configuration' && currentShapeRef.current) {
+      console.log('🧹 Clearing interactive drawing elements - left configuration');
       
       // Clear current shape (polygon/polyline)
       if (currentShapeRef.current) {
@@ -1954,7 +1987,7 @@ const MeasurementTools = ({
         measurementLabelRef.current = null;
       }
     }
-  }, [existingQuoteItems.length, measurementType]);
+  }, [existingQuoteItems.length, currentStep, measurementType]);
 
   if (loading) {
     return (
