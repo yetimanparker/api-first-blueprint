@@ -2165,7 +2165,7 @@ const MeasurementTools = ({
 
         {/* Keyboard Shortcuts Help - Top Left */}
         {!mapLoading && !mapError && !isConfigurationMode && (
-          <div className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm rounded-lg shadow-lg border px-3 py-2">
+          <div className="hidden md:block absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm rounded-lg shadow-lg border px-3 py-2">
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs">M</kbd>
