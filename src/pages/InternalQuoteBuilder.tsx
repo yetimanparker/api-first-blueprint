@@ -9,6 +9,9 @@ import { useContractorId } from "@/hooks/useContractorId";
 import { useGlobalSettings } from "@/hooks/useGlobalSettings";
 import ProductSelector from "@/components/widget/ProductSelector";
 import MeasurementTools from "@/components/widget/MeasurementTools";
+import QuantityInput from "@/components/widget/QuantityInput";
+import QuantityMethodDialog from "@/components/widget/QuantityMethodDialog";
+import { IncrementConfirmationDialog } from "@/components/widget/IncrementConfirmationDialog";
 import ProductConfiguration from "@/components/widget/ProductConfiguration";
 import type { MeasurementData, QuoteItem } from "@/types/widget";
 
@@ -41,7 +44,7 @@ interface ProductCategory {
   color_hex: string;
 }
 
-type WorkflowStep = 'product-selection' | 'measurement' | 'product-configuration';
+type WorkflowStep = 'product-selection' | 'measurement' | 'quantity-input' | 'product-configuration';
 
 export default function InternalQuoteBuilder() {
   const { quoteId } = useParams();
@@ -59,6 +62,10 @@ export default function InternalQuoteBuilder() {
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
   const [saving, setSaving] = useState(false);
   const stepRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [showMethodDialog, setShowMethodDialog] = useState(false);
+  const [showIncrementDialog, setShowIncrementDialog] = useState(false);
+  const [pendingMeasurement, setPendingMeasurement] = useState<MeasurementData | null>(null);
 
   useEffect(() => {
     if (!contractorLoading && !contractorId) {
@@ -155,13 +162,86 @@ export default function InternalQuoteBuilder() {
     }
   };
 
-  const handleProductSelect = (productId: string) => {
-    setCurrentProductId(productId);
-    setCurrentStep('measurement');
+  const handleProductSelect = async (productId: string) => {
+    try {
+      // Fetch product details
+      const { data, error } = await supabase.functions.invoke('get-widget-products', {
+        body: { contractor_id: contractorId }
+      });
+      
+      if (error || !data?.success) {
+        throw new Error('Failed to load product details');
+      }
+      
+      const productData = data.products.find((p: any) => p.id === productId);
+      
+      if (!productData) {
+        throw new Error('Product not found');
+      }
+      
+      setSelectedProduct(productData);
+      setCurrentProductId(productId);
+      
+      // For 'each' products, show method selection dialog
+      if (productData.unit_type === 'each') {
+        setShowMethodDialog(true);
+      } else {
+        // Other manual input products go straight to quantity input
+        const manualInputUnits = ['ton', 'pound', 'pallet', 'hour'];
+        const requiresManualInput = manualInputUnits.includes(productData.unit_type);
+        
+        const nextStep = requiresManualInput ? 'quantity-input' : 'measurement';
+        setCurrentStep(nextStep);
+      }
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load product details",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMethodSelect = (method: 'manual' | 'map') => {
+    setShowMethodDialog(false);
+    const nextStep = method === 'manual' ? 'quantity-input' : 'measurement';
+    setCurrentStep(nextStep);
   };
 
   const handleMeasurementComplete = (measurement: MeasurementData) => {
+    // Finalize measurement (make nodes non-editable)
+    if ((window as any).__finalizeMeasurement) {
+      (window as any).__finalizeMeasurement();
+    }
+    
+    // Check if selected product requires increment confirmation
+    if (selectedProduct?.sold_in_increments_of) {
+      setPendingMeasurement(measurement);
+      setShowIncrementDialog(true);
+    } else {
+      setCurrentMeasurement(measurement);
+      setCurrentStep('product-configuration');
+    }
+  };
+
+  const handleIncrementConfirm = () => {
+    if (pendingMeasurement) {
+      setCurrentMeasurement(pendingMeasurement);
+      setCurrentStep('product-configuration');
+    }
+    setShowIncrementDialog(false);
+    setPendingMeasurement(null);
+  };
+
+  const handleIncrementCancel = () => {
+    setShowIncrementDialog(false);
+    setPendingMeasurement(null);
+  };
+
+  const handleQuantityComplete = (measurement: MeasurementData) => {
     setCurrentMeasurement(measurement);
+    setCurrentStep('product-configuration');
   };
 
   const handleAddToQuote = async (item: QuoteItem) => {
@@ -218,11 +298,18 @@ export default function InternalQuoteBuilder() {
   };
 
   const handleBack = () => {
-    if (currentStep === 'measurement') {
+    if (currentStep === 'quantity-input' || currentStep === 'measurement') {
       setCurrentStep('product-selection');
       setCurrentProductId(undefined);
+      setSelectedProduct(null);
     } else if (currentStep === 'product-configuration') {
-      setCurrentStep('measurement');
+      // Go back to measurement or quantity-input depending on product type
+      if (selectedProduct?.unit_type === 'each' || 
+          ['ton', 'pound', 'pallet', 'hour'].includes(selectedProduct?.unit_type)) {
+        setCurrentStep('quantity-input');
+      } else {
+        setCurrentStep('measurement');
+      }
       setCurrentMeasurement(undefined);
     }
   };
@@ -294,11 +381,11 @@ export default function InternalQuoteBuilder() {
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep === 'product-selection' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted'}`}>
                   1
                 </div>
-                <span className="font-medium">Select Product</span>
+                <span className="font-medium">Product</span>
               </div>
               <div className="flex-1 h-px bg-border mx-4" />
-              <div className={`flex items-center gap-2 ${currentStep === 'measurement' ? 'text-primary' : 'text-muted-foreground'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep === 'measurement' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted'}`}>
+              <div className={`flex items-center gap-2 ${['measurement', 'quantity-input'].includes(currentStep) ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${['measurement', 'quantity-input'].includes(currentStep) ? 'border-primary bg-primary text-primary-foreground' : 'border-muted'}`}>
                   2
                 </div>
                 <span className="font-medium">Measure</span>
@@ -344,6 +431,80 @@ export default function InternalQuoteBuilder() {
               settings={settings}
               onProductSelect={handleProductSelect}
             />
+          </div>
+        )}
+
+        {/* Quantity Method Dialog */}
+        <QuantityMethodDialog
+          open={showMethodDialog}
+          productName={selectedProduct?.name || ''}
+          onMethodSelect={handleMethodSelect}
+        />
+
+        {/* Increment Confirmation Dialog */}
+        {showIncrementDialog && selectedProduct && pendingMeasurement && (
+          <IncrementConfirmationDialog
+            open={showIncrementDialog}
+            productName={selectedProduct.name}
+            measuredQuantity={pendingMeasurement.value}
+            measuredUnit={selectedProduct.unit_type}
+            incrementSize={selectedProduct.sold_in_increments_of}
+            incrementLabel={selectedProduct.increment_unit_label || 'unit'}
+            incrementDescription={selectedProduct.increment_description}
+            allowPartial={selectedProduct.allow_partial_increments || false}
+            onConfirm={(roundedQuantity, unitsNeeded) => {
+              if (pendingMeasurement) {
+                const updatedMeasurement = {
+                  ...pendingMeasurement,
+                  value: roundedQuantity,
+                  wasRoundedForIncrements: true,
+                  originalMeasurement: pendingMeasurement.value,
+                  incrementsApplied: {
+                    unitsNeeded,
+                    incrementSize: selectedProduct.sold_in_increments_of,
+                    incrementLabel: selectedProduct.increment_unit_label || 'unit'
+                  }
+                };
+                setCurrentMeasurement(updatedMeasurement);
+                setCurrentStep('product-configuration');
+              }
+              setShowIncrementDialog(false);
+              setPendingMeasurement(null);
+            }}
+            onRemeasure={() => {
+              setShowIncrementDialog(false);
+              setPendingMeasurement(null);
+            }}
+          />
+        )}
+
+        {currentStep === 'quantity-input' && currentProductId && selectedProduct && settings && (
+          <div ref={el => stepRefs.current['quantity-input'] = el}>
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Enter Quantity</CardTitle>
+                  <Button variant="outline" onClick={handleBack}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Change Product
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <QuantityInput
+                  productId={currentProductId}
+                  productName={selectedProduct.name}
+                  productImage={selectedProduct.photo_url}
+                  unitType={selectedProduct.unit_type}
+                  minQuantity={selectedProduct.min_order_quantity || 1}
+                  onQuantitySet={(quantity, measurement) => {
+                    setCurrentMeasurement(measurement);
+                    setCurrentStep('product-configuration');
+                  }}
+                  settings={settings}
+                />
+              </CardContent>
+            </Card>
           </div>
         )}
 
