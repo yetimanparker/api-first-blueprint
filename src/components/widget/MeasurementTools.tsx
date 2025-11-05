@@ -916,15 +916,18 @@ const MeasurementTools = ({
         });
         previousLabelsRef.current.push(marker);
         
-        // Add edge measurements for each segment of the polyline
-        const edgeLabels = renderEdgeMeasurements(
-          map,
-          latLngs,
-          color,
-          currentZoom,
-          false  // open shape (polyline)
-        );
-        previousLabelsRef.current.push(...edgeLabels);
+        // Only show edge measurements when there are multiple segments (more than 2 points)
+        // For single segment (2 points), segment and total are identical, so skip redundant labels
+        if (latLngs.length > 2) {
+          const edgeLabels = renderEdgeMeasurements(
+            map,
+            latLngs,
+            color,
+            currentZoom,
+            false  // open shape (polyline)
+          );
+          previousLabelsRef.current.push(...edgeLabels);
+        }
       } else if (item.measurement.type === 'point' && item.measurement.pointLocations) {
         // Render point measurements
         console.log(`  ➡️ Rendering ${item.measurement.pointLocations.length} point markers with color ${color}`);
@@ -1238,15 +1241,18 @@ const MeasurementTools = ({
           mapColor: mapColor
         });
         
-        // Add edge measurements for the polyline
+        // Only show edge measurements when there are multiple segments (more than 2 points)
+        // For single segment (2 points), segment and total are identical, so skip redundant labels
         const latLngs = coordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
-        currentEdgeLabelsRef.current = renderEdgeMeasurements(
-          mapRef.current!,
-          latLngs,
-          mapColor,
-          currentZoom,
-          false  // open shape (polyline)
-        );
+        if (latLngs.length > 2) {
+          currentEdgeLabelsRef.current = renderEdgeMeasurements(
+            mapRef.current!,
+            latLngs,
+            mapColor,
+            currentZoom,
+            false  // open shape (polyline)
+          );
+        }
         
         const updateMeasurement = () => {
           const newLength = google.maps.geometry.spherical.computeLength(path);
@@ -1272,16 +1278,19 @@ const MeasurementTools = ({
             mapColor: mapColor
           });
           
-          // Update edge measurements
+          // Update edge measurements (only for multi-segment polylines)
           currentEdgeLabelsRef.current.forEach(label => label.setMap(null));
+          currentEdgeLabelsRef.current = [];
           const updatedLatLngs = newCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
-          currentEdgeLabelsRef.current = renderEdgeMeasurements(
-            mapRef.current!,
-            updatedLatLngs,
-            mapColor,
-            currentZoom,
-            false
-          );
+          if (updatedLatLngs.length > 2) {
+            currentEdgeLabelsRef.current = renderEdgeMeasurements(
+              mapRef.current!,
+              updatedLatLngs,
+              mapColor,
+              currentZoom,
+              false
+            );
+          }
         };
         
         updateMeasurementLabel(polyline, feet, 'ft');
