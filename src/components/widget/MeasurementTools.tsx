@@ -959,14 +959,14 @@ const MeasurementTools = ({
         strokeColor: nextColor,
         strokeWeight: 2,
         clickable: true,
-        editable: !isConfigurationMode,
+        editable: true, // Always editable when first drawn
         zIndex: 1,
       },
       polylineOptions: {
         strokeColor: nextColor,
         strokeWeight: 2,
         clickable: true,
-        editable: !isConfigurationMode,
+        editable: true, // Always editable when first drawn
       },
     });
 
