@@ -283,7 +283,7 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button className="flex-1" onClick={() => navigate("/products")}>
                   <Plus className="h-4 w-4 mr-2" />
                   Manage Products
