@@ -1562,7 +1562,7 @@ const MeasurementTools = ({
     });
     
     setCurrentMeasurement(updatedMeasurement);
-    onMeasurementComplete(updatedMeasurement);
+    // Don't call onMeasurementComplete here - let the Next button handle it
   };
 
   const updateMeasurementLabel = (
@@ -1936,7 +1936,11 @@ const MeasurementTools = ({
       }
 
       setCurrentMeasurement(measurement);
-      onMeasurementComplete(measurement);
+      
+      // For dimensional products, don't auto-transition - let user adjust position/rotation first
+      if (measurementType !== 'dimensional') {
+        onMeasurementComplete(measurement);
+      }
       
       // Scroll to show the measurement tools after completing measurement
       setTimeout(() => {
