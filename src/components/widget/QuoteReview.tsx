@@ -240,10 +240,23 @@ const QuoteReview = ({
 
   const handleContactDialogSubmit = () => {
     if (validateDialogForm()) {
+      console.log('✅ Contact form validated');
       onUpdateCustomerInfo(dialogCustomerInfo);
       setShowContactDialog(false);
-      // Now submit the quote with the updated info
-      submitQuote(dialogCustomerInfo, {});
+      
+      // Check if clarifying questions should be shown BEFORE submitting
+      console.log('🔍 After contact form - checking clarifying questions:', {
+        enabled: clarifyingQuestionsEnabled,
+        hasQuestions: clarifyingQuestions.length > 0
+      });
+      
+      if (clarifyingQuestionsEnabled && clarifyingQuestions.length > 0) {
+        console.log('✅ Showing clarifying questions dialog after contact form');
+        setShowClarifyingDialog(true);
+      } else {
+        console.log('➡️ No clarifying questions, submitting directly');
+        submitQuote(dialogCustomerInfo, {});
+      }
     }
   };
 
