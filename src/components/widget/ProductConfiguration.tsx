@@ -91,6 +91,7 @@ interface ProductConfigurationProps {
   onAddToQuote: (item: QuoteItem) => void;
   settings: GlobalSettings;
   onRemove?: () => void;
+  cachedProducts?: any[];
 }
 
 const ProductConfiguration = ({ 
@@ -99,7 +100,8 @@ const ProductConfiguration = ({
   measurement, 
   onAddToQuote, 
   settings,
-  onRemove
+  onRemove,
+  cachedProducts
 }: ProductConfigurationProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [variations, setVariations] = useState<Variation[]>([]);
@@ -131,16 +133,23 @@ const ProductConfiguration = ({
     try {
       setLoading(true);
       
-      // Use secure edge function to get product data
-      const { data, error } = await supabase.functions.invoke('get-widget-products', {
-        body: { contractor_id: contractorId }
-      });
+      // Use cached products if available (much faster!)
+      let productData;
+      if (cachedProducts && cachedProducts.length > 0) {
+        productData = cachedProducts.find((p: any) => p.id === productId);
+      } else {
+        // Fallback to edge function if no cached products
+        const { data, error } = await supabase.functions.invoke('get-widget-products', {
+          body: { contractor_id: contractorId }
+        });
 
-      if (error || !data?.success) {
-        throw new Error('Failed to load product details');
+        if (error || !data?.success) {
+          throw new Error('Failed to load product details');
+        }
+        
+        productData = data.products.find((p: any) => p.id === productId);
       }
       
-      const productData = data.products.find((p: any) => p.id === productId);
       if (!productData) {
         throw new Error('Product not found');
       }

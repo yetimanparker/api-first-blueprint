@@ -44,6 +44,7 @@ const Widget = () => {
   const [pendingMeasurement, setPendingMeasurement] = useState<MeasurementData | null>(null);
   const [widgetCategories, setWidgetCategories] = useState<Array<{ id: string; name: string; color_hex: string }>>([]);
   const [widgetSubcategories, setWidgetSubcategories] = useState<Array<{ id: string; category_id: string; name: string; is_active: boolean; display_order: number }>>([]);
+  const [widgetProducts, setWidgetProducts] = useState<any[]>([]);
 
   // Use debounced service area validation
   const { isServiceAreaValid, isValidating, manualValidate } = useDebouncedServiceArea({
@@ -91,12 +92,15 @@ const Widget = () => {
         console.log('Categories data:', data.categories);
         console.log('Subcategories data:', data.subcategories);
 
-        // Store categories and subcategories for filters
+        // Store categories, subcategories, and products
         if (data.categories) {
           setWidgetCategories(data.categories);
         }
         if (data.subcategories) {
           setWidgetSubcategories(data.subcategories);
+        }
+        if (data.products) {
+          setWidgetProducts(data.products);
         }
       } catch (err) {
         console.error('Error fetching widget data:', err);
@@ -686,7 +690,7 @@ const Widget = () => {
         )}
         
         {/* Product Configuration Section - Appears below map */}
-        {isStepVisible('product-configuration') && widgetState.currentMeasurement && (
+        {isStepVisible('product-configuration') && widgetState.currentMeasurement && widgetProducts.length > 0 && (
           <div id="step-product-configuration" className="px-4 py-0 bg-background">
             <ProductConfiguration
               contractorId={contractorId!}
@@ -695,6 +699,7 @@ const Widget = () => {
               onAddToQuote={addQuoteItem}
               settings={settings}
               onRemove={goToProductSelection}
+              cachedProducts={widgetProducts}
             />
           </div>
         )}
