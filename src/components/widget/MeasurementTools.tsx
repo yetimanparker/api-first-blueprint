@@ -112,6 +112,7 @@ const MeasurementTools = ({
   const currentPathRef = useRef<google.maps.LatLng[]>([]);
   const mouseMoveListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const segmentLabelsRef = useRef<google.maps.Marker[]>([]); // Track individual segment distance labels
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -1009,34 +1010,52 @@ const MeasurementTools = ({
         let lastUpdate = 0;
         mouseMoveListenerRef.current = map.addListener('mousemove', (event: google.maps.MapMouseEvent) => {
           const now = Date.now();
-          if (!event.latLng || currentPathRef.current.length === 0 || now - lastUpdate < 50) return;
+          if (!event.latLng || now - lastUpdate < 50) return;
           lastUpdate = now;
           
-          const measurement = calculateRealTimeMeasurement(
-            currentPathRef.current,
-            event.latLng
-          );
-          
-          updateTempMeasurementOverlay(
-            measurement.value,
-            measurement.unit,
-            measurement.position
-          );
+          // If we have at least one point, show temp segment distance to cursor
+          if (currentPathRef.current.length > 0) {
+            const lastPoint = currentPathRef.current[currentPathRef.current.length - 1];
+            const distance = google.maps.geometry.spherical.computeDistanceBetween(lastPoint, event.latLng);
+            const feet = Math.ceil(distance * 3.28084);
+            
+            updateTempMeasurementOverlay(
+              feet,
+              'ft',
+              event.latLng
+            );
+          }
         });
         
-        // Track clicks to build path
+        // Track clicks to build path and create segment labels
         if (clickListenerRef.current) {
           google.maps.event.removeListener(clickListenerRef.current);
         }
         clickListenerRef.current = map.addListener('click', (event: google.maps.MapMouseEvent) => {
           if (event.latLng && isDrawingInProgress) {
+            const previousPoint = currentPathRef.current[currentPathRef.current.length - 1];
             currentPathRef.current.push(event.latLng);
+            
+            // If we have at least 2 points, create a segment label
+            if (previousPoint) {
+              const segmentLabel = createSegmentLabel(
+                previousPoint, 
+                event.latLng, 
+                segmentLabelsRef.current.length
+              );
+              segmentLabelsRef.current.push(segmentLabel);
+            }
           }
         });
       } else {
         // Clear when exiting drawing mode
         setIsDrawingInProgress(false);
         currentPathRef.current = [];
+        
+        // Clear segment labels when exiting drawing mode
+        segmentLabelsRef.current.forEach(label => label.setMap(null));
+        segmentLabelsRef.current = [];
+        
         if (tempMeasurementOverlay) {
           tempMeasurementOverlay.setMap(null);
           setTempMeasurementOverlay(null);
@@ -1058,6 +1077,11 @@ const MeasurementTools = ({
         tempMeasurementOverlay.setMap(null);
         setTempMeasurementOverlay(null);
       }
+      
+      // Clear segment labels when drawing completes
+      segmentLabelsRef.current.forEach(label => label.setMap(null));
+      segmentLabelsRef.current = [];
+      
       setIsDrawingInProgress(false);
       currentPathRef.current = [];
       
@@ -1181,6 +1205,46 @@ const MeasurementTools = ({
         }
       }
     });
+  };
+
+  // Helper function to create segment distance label
+  const createSegmentLabel = (
+    point1: google.maps.LatLng,
+    point2: google.maps.LatLng,
+    segmentIndex: number
+  ): google.maps.Marker => {
+    // Calculate distance between two points
+    const distance = google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
+    const feet = Math.ceil(distance * 3.28084);
+    
+    // Calculate midpoint for label position
+    const midLat = (point1.lat() + point2.lat()) / 2;
+    const midLng = (point1.lng() + point2.lng()) / 2;
+    const midpoint = new google.maps.LatLng(midLat, midLng);
+    
+    // Get current zoom for font sizing
+    const currentZoom = mapRef.current?.getZoom() || 19;
+    const fontSize = getZoomBasedFontSize(currentZoom);
+    
+    // Create label marker
+    const marker = new google.maps.Marker({
+      position: midpoint,
+      map: mapRef.current,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 0, // Invisible circle, just showing label
+      },
+      label: {
+        text: `${feet.toLocaleString()} ft`,
+        color: '#ffffff',
+        fontSize: `${fontSize}px`,
+        fontWeight: '700',
+        className: 'segment-label'
+      },
+      zIndex: 10000 + segmentIndex,
+    });
+    
+    return marker;
   };
 
   // Helper function to create side dimension labels
@@ -1590,6 +1654,11 @@ const MeasurementTools = ({
       tempMeasurementOverlay.setMap(null);
       setTempMeasurementOverlay(null);
     }
+    
+    // Clear segment labels
+    segmentLabelsRef.current.forEach(label => label.setMap(null));
+    segmentLabelsRef.current = [];
+    
     setIsDrawingInProgress(false);
     currentPathRef.current = [];
     
