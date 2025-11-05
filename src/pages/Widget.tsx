@@ -263,7 +263,7 @@ const Widget = () => {
               });
             }
           }
-        }, 300);
+        }, 800);
       } else if (widgetState.currentStep === 'product-configuration') {
         // For product-configuration, scroll to show the configuration section
         setTimeout(() => {
