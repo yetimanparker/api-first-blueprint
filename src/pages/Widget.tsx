@@ -230,7 +230,7 @@ const Widget = () => {
       } else if (widgetState.currentStep === 'measurement') {
         // For measurement step, scroll to show the action buttons
         setTimeout(() => {
-          const actionButtonsRow = document.getElementById('action-buttons-row');
+          const actionButtonsRow = document.getElementById('measurement-action-buttons');
           
           if (actionButtonsRow) {
             console.log('📍 Found action buttons row, scrolling into view');

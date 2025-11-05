@@ -1885,7 +1885,8 @@ const MeasurementTools = ({
       
       // Scroll to show the measurement tools after completing measurement
       setTimeout(() => {
-        const bottomControls = document.getElementById('action-buttons-row');
+        const bottomControls = document.getElementById('measurement-action-buttons');
+        console.log('🔍 Autoscroll: Looking for measurement-action-buttons element:', bottomControls ? 'Found' : 'Not found');
         if (bottomControls) {
           // Get the sticky header height to offset scroll properly
           const header = document.querySelector('.sticky.top-0');
@@ -1959,7 +1960,8 @@ const MeasurementTools = ({
       
       // Scroll to show the measurement tools after completing measurement
       setTimeout(() => {
-        const bottomControls = document.getElementById('action-buttons-row');
+        const bottomControls = document.getElementById('measurement-action-buttons');
+        console.log('🔍 Autoscroll: Looking for measurement-action-buttons element:', bottomControls ? 'Found' : 'Not found');
         if (bottomControls) {
           // Get the sticky header height to offset scroll properly
           const header = document.querySelector('.sticky.top-0');
@@ -2261,18 +2263,19 @@ const MeasurementTools = ({
         )}
       </div>
 
-      {/* Action Buttons Row */}
-      {!mapLoading && !mapError && (
-        <div id="action-buttons-row" className="bg-background border-t px-3 sm:px-6 py-2">
+      {/* Unified Action Buttons - Mobile Responsive */}
+      {!mapLoading && !mapError && currentStep === 'measurement' && (
+        <div id="measurement-action-buttons" className="bg-background border-t px-3 sm:px-6 py-2">
           <div className="max-w-7xl mx-auto">
-            <div className="flex flex-row justify-center gap-2 sm:gap-3">
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+              {/* Always show navigation buttons first */}
               {!isConfigurationMode && (
                 <>
                   <Button
                     variant="outline"
                     size="default"
                     onClick={onChangeProduct}
-                    className="w-full sm:w-auto gap-2"
+                    className="flex-1 sm:flex-none sm:w-auto min-w-[140px] gap-2"
                   >
                     <ArrowLeft className="h-4 w-4" />
                     Switch Product
@@ -2285,7 +2288,7 @@ const MeasurementTools = ({
                         setShowManualEntry(true);
                         clearMapDrawing();
                       }}
-                      className="w-full sm:w-auto gap-2 text-orange-600 hover:text-orange-700"
+                      className="flex-1 sm:flex-none sm:w-auto min-w-[140px] gap-2 text-orange-600 hover:text-orange-700"
                     >
                       <PencilRuler className="h-4 w-4" />
                       Enter Manually
@@ -2293,59 +2296,42 @@ const MeasurementTools = ({
                   )}
                 </>
               )}
-              {isConfigurationMode && currentMeasurement && (
+              
+              {/* Show Remeasure when measurement exists */}
+              {currentMeasurement && (
                 <Button
                   variant="outline"
                   size="lg"
                   onClick={handleUndo}
-                  className="w-full sm:w-auto px-4 sm:px-6 shadow-lg gap-2"
+                  className="flex-1 sm:flex-none sm:w-auto min-w-[140px] px-4 sm:px-6 shadow-lg gap-2"
                 >
                   <Undo2 className="h-4 w-4" />
                   Remeasure
                 </Button>
               )}
+              
+              {/* Show Next when measurement is complete and not in configuration mode */}
+              {currentMeasurement && !isConfigurationMode && (
+                <Button
+                  variant="success"
+                  size="lg"
+                  onClick={() => {
+                    console.log('📤 NEXT button clicked, passing measurement to widget:', currentMeasurement);
+                    if (currentMeasurement) {
+                      onMeasurementComplete(currentMeasurement);
+                    }
+                    onNext();
+                  }}
+                  disabled={currentMeasurement.value === 0}
+                  className="flex-1 sm:flex-none sm:w-auto min-w-[160px] px-4 sm:px-8 shadow-lg gap-2 sm:gap-3"
+                >
+                  <span>NEXT (configure)</span>
+                  <span className="text-success-foreground/90 font-semibold">
+                    ({currentMeasurement.value.toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : currentMeasurement.type === 'linear' ? 'ft' : 'items'})
+                  </span>
+                </Button>
+              )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bottom Control Bar and Measurement Display */}
-      {!mapLoading && !mapError && !isConfigurationMode && currentStep === 'measurement' && (
-        <div id="measurement-action-buttons" className="bg-background border-t px-3 sm:px-6 py-2 measurement-controls">
-          <div className="max-w-7xl mx-auto">
-            {/* Show Next Button when measurement is complete */}
-            {currentMeasurement && (
-              <div className="flex flex-row justify-center gap-2 sm:gap-3">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={handleUndo}
-                    className="w-full sm:w-auto px-4 sm:px-6 shadow-lg gap-2"
-                  >
-                    <Undo2 className="h-4 w-4" />
-                    Remeasure
-                  </Button>
-                  <Button
-                    variant="success"
-                    size="lg"
-                    onClick={() => {
-                      console.log('📤 NEXT button clicked, passing measurement to widget:', currentMeasurement);
-                      if (currentMeasurement) {
-                        onMeasurementComplete(currentMeasurement);
-                      }
-                      onNext();
-                    }}
-                    disabled={currentMeasurement.value === 0}
-                    className="w-full sm:w-auto px-4 sm:px-8 shadow-lg gap-2 sm:gap-3"
-                  >
-                    <span>NEXT (configure)</span>
-                    <span className="text-success-foreground/90 font-semibold">
-                      ({currentMeasurement.value.toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : currentMeasurement.type === 'linear' ? 'ft' : 'items'})
-                    </span>
-                  </Button>
-              </div>
-            )}
-
           </div>
         </div>
       )}
