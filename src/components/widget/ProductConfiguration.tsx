@@ -115,10 +115,6 @@ const ProductConfiguration = ({
   const [notes, setNotes] = useState('');
   const [depth, setDepth] = useState<string>(measurement.depth?.toString() || '');
   const [isAdded, setIsAdded] = useState(false);
-  
-  // Custom dimensions for products with fixed dimensions and dimension editing enabled
-  const [customWidth, setCustomWidth] = useState<number>(measurement.dimensions?.width || 0);
-  const [customLength, setCustomLength] = useState<number>(measurement.dimensions?.length || 0);
 
   // Check if product is volume-based
   const isVolumeBased = product && (
@@ -159,12 +155,6 @@ const ProductConfiguration = ({
       }
 
       setProduct(productData);
-      
-      // Initialize custom dimensions if product has fixed dimensions
-      if (productData.has_fixed_dimensions && productData.allow_dimension_editing) {
-        setCustomWidth(productData.default_width || measurement.dimensions?.width || 0);
-        setCustomLength(productData.default_length || measurement.dimensions?.length || 0);
-      }
 
       // Variations are now included in the product data
       const variationsData = productData.product_variations || [];
@@ -220,11 +210,6 @@ const ProductConfiguration = ({
 
     let basePrice = product.unit_price;
     let quantity = measurement.value;
-    
-    // Recalculate quantity if custom dimensions are being used
-    if ((product as any).has_fixed_dimensions && (product as any).allow_dimension_editing && customWidth > 0 && customLength > 0) {
-      quantity = customWidth * customLength;
-    }
 
     // Check if required variation is selected
     const hasRequiredVariations = variations.some(v => v.is_required);
@@ -366,20 +351,11 @@ const ProductConfiguration = ({
       actualQuantity = (measurement.value * depthValue) / 324;
     }
     
-    // Update quantity if custom dimensions were edited
-    if ((product as any).has_fixed_dimensions && (product as any).allow_dimension_editing && customWidth > 0 && customLength > 0) {
-      actualQuantity = customWidth * customLength;
-    }
-    
     const measurementWithOptions: MeasurementData = {
       ...measurement,
       depth: (depthValue && !isNaN(depthValue) && isVolumeBased) ? depthValue : undefined,
       variations: selectedVariationObjects.length > 0 ? selectedVariationObjects : undefined,
-      addons: selectedAddonObjects.length > 0 ? selectedAddonObjects : undefined,
-      // Update dimensions if they were customized
-      dimensions: (product as any).has_fixed_dimensions && (product as any).allow_dimension_editing 
-        ? { width: customWidth, length: customLength, unit: 'ft' }
-        : measurement.dimensions
+      addons: selectedAddonObjects.length > 0 ? selectedAddonObjects : undefined
     };
 
     const quoteItem: QuoteItem = {
@@ -457,56 +433,6 @@ const ProductConfiguration = ({
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Custom Dimension Editing for Fixed Dimension Products (Manual Entry Only) */}
-          {(product as any).has_fixed_dimensions && 
-           (product as any).allow_dimension_editing && 
-           measurement.manualEntry && 
-           !measurement.isDimensional && (
-            <div className="space-y-4 p-4 bg-muted/50 rounded-lg border-2 border-primary/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Calculator className="h-5 w-5 text-primary" />
-                <Label className="text-base font-semibold text-primary">
-                  Adjust Dimensions
-                </Label>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="custom-width" className="text-sm font-medium">
-                    Width (ft)
-                  </Label>
-                  <Input
-                    id="custom-width"
-                    type="number"
-                    placeholder="Enter width"
-                    value={customWidth}
-                    onChange={(e) => setCustomWidth(parseFloat(e.target.value) || 0)}
-                    min="0.1"
-                    step="0.5"
-                    className="text-lg"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="custom-length" className="text-sm font-medium">
-                    Length (ft)
-                  </Label>
-                  <Input
-                    id="custom-length"
-                    type="number"
-                    placeholder="Enter length"
-                    value={customLength}
-                    onChange={(e) => setCustomLength(parseFloat(e.target.value) || 0)}
-                    min="0.1"
-                    step="0.5"
-                    className="text-lg"
-                  />
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground bg-background p-3 rounded border">
-                <strong>Calculated Area:</strong> {(customWidth * customLength).toFixed(2)} sq ft
-              </div>
-            </div>
-          )}
-
           {/* Depth Input for Volume-Based Products */}
           {isVolumeBased && measurement.type === 'area' && (
             <div className="space-y-2 p-4 bg-muted/50 rounded-lg border-2 border-primary/20">
