@@ -2296,7 +2296,13 @@ const MeasurementTools = ({
                   <Button
                     variant="success"
                     size="lg"
-                    onClick={onNext}
+                    onClick={() => {
+                      console.log('📤 NEXT button clicked, passing measurement to widget:', currentMeasurement);
+                      if (currentMeasurement) {
+                        onMeasurementComplete(currentMeasurement);
+                      }
+                      onNext();
+                    }}
                     disabled={currentMeasurement.value === 0}
                     className="w-full sm:w-auto px-4 sm:px-8 shadow-lg gap-2 sm:gap-3"
                   >
