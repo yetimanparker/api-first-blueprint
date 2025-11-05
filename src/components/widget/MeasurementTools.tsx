@@ -113,6 +113,7 @@ const MeasurementTools = ({
   const isRenderingRef = useRef(false); // Guard against concurrent renders
   const currentPathRef = useRef<google.maps.LatLng[]>([]);
   const mouseMoveListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const mouseMoveCleanupRef = useRef<(() => void) | null>(null); // DOM event cleanup
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const segmentLabelsRef = useRef<google.maps.Marker[]>([]); // Track individual segment distance labels
   const currentEdgeLabelsRef = useRef<google.maps.Marker[]>([]); // Track edge measurements for current shape
@@ -640,17 +641,14 @@ const MeasurementTools = ({
     if (tempMeasurementOverlay) {
       // Update existing overlay
       tempMeasurementOverlay.setPosition(position);
-      const icon = tempMeasurementOverlay.getIcon() as google.maps.Symbol;
-      if (icon && value > 0) {
-        tempMeasurementOverlay.setIcon({
-          ...icon,
-          fillColor: '#000000',
-          fillOpacity: 0.7,
-          strokeColor: '#ffffff',
-          strokeWeight: 2,
-          scale: 8,
-        });
-      }
+      tempMeasurementOverlay.setIcon({
+        path: google.maps.SymbolPath.CIRCLE,
+        fillColor: '#000000',
+        fillOpacity: 0.8,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+        scale: value > 0 ? 8 : 12, // Slightly larger for "Click to start"
+      });
       tempMeasurementOverlay.setLabel({
         text: displayText,
         color: '#ffffff',
@@ -658,17 +656,17 @@ const MeasurementTools = ({
         fontWeight: '900',
       });
     } else {
-      // Create new overlay with high visibility
+      // Create new overlay with high visibility (always visible background)
       const marker = new google.maps.Marker({
         position: position,
         map: mapRef.current,
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          fillColor: value > 0 ? '#000000' : 'transparent',
-          fillOpacity: value > 0 ? 0.7 : 0,
-          strokeColor: value > 0 ? '#ffffff' : 'transparent',
-          strokeWeight: value > 0 ? 2 : 0,
-          scale: value > 0 ? 8 : 0,
+          fillColor: '#000000',
+          fillOpacity: 0.8,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+          scale: value > 0 ? 8 : 12, // Slightly larger for "Click to start"
         },
         label: {
           text: displayText,
@@ -1045,43 +1043,79 @@ const MeasurementTools = ({
         setIsDrawingInProgress(true);
         currentPathRef.current = [];
         
-        // Start tracking mouse movements
+        // Start tracking mouse movements using DOM events (Drawing Manager blocks map events)
         if (mouseMoveListenerRef.current) {
           google.maps.event.removeListener(mouseMoveListenerRef.current);
+          mouseMoveListenerRef.current = null;
+        }
+        if (mouseMoveCleanupRef.current) {
+          mouseMoveCleanupRef.current();
+          mouseMoveCleanupRef.current = null;
         }
         
-        // Throttle mouse move updates for better performance
+        // Track mouse on the map container div to bypass drawing manager event blocking
+        const mapDiv = map.getDiv();
         let lastUpdate = 0;
-        mouseMoveListenerRef.current = map.addListener('mousemove', (event: google.maps.MapMouseEvent) => {
+        
+        const handleMouseMove = (e: MouseEvent) => {
           const now = Date.now();
-          if (!event.latLng || now - lastUpdate < 30) return; // Reduced from 50ms to 30ms
+          if (now - lastUpdate < 30) return;
           lastUpdate = now;
           
-          console.log('Mouse move event fired, current path length:', currentPathRef.current.length);
+          // Convert pixel coordinates to lat/lng using Maps API
+          const bounds = mapDiv.getBoundingClientRect();
+          const x = e.clientX - bounds.left;
+          const y = e.clientY - bounds.top;
+          
+          // Use overlay view to convert pixel to lat/lng
+          const overlay = new google.maps.OverlayView();
+          overlay.onAdd = function() {};
+          overlay.draw = function() {};
+          overlay.onRemove = function() {};
+          overlay.setMap(map);
+          
+          const projection = overlay.getProjection();
+          if (!projection) {
+            overlay.setMap(null);
+            return;
+          }
+          
+          const point = new google.maps.Point(x, y);
+          const latLng = projection.fromContainerPixelToLatLng(point);
+          overlay.setMap(null);
+          
+          if (!latLng) return;
+          
+          console.log('🖱️ Mouse move tracked, current path length:', currentPathRef.current.length);
           
           // Always show temp overlay - either "Click to start" or distance from last point
           if (currentPathRef.current.length > 0) {
             const lastPoint = currentPathRef.current[currentPathRef.current.length - 1];
-            const distance = google.maps.geometry.spherical.computeDistanceBetween(lastPoint, event.latLng);
+            const distance = google.maps.geometry.spherical.computeDistanceBetween(lastPoint, latLng);
             const feet = Math.ceil(distance * 3.28084);
             
-            console.log('Calculated distance:', feet, 'ft');
+            console.log('📏 Calculated distance:', feet, 'ft from last point');
             
             updateTempMeasurementOverlay(
               feet,
               'ft',
-              event.latLng
+              latLng
             );
           } else {
             // No points yet - show "Click to start" message
-            console.log('No points yet, showing "Click to start"');
+            console.log('👆 No points yet, showing "Click to start"');
             updateTempMeasurementOverlay(
               0,
               'ft',
-              event.latLng
+              latLng
             );
           }
-        });
+        };
+        
+        mapDiv.addEventListener('mousemove', handleMouseMove);
+        mouseMoveCleanupRef.current = () => {
+          mapDiv.removeEventListener('mousemove', handleMouseMove);
+        };
         
         // Track clicks to build path and create segment labels
         if (clickListenerRef.current) {
