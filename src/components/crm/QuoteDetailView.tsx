@@ -437,11 +437,25 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                       </div>
                     </div>
                     
-                    {/* Add-ons Section */}
-                    {addons.filter((a: any) => a.quantity > 0).length > 0 && (
-                      <div className="space-y-1">
-                        <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
-                        {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
+                    {/* Item Total */}
+                    <div className="border-t-2 border-border pt-3">
+                      <div className="flex justify-end">
+                        <span className="text-lg font-bold text-green-600">
+                          Total: {formatExactPrice(item.line_total, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Add-ons Section - Always show regardless of pricing visibility */}
+                {addons.filter((a: any) => a.quantity > 0).length > 0 && (
+                  <div className="space-y-1 mt-3">
+                    <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
+                    {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
                           let addonCalc = '';
                           let addonPrice = 0;
                           const addonQty = addon.quantity || 1;
@@ -483,31 +497,19 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                           return (
                             <div key={addon.id} className="space-y-1">
                               <div className="text-base">{addon.name}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {addonCalc} = <span className="font-bold">{formatExactPrice(addonPrice, {
-                                  currency_symbol: settings.currency_symbol,
-                                  decimal_precision: settings.decimal_precision
-                                })}</span>
-                              </div>
+                              {settings.pricing_visibility === 'before_submit' && (
+                                <div className="text-sm text-muted-foreground">
+                                  {addonCalc} = <span className="font-bold">{formatExactPrice(addonPrice, {
+                                    currency_symbol: settings.currency_symbol,
+                                    decimal_precision: settings.decimal_precision
+                                  })}</span>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
                       </div>
                     )}
-                    
-                    {/* Item Total */}
-                    <div className="border-t-2 border-border pt-3">
-                      <div className="flex justify-end">
-                        <span className="text-lg font-bold text-green-600">
-                          Total: {formatExactPrice(item.line_total, {
-                            currency_symbol: settings.currency_symbol,
-                            decimal_precision: settings.decimal_precision
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
                 
                 {/* Notes */}
                 {item.notes && (
