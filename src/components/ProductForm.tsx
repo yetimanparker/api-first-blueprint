@@ -344,26 +344,26 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
     setPricingTiers(pricingTiers.filter((_, i) => i !== index));
   };
 
-  const addNewAddonOption = (addonId: string) => {
+  const addNewAddonOption = (addonKey: string) => {
     const newOption: ProductAddonOption = {
       name: "",
       description: "",
       price_adjustment: 0,
       adjustment_type: "fixed",
-      display_order: (addonOptions[addonId] || []).length,
+      display_order: (addonOptions[addonKey] || []).length,
       is_active: true,
       is_default: false
     };
     
     setAddonOptions(prev => ({
       ...prev,
-      [addonId]: [...(prev[addonId] || []), newOption]
+      [addonKey]: [...(prev[addonKey] || []), newOption]
     }));
   };
 
-  const updateAddonOption = (addonId: string, index: number, field: keyof ProductAddonOption, value: any) => {
+  const updateAddonOption = (addonKey: string, index: number, field: keyof ProductAddonOption, value: any) => {
     setAddonOptions(prev => {
-      const updated = [...(prev[addonId] || [])];
+      const updated = [...(prev[addonKey] || [])];
       updated[index] = { ...updated[index], [field]: value };
       
       // If setting is_default, unset all others
@@ -373,18 +373,18 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         });
       }
       
-      return { ...prev, [addonId]: updated };
+      return { ...prev, [addonKey]: updated };
     });
   };
 
-  const removeAddonOption = (addonId: string, index: number) => {
+  const removeAddonOption = (addonKey: string, index: number) => {
     setAddonOptions(prev => ({
       ...prev,
-      [addonId]: (prev[addonId] || []).filter((_, i) => i !== index)
+      [addonKey]: (prev[addonKey] || []).filter((_, i) => i !== index)
     }));
   };
 
-  const handleOptionImageUpload = async (addonId: string, optIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOptionImageUpload = async (addonKey: string, optIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -411,7 +411,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       .from('product-photos')
       .getPublicUrl(fileName);
     
-    updateAddonOption(addonId, optIndex, 'image_url', publicUrl);
+    updateAddonOption(addonKey, optIndex, 'image_url', publicUrl);
     toast({ title: "Image uploaded successfully" });
   };
 
@@ -576,9 +576,10 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             const insertedAddon = insertedAddons?.[i];
             if (!insertedAddon?.id) continue;
             
-            // Use existing addon ID or newly inserted one
-            const addonId = addon.id || insertedAddon.id;
-            const options = addonOptions[addon.id || ''] || [];
+            // Use existing addon ID or temp key for new addons
+            const addonKey = addon.id || `temp-${i}`;
+            const addonId = insertedAddon.id;
+            const options = addonOptions[addonKey] || [];
             const validOptions = options.filter(opt => opt.name.trim());
             
             if (validOptions.length > 0) {
@@ -1737,28 +1738,38 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                   </div>
                   
                   {/* Addon Options Section */}
-                  {addon.id && (
-                    <div className="mt-4 pt-4 border-t">
-                      <div className="flex items-center justify-between mb-3">
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
                         <Label className="text-sm font-semibold">Options (e.g., Stain Colors)</Label>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => addNewAddonOption(addon.id!)}
-                        >
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add Option
-                        </Button>
+                        {!addon.id && (
+                          <span className="text-xs text-muted-foreground italic">
+                            (saved with product)
+                          </span>
+                        )}
                       </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => addNewAddonOption(addon.id || `temp-${index}`)}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add Option
+                      </Button>
+                    </div>
+                    
+                    {(() => {
+                      const addonKey = addon.id || `temp-${index}`;
+                      const options = addonOptions[addonKey] || [];
                       
-                      {(addonOptions[addon.id] || []).length === 0 ? (
+                      return options.length === 0 ? (
                         <p className="text-xs text-muted-foreground text-center py-2">
                           No options yet. Add options for selectable variations like colors or styles.
                         </p>
                       ) : (
                         <div className="space-y-2">
-                          {(addonOptions[addon.id] || []).map((option, optIndex) => (
+                          {options.map((option, optIndex) => (
                             <div key={optIndex} className="flex gap-2 items-start p-3 bg-muted/30 rounded border">
                               {option.image_url && (
                                 <img src={option.image_url} className="w-12 h-12 rounded object-cover flex-shrink-0" alt={option.name} />
@@ -1769,13 +1780,13 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                                   <Input
                                     placeholder="Option name (e.g., Walnut)"
                                     value={option.name}
-                                    onChange={(e) => updateAddonOption(addon.id!, optIndex, 'name', e.target.value)}
+                                    onChange={(e) => updateAddonOption(addonKey, optIndex, 'name', e.target.value)}
                                     className="text-sm"
                                   />
                                   <Input
                                     placeholder="Description (optional)"
                                     value={option.description}
-                                    onChange={(e) => updateAddonOption(addon.id!, optIndex, 'description', e.target.value)}
+                                    onChange={(e) => updateAddonOption(addonKey, optIndex, 'description', e.target.value)}
                                     className="text-sm"
                                   />
                                 </div>
@@ -1786,12 +1797,12 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                                     step="0.01"
                                     placeholder="Price adjustment"
                                     value={option.price_adjustment}
-                                    onChange={(e) => updateAddonOption(addon.id!, optIndex, 'price_adjustment', parseFloat(e.target.value) || 0)}
+                                    onChange={(e) => updateAddonOption(addonKey, optIndex, 'price_adjustment', parseFloat(e.target.value) || 0)}
                                     className="text-sm"
                                   />
                                   <Select
                                     value={option.adjustment_type}
-                                    onValueChange={(val) => updateAddonOption(addon.id!, optIndex, 'adjustment_type', val)}
+                                    onValueChange={(val) => updateAddonOption(addonKey, optIndex, 'adjustment_type', val)}
                                   >
                                     <SelectTrigger className="text-sm">
                                       <SelectValue />
@@ -1807,14 +1818,14 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                                   <Input
                                     type="file"
                                     accept="image/*"
-                                    onChange={(e) => handleOptionImageUpload(addon.id!, optIndex, e)}
+                                    onChange={(e) => handleOptionImageUpload(addonKey, optIndex, e)}
                                     className="text-xs flex-1"
                                   />
                                   
                                   <div className="flex items-center gap-2">
                                     <Switch
                                       checked={option.is_default}
-                                      onCheckedChange={(val) => updateAddonOption(addon.id!, optIndex, 'is_default', val)}
+                                      onCheckedChange={(val) => updateAddonOption(addonKey, optIndex, 'is_default', val)}
                                     />
                                     <span className="text-xs whitespace-nowrap">Default</span>
                                   </div>
@@ -1823,7 +1834,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                                     type="button"
                                     size="sm"
                                     variant="ghost"
-                                    onClick={() => removeAddonOption(addon.id!, optIndex)}
+                                    onClick={() => removeAddonOption(addonKey, optIndex)}
                                     className="text-destructive hover:text-destructive h-8 w-8 p-0"
                                   >
                                     <Trash2 className="h-3 w-3" />
@@ -1833,9 +1844,9 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                             </div>
                           ))}
                         </div>
-                      )}
-                    </div>
-                  )}
+                      );
+                    })()}
+                  </div>
                 </Card>
               ))
             )}
