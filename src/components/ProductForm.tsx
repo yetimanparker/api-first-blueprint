@@ -1759,6 +1759,10 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                       </Button>
                     </div>
                     
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Add-on $ + Option $ = Total (set to 0 if not more than base add-on price)
+                    </p>
+                    
                     {(() => {
                       const addonKey = addon.id || `temp-${index}`;
                       const options = addonOptions[addonKey] || [];
