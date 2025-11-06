@@ -73,6 +73,8 @@ export interface ProductAddon {
   priceValue: number;
   calculationType: 'total' | 'per_unit' | 'area_calculation';
   quantity: number;
+  selectedOptionId?: string;
+  selectedOptionName?: string;
 }
 
 export interface QuoteSummary {

@@ -312,6 +312,59 @@ export type Database = {
         }
         Relationships: []
       }
+      product_addon_options: {
+        Row: {
+          addon_id: string
+          adjustment_type: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          is_default: boolean | null
+          name: string
+          price_adjustment: number
+          updated_at: string
+        }
+        Insert: {
+          addon_id: string
+          adjustment_type?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_default?: boolean | null
+          name: string
+          price_adjustment?: number
+          updated_at?: string
+        }
+        Update: {
+          addon_id?: string
+          adjustment_type?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_default?: boolean | null
+          name?: string
+          price_adjustment?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_addon_options_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "product_addons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_addons: {
         Row: {
           calculation_formula: string | null

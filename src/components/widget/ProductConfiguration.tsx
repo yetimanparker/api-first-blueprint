@@ -106,6 +106,8 @@ const ProductConfiguration = ({
   const [product, setProduct] = useState<Product | null>(null);
   const [variations, setVariations] = useState<Variation[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
+  const [addonOptions, setAddonOptions] = useState<Record<string, any[]>>({});
+  const [selectedAddonOptions, setSelectedAddonOptions] = useState<Record<string, string>>({});
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -186,6 +188,23 @@ const ProductConfiguration = ({
         : (addonsData || []);
 
       setAddons(compatibleAddons as Addon[]);
+      
+      // Load addon options
+      const optionsMap: Record<string, any[]> = {};
+      for (const addon of compatibleAddons) {
+        const addonOpts = addon.addon_options || [];
+        optionsMap[addon.id] = addonOpts;
+        
+        // Auto-select default option if exists
+        const defaultOption = addonOpts.find((opt: any) => opt.is_default);
+        if (defaultOption) {
+          setSelectedAddonOptions(prev => ({
+            ...prev,
+            [addon.id]: defaultOption.id
+          }));
+        }
+      }
+      setAddonOptions(optionsMap);
 
       if (productData.use_tiered_pricing) {
         const { data: tiersData } = await supabase
@@ -248,6 +267,21 @@ const ProductConfiguration = ({
       if (addonQuantity > 0) {
         const addon = addons.find(a => a.id === addonId);
         if (addon) {
+          let addonPrice = addon.price_value;
+          
+          // Apply addon option price adjustment
+          const selectedOptionId = selectedAddonOptions[addonId];
+          if (selectedOptionId) {
+            const optionData = addonOptions[addonId]?.find(opt => opt.id === selectedOptionId);
+            if (optionData) {
+              if (optionData.adjustment_type === 'percentage') {
+                addonPrice += addonPrice * (optionData.price_adjustment / 100);
+              } else {
+                addonPrice += optionData.price_adjustment;
+              }
+            }
+          }
+          
           let addonBaseQuantity = measurement.value;
           
           if (addon.calculation_type !== 'area_calculation') {
@@ -264,8 +298,8 @@ const ProductConfiguration = ({
             affects_area_calculation: variation.affects_area_calculation || false
           } : undefined;
           
-          const addonPrice = calculateAddonWithAreaData(
-            addon.price_value,
+          const addonPriceWithCalc = calculateAddonWithAreaData(
+            addonPrice,
             addonBaseQuantity,
             addon.calculation_type,
             variationData,
@@ -275,7 +309,7 @@ const ProductConfiguration = ({
               use_height_in_calculation: product.use_height_in_calculation
             }
           );
-          subtotal += addonPrice * addonQuantity;
+          subtotal += addonPriceWithCalc * addonQuantity;
         }
       }
     });
@@ -333,12 +367,19 @@ const ProductConfiguration = ({
       .filter(([_, quantity]) => quantity > 0)
       .map(([addonId, quantity]) => {
         const addon = addons.find(a => a.id === addonId)!;
+        const selectedOptionId = selectedAddonOptions[addonId];
+        const optionData = selectedOptionId 
+          ? addonOptions[addonId]?.find(opt => opt.id === selectedOptionId)
+          : null;
+        
         return {
           id: addon.id,
           name: addon.name,
           priceValue: addon.price_value,
           calculationType: addon.calculation_type,
-          quantity
+          quantity,
+          selectedOptionId: selectedOptionId,
+          selectedOptionName: optionData?.name
         };
       });
 
@@ -527,46 +568,119 @@ const ProductConfiguration = ({
             <div className="space-y-4">
               <h3 className="text-base font-semibold">Available Add-ons</h3>
               <div className="space-y-3">
-                {addons.map((addon) => (
-                  <div key={addon.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 p-3 border rounded-lg bg-card">
-                    <div className="flex-1">
-                      <p className="font-medium">{addon.name}</p>
-                      {addon.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {addon.description}
-                        </p>
+                {addons.map((addon) => {
+                  const hasOptions = (addonOptions[addon.id] || []).length > 0;
+                  const selectedOption = selectedAddonOptions[addon.id];
+                  const optionData = hasOptions 
+                    ? addonOptions[addon.id].find(opt => opt.id === selectedOption)
+                    : null;
+                  
+                  return (
+                    <div key={addon.id} className="p-4 border rounded-lg bg-card space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
+                        <div className="flex-1">
+                          <p className="font-medium">{addon.name}</p>
+                          {addon.description && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {addon.description}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Base: {formatExactPrice(addon.price_value, {
+                              currency_symbol: settings.currency_symbol,
+                              decimal_precision: settings.decimal_precision
+                            })} {addon.calculation_type === 'per_unit' ? 'per unit' : addon.calculation_type === 'area_calculation' ? 'per SF' : 'total'}
+                            {optionData && optionData.price_adjustment !== 0 && (
+                              <span className="text-primary font-medium">
+                                {' '}+ {optionData.adjustment_type === 'percentage'
+                                  ? `${optionData.price_adjustment}%`
+                                  : formatExactPrice(optionData.price_adjustment, {
+                                      currency_symbol: settings.currency_symbol,
+                                      decimal_precision: settings.decimal_precision
+                                    })
+                                }
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        
+                        {/* Quantity controls */}
+                        <div className="flex items-center gap-2 justify-end sm:justify-start flex-shrink-0">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) - 1)}
+                            disabled={(selectedAddons[addon.id] || 0) <= 0}
+                            className="h-8 w-8"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="w-6 text-center text-sm font-semibold">
+                            {selectedAddons[addon.id] || 0}
+                          </span>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) + 1)}
+                            className="h-8 w-8"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Option Selector (only show if addon has options and quantity > 0) */}
+                      {hasOptions && (selectedAddons[addon.id] || 0) > 0 && (
+                        <div className="space-y-2 pt-2 border-t">
+                          <Label className="text-sm font-medium">Select {addon.name} Option:</Label>
+                          <Select
+                            value={selectedAddonOptions[addon.id] || ""}
+                            onValueChange={(val) => setSelectedAddonOptions(prev => ({
+                              ...prev,
+                              [addon.id]: val
+                            }))}
+                          >
+                            <SelectTrigger className="w-full bg-background">
+                              <SelectValue placeholder={`Choose ${addon.name} option`} />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border shadow-lg z-[100] max-h-[300px]">
+                              {addonOptions[addon.id].map((option: any) => (
+                                <SelectItem key={option.id} value={option.id}>
+                                  <div className="flex items-center gap-3 py-1">
+                                    {option.image_url && (
+                                      <img 
+                                        src={option.image_url} 
+                                        alt={option.name}
+                                        className="w-10 h-10 rounded object-cover flex-shrink-0"
+                                      />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <span className="block font-medium">{option.name}</span>
+                                      {option.description && (
+                                        <span className="block text-xs text-muted-foreground truncate">{option.description}</span>
+                                      )}
+                                      {option.price_adjustment !== 0 && (
+                                        <span className="text-xs text-primary font-medium">
+                                          {option.adjustment_type === 'percentage'
+                                            ? `+${option.price_adjustment}%`
+                                            : `+${formatExactPrice(option.price_adjustment, {
+                                                currency_symbol: settings.currency_symbol,
+                                                decimal_precision: settings.decimal_precision
+                                              })}`
+                                          }
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       )}
-                      <p className="text-xs text-muted-foreground">
-                        {formatExactPrice(addon.price_value, {
-                          currency_symbol: settings.currency_symbol,
-                          decimal_precision: settings.decimal_precision
-                        })} {addon.calculation_type === 'per_unit' ? 'per unit' : addon.calculation_type === 'area_calculation' ? 'per SF' : 'total'}
-                      </p>
                     </div>
-                    <div className="flex items-center gap-2 justify-end sm:justify-start flex-shrink-0">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) - 1)}
-                        disabled={(selectedAddons[addon.id] || 0) <= 0}
-                        className="h-8 w-8"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-6 text-center text-sm font-semibold">
-                        {selectedAddons[addon.id] || 0}
-                      </span>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) + 1)}
-                        className="h-8 w-8"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

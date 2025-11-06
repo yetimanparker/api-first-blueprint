@@ -120,6 +120,28 @@ serve(async (req) => {
     if (addonsError) {
       console.error('Error fetching addons:', addonsError);
     }
+    
+    // Fetch addon options for all addons
+    const addonIds = addons?.map(a => a.id) || [];
+    const { data: addonOptions, error: addonOptionsError } = await supabaseClient
+      .from('product_addon_options')
+      .select('*')
+      .in('addon_id', addonIds)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+    
+    if (addonOptionsError) {
+      console.error('Error fetching addon options:', addonOptionsError);
+    }
+    
+    // Group options by addon_id
+    const optionsByAddon: Record<string, any[]> = {};
+    (addonOptions || []).forEach(option => {
+      if (!optionsByAddon[option.addon_id]) {
+        optionsByAddon[option.addon_id] = [];
+      }
+      optionsByAddon[option.addon_id].push(option);
+    });
 
     // Fetch pricing tiers for all products
     const { data: pricingTiers, error: tiersError } = await supabaseClient
@@ -164,12 +186,19 @@ serve(async (req) => {
     console.log('Subcategories data:', subcategories);
 
     // Organize data by product
-    const productsWithRelations = products?.map(product => ({
-      ...product,
-      product_variations: variations?.filter(v => v.product_id === product.id) || [],
-      product_addons: addons?.filter(a => a.product_id === product.id) || [],
-      product_pricing_tiers: pricingTiers?.filter(t => t.product_id === product.id) || [],
-    })) || [];
+    const productsWithRelations = products?.map(product => {
+      const productAddons = (addons?.filter(a => a.product_id === product.id) || []).map(addon => ({
+        ...addon,
+        addon_options: optionsByAddon[addon.id] || []
+      }));
+      
+      return {
+        ...product,
+        product_variations: variations?.filter(v => v.product_id === product.id) || [],
+        product_addons: productAddons,
+        product_pricing_tiers: pricingTiers?.filter(t => t.product_id === product.id) || [],
+      };
+    }) || [];
 
     console.log(`Returning response with ${productsWithRelations.length} products, ${categories?.length || 0} categories, ${subcategories?.length || 0} subcategories`);
 

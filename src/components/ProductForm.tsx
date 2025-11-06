@@ -48,6 +48,18 @@ const productSchema = z.object({
 
 type ProductFormData = z.infer<typeof productSchema>;
 
+interface ProductAddonOption {
+  id?: string;
+  name: string;
+  description: string;
+  price_adjustment: number;
+  adjustment_type: 'fixed' | 'percentage';
+  image_url?: string;
+  display_order: number;
+  is_active: boolean;
+  is_default: boolean;
+}
+
 interface ProductAddon {
   id?: string;
   name: string;
@@ -58,6 +70,7 @@ interface ProductAddon {
   is_active: boolean;
   calculation_type: "total" | "per_unit" | "area_calculation";
   calculation_formula?: string;
+  addon_options?: ProductAddonOption[];
 }
 
 interface ProductVariation {
@@ -114,6 +127,7 @@ interface ProductFormProps {
 
 export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const [addons, setAddons] = useState<ProductAddon[]>([]);
+  const [addonOptions, setAddonOptions] = useState<Record<string, ProductAddonOption[]>>({});
   const [variations, setVariations] = useState<ProductVariation[]>([]);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(false);
@@ -160,33 +174,62 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   });
 
   useEffect(() => {
-    if (product?.product_addons) {
-      setAddons(product.product_addons.map((addon, index) => ({
-        ...addon,
-        name: addon.name || "",
-        description: addon.description || "",
-        display_order: addon.display_order || index,
-        calculation_type: addon.calculation_type || "total",
-        calculation_formula: addon.calculation_formula || "",
-      })));
-    }
-    if (product?.product_variations) {
-      setVariations(product.product_variations.map((variation, index) => ({
-        ...variation,
-        name: variation.name || "",
-        description: variation.description || "",
-        display_order: variation.display_order || index,
-      })));
-    }
-    if (product?.pricing_tiers) {
-      setPricingTiers(product.pricing_tiers.map((tier, index) => ({
-        ...tier,
-        display_order: tier.display_order || index,
-      })));
-    }
-    if (product?.photo_url) {
-      setPhotoPreview(product.photo_url);
-    }
+    const loadProductData = async () => {
+      if (product?.product_addons) {
+        setAddons(product.product_addons.map((addon, index) => ({
+          ...addon,
+          name: addon.name || "",
+          description: addon.description || "",
+          display_order: addon.display_order || index,
+          calculation_type: addon.calculation_type || "total",
+          calculation_formula: addon.calculation_formula || "",
+        })));
+        
+        // Load addon options for existing addons
+        const optionsMap: Record<string, ProductAddonOption[]> = {};
+        for (const addon of product.product_addons) {
+          if (addon.id) {
+            const { data: options } = await supabase
+              .from('product_addon_options')
+              .select('*')
+              .eq('addon_id', addon.id)
+              .order('display_order');
+            
+            optionsMap[addon.id] = (options || []).map(opt => ({
+              id: opt.id,
+              name: opt.name,
+              description: opt.description || "",
+              price_adjustment: opt.price_adjustment,
+              adjustment_type: opt.adjustment_type as 'fixed' | 'percentage',
+              image_url: opt.image_url || undefined,
+              display_order: opt.display_order,
+              is_active: opt.is_active,
+              is_default: opt.is_default || false
+            }));
+          }
+        }
+        setAddonOptions(optionsMap);
+      }
+      if (product?.product_variations) {
+        setVariations(product.product_variations.map((variation, index) => ({
+          ...variation,
+          name: variation.name || "",
+          description: variation.description || "",
+          display_order: variation.display_order || index,
+        })));
+      }
+      if (product?.pricing_tiers) {
+        setPricingTiers(product.pricing_tiers.map((tier, index) => ({
+          ...tier,
+          display_order: tier.display_order || index,
+        })));
+      }
+      if (product?.photo_url) {
+        setPhotoPreview(product.photo_url);
+      }
+    };
+    
+    loadProductData();
   }, [product]);
 
   // Convert category/subcategory UUIDs to names for form initialization (only once)
@@ -299,6 +342,77 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
 
   const removePricingTier = (index: number) => {
     setPricingTiers(pricingTiers.filter((_, i) => i !== index));
+  };
+
+  const addNewAddonOption = (addonId: string) => {
+    const newOption: ProductAddonOption = {
+      name: "",
+      description: "",
+      price_adjustment: 0,
+      adjustment_type: "fixed",
+      display_order: (addonOptions[addonId] || []).length,
+      is_active: true,
+      is_default: false
+    };
+    
+    setAddonOptions(prev => ({
+      ...prev,
+      [addonId]: [...(prev[addonId] || []), newOption]
+    }));
+  };
+
+  const updateAddonOption = (addonId: string, index: number, field: keyof ProductAddonOption, value: any) => {
+    setAddonOptions(prev => {
+      const updated = [...(prev[addonId] || [])];
+      updated[index] = { ...updated[index], [field]: value };
+      
+      // If setting is_default, unset all others
+      if (field === 'is_default' && value === true) {
+        updated.forEach((opt, i) => {
+          if (i !== index) opt.is_default = false;
+        });
+      }
+      
+      return { ...prev, [addonId]: updated };
+    });
+  };
+
+  const removeAddonOption = (addonId: string, index: number) => {
+    setAddonOptions(prev => ({
+      ...prev,
+      [addonId]: (prev[addonId] || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleOptionImageUpload = async (addonId: string, optIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const { data: contractorData } = await supabase
+      .from("contractors")
+      .select("id")
+      .maybeSingle();
+    
+    if (!contractorData) return;
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${contractorData.id}/addon-options/${Date.now()}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from('product-photos')
+      .upload(fileName, file);
+    
+    if (error) {
+      toast({ title: "Upload failed", variant: "destructive", description: error.message });
+      return;
+    }
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('product-photos')
+      .getPublicUrl(fileName);
+    
+    updateAddonOption(addonId, optIndex, 'image_url', publicUrl);
+    toast({ title: "Image uploaded successfully" });
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -449,11 +563,49 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             calculation_formula: (addon.calculation_formula || "").trim() || null,
           }));
 
-          const { error: addonError } = await supabase
+          const { data: insertedAddons, error: addonError } = await supabase
             .from("product_addons")
-            .insert(addonsToInsert);
+            .insert(addonsToInsert)
+            .select();
 
           if (addonError) throw addonError;
+          
+          // Save addon options
+          for (let i = 0; i < validAddons.length; i++) {
+            const addon = validAddons[i];
+            const insertedAddon = insertedAddons?.[i];
+            if (!insertedAddon?.id) continue;
+            
+            // Use existing addon ID or newly inserted one
+            const addonId = addon.id || insertedAddon.id;
+            const options = addonOptions[addon.id || ''] || [];
+            const validOptions = options.filter(opt => opt.name.trim());
+            
+            if (validOptions.length > 0) {
+              // Delete existing options for this addon
+              await supabase
+                .from('product_addon_options')
+                .delete()
+                .eq('addon_id', addonId);
+              
+              // Insert new options
+              const optionsToInsert = validOptions.map((opt, index) => ({
+                addon_id: addonId,
+                name: opt.name.trim(),
+                description: opt.description?.trim() || null,
+                price_adjustment: Number(opt.price_adjustment),
+                adjustment_type: opt.adjustment_type,
+                image_url: opt.image_url || null,
+                display_order: index,
+                is_active: opt.is_active,
+                is_default: opt.is_default
+              }));
+              
+              await supabase
+                .from('product_addon_options')
+                .insert(optionsToInsert);
+            }
+          }
         }
 
         // Handle variations
@@ -1583,6 +1735,107 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                     />
                     <Label>Active</Label>
                   </div>
+                  
+                  {/* Addon Options Section */}
+                  {addon.id && (
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex items-center justify-between mb-3">
+                        <Label className="text-sm font-semibold">Options (e.g., Stain Colors)</Label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => addNewAddonOption(addon.id!)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Option
+                        </Button>
+                      </div>
+                      
+                      {(addonOptions[addon.id] || []).length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-2">
+                          No options yet. Add options for selectable variations like colors or styles.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {(addonOptions[addon.id] || []).map((option, optIndex) => (
+                            <div key={optIndex} className="flex gap-2 items-start p-3 bg-muted/30 rounded border">
+                              {option.image_url && (
+                                <img src={option.image_url} className="w-12 h-12 rounded object-cover flex-shrink-0" alt={option.name} />
+                              )}
+                              
+                              <div className="flex-1 space-y-2 min-w-0">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Input
+                                    placeholder="Option name (e.g., Walnut)"
+                                    value={option.name}
+                                    onChange={(e) => updateAddonOption(addon.id!, optIndex, 'name', e.target.value)}
+                                    className="text-sm"
+                                  />
+                                  <Input
+                                    placeholder="Description (optional)"
+                                    value={option.description}
+                                    onChange={(e) => updateAddonOption(addon.id!, optIndex, 'description', e.target.value)}
+                                    className="text-sm"
+                                  />
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-2">
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="Price adjustment"
+                                    value={option.price_adjustment}
+                                    onChange={(e) => updateAddonOption(addon.id!, optIndex, 'price_adjustment', parseFloat(e.target.value) || 0)}
+                                    className="text-sm"
+                                  />
+                                  <Select
+                                    value={option.adjustment_type}
+                                    onValueChange={(val) => updateAddonOption(addon.id!, optIndex, 'adjustment_type', val)}
+                                  >
+                                    <SelectTrigger className="text-sm">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="fixed">Fixed ($)</SelectItem>
+                                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                
+                                <div className="flex items-center gap-3">
+                                  <Input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => handleOptionImageUpload(addon.id!, optIndex, e)}
+                                    className="text-xs flex-1"
+                                  />
+                                  
+                                  <div className="flex items-center gap-2">
+                                    <Switch
+                                      checked={option.is_default}
+                                      onCheckedChange={(val) => updateAddonOption(addon.id!, optIndex, 'is_default', val)}
+                                    />
+                                    <span className="text-xs whitespace-nowrap">Default</span>
+                                  </div>
+                                  
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => removeAddonOption(addon.id!, optIndex)}
+                                    className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </Card>
               ))
             )}
