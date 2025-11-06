@@ -777,7 +777,14 @@ const QuoteReview = ({
                           return (
                             <div key={addon.id} className="space-y-1">
                               <div className="text-base flex items-center justify-between">
-                                <span className={isEnabled ? '' : 'line-through text-muted-foreground'}>{addon.name}</span>
+                                <div className={isEnabled ? '' : 'line-through text-muted-foreground'}>
+                                  {addon.name}
+                                  {addon.selectedOptionName && (
+                                    <span className="text-sm text-muted-foreground ml-1">
+                                      ({addon.selectedOptionName})
+                                    </span>
+                                  )}
+                                </div>
                                 <Switch
                                   checked={isEnabled}
                                   onCheckedChange={() => toggleAddon(item.id, addon.id)}

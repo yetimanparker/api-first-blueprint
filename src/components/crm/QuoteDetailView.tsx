@@ -408,24 +408,24 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                   )}
                 </div>
                 
+                {/* Variations Section - Always show */}
+                {variations.length > 0 && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-bold text-muted-foreground">Selection:</div>
+                    <div className="text-base">
+                      {variations.map((v: any, idx: number) => (
+                        <span key={v.id}>{v.name} </span>
+                      ))}
+                      {item.products.name}
+                    </div>
+                  </div>
+                )}
+                
                 {/* Pricing Breakdown - only show if pricing should be visible */}
                 {settings.pricing_visibility === 'before_submit' && (
                   <div className="space-y-1">
-                    {/* Selection Header - only show if variations exist */}
-                    {variations.length > 0 && (
-                      <div className="text-sm font-bold text-muted-foreground">
-                        Selection:
-                      </div>
-                    )}
-                    
-                    {/* Base Product Line with Variation */}
+                    {/* Base Product Line Pricing */}
                     <div className="space-y-1">
-                      <div className="text-base">
-                        {variations.map((v: any, idx: number) => (
-                          <span key={v.id}>{v.name} </span>
-                        ))}
-                        {item.products.name}:
-                      </div>
                       <div className="text-sm text-muted-foreground">
                         {item.quantity.toLocaleString()} {unitAbbr} × {formatExactPrice(baseUnitPrice, {
                           currency_symbol: settings.currency_symbol,
@@ -496,7 +496,14 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                           
                           return (
                             <div key={addon.id} className="space-y-1">
-                              <div className="text-base">{addon.name}</div>
+                              <div className="text-base">
+                                {addon.name}
+                                {addon.selectedOptionName && (
+                                  <span className="text-sm text-muted-foreground ml-1">
+                                    ({addon.selectedOptionName})
+                                  </span>
+                                )}
+                              </div>
                               {settings.pricing_visibility === 'before_submit' && (
                                 <div className="text-sm text-muted-foreground">
                                   {addonCalc} = <span className="font-bold">{formatExactPrice(addonPrice, {

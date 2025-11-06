@@ -844,7 +844,14 @@ export default function QuoteEdit() {
                                 
                                 return (
                                   <div key={addonId} className="space-y-1">
-                                    <div className="text-base">{addonName}</div>
+                                    <div className="text-base">
+                                      {addonName}
+                                      {addon.selectedOptionName && (
+                                        <span className="text-sm text-muted-foreground ml-1">
+                                          ({addon.selectedOptionName})
+                                        </span>
+                                      )}
+                                    </div>
                                     <div className="text-sm text-muted-foreground">
                                       {addonCalc} = <span className="font-bold">{formatExactPrice(addonPrice, {
                                         currency_symbol: settings?.currency_symbol || '$',
