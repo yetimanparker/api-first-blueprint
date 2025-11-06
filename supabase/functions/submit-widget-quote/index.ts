@@ -78,6 +78,8 @@ serve(async (req) => {
     // Parse and validate input
     const body = await req.json();
     
+    console.log('Received clarifyingAnswers:', JSON.stringify(body.clarifyingAnswers));
+    
     // Validate with zod schema
     const validationResult = submitQuoteSchema.safeParse(body);
     
@@ -148,6 +150,8 @@ serve(async (req) => {
           answer: sanitizeText(qa.answer).slice(0, 2000)
         }))
       : [];
+
+    console.log('Sanitized clarifyingAnswers:', JSON.stringify(sanitizedClarifyingAnswers));
 
     // Log submission for security monitoring
     console.log(`Quote submitted for contractor: ${contractorId}, customer: ${sanitizedCustomerInfo.email}`);
