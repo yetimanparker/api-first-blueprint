@@ -36,6 +36,7 @@ interface Quote {
   project_state?: string;
   project_zip_code?: string;
   notes?: string;
+  clarifying_answers?: Array<{ question: string; answer: string }> | null;
   access_token?: string;
   version_number: number;
   parent_quote_id?: string;
@@ -160,7 +161,7 @@ export default function QuoteEdit() {
         throw new Error('Invalid access token');
       }
 
-      setQuote(quoteData);
+      setQuote(quoteData as unknown as Quote);
       setCustomer(quoteData.customer);
 
       // Fetch quote items with product details
@@ -946,6 +947,24 @@ export default function QuoteEdit() {
                   ) : (
                     <p className="text-sm text-muted-foreground">{quote.notes}</p>
                   )}
+                </div>
+              </>
+            )}
+
+            {/* Clarifying Questions & Answers */}
+            {quote.clarifying_answers && Array.isArray(quote.clarifying_answers) && quote.clarifying_answers.length > 0 && quoteItems.length > 0 && (
+              <>
+                <Separator className="bg-green-300 dark:bg-green-700" />
+                <div>
+                  <p className="font-semibold mb-3">Project Questions & Answers</p>
+                  <div className="space-y-4">
+                    {quote.clarifying_answers.map((qa, index) => (
+                      <div key={index} className="space-y-2">
+                        <p className="font-medium text-sm">Q{index + 1}: {qa.question}</p>
+                        <p className="whitespace-pre-wrap bg-muted p-3 rounded-lg text-sm">{qa.answer}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </>
             )}
