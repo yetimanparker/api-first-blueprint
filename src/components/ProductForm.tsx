@@ -1760,7 +1760,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                     </div>
                     
                     <p className="text-xs text-muted-foreground mb-3">
-                      Add-on $ + Option $ = Total (set to 0 if not more than base add-on price)
+                      Option price added to base add-on price. Set to $0 for no extra charge.
                     </p>
                     
                     {(() => {
