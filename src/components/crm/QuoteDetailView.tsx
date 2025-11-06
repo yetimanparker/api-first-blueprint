@@ -333,6 +333,14 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             const variations = item.measurement_data?.variations || [];
             const addons = item.measurement_data?.addons || [];
             
+            console.log('QuoteDetailView - Item:', item.products?.name, {
+              variations: variations,
+              addons: addons,
+              variationsLength: variations.length,
+              addonsLength: addons.length,
+              addonsWithQty: addons.filter((a: any) => a.quantity > 0).length
+            });
+            
             // Calculate unit abbreviation
             const getUnitAbbreviation = (unitType: string) => {
               switch (unitType) {
@@ -410,13 +418,10 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                 
                 {/* Variations Section - Always show */}
                 {variations.length > 0 && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-bold text-muted-foreground">Selection:</div>
+                  <div className="space-y-1 bg-muted/30 p-3 rounded-md">
+                    <div className="text-sm font-semibold text-foreground">Selection:</div>
                     <div className="text-base">
-                      {variations.map((v: any, idx: number) => (
-                        <span key={v.id}>{v.name} </span>
-                      ))}
-                      {item.products.name}
+                      {variations.map((v: any) => v.name).join(' ')} {item.products.name}
                     </div>
                   </div>
                 )}
@@ -453,8 +458,8 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                 
                 {/* Add-ons Section - Always show regardless of pricing visibility */}
                 {addons.filter((a: any) => a.quantity > 0).length > 0 && (
-                  <div className="space-y-1 mt-3">
-                    <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
+                  <div className="space-y-2 mt-3 bg-muted/30 p-3 rounded-md">
+                    <div className="text-sm font-semibold text-foreground">Add-ons:</div>
                     {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
                           let addonCalc = '';
                           let addonPrice = 0;
@@ -494,13 +499,13 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                             })}`;
                           }
                           
-                          return (
+                           return (
                             <div key={addon.id} className="space-y-1">
-                              <div className="text-base">
+                              <div className="text-base font-medium">
                                 {addon.name}
                                 {addon.selectedOptionName && (
-                                  <span className="text-sm text-muted-foreground ml-1">
-                                    ({addon.selectedOptionName})
+                                  <span className="text-sm text-foreground/70 ml-1">
+                                    - {addon.selectedOptionName}
                                   </span>
                                 )}
                               </div>
