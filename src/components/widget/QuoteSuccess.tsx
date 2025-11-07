@@ -395,16 +395,40 @@ const QuoteSuccess = ({
                       </span>
                     </div>
                     
+                    {/* Variations Section - Always show */}
+                    {variations.length > 0 && (
+                      <div className="space-y-1 bg-muted/30 p-3 rounded-md">
+                        <div className="text-sm font-semibold text-foreground">Selection:</div>
+                        <div className="text-base">
+                          {variations.map((v: any) => v.name).join(' ')} {item.productName}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Add-ons Section - Always show */}
+                    {addons.filter((a: any) => a.quantity > 0).length > 0 && (
+                      <div className="space-y-2 bg-muted/30 p-3 rounded-md">
+                        <div className="text-sm font-semibold text-foreground">Add-ons:</div>
+                        {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
+                          return (
+                            <div key={addon.id} className="space-y-1">
+                              <div className="text-base font-medium">
+                                {addon.name}
+                                {addon.selectedOptionName && (
+                                  <span className="text-sm text-foreground/70 ml-1">
+                                    - {addon.selectedOptionName}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    
                     {/* Pricing Breakdown - only show if pricing should be visible */}
                     {showPricing && (
                       <div className="space-y-1">
-                        {/* Selection Header - only show if variations exist */}
-                        {variations.length > 0 && (
-                          <div className="text-sm font-bold text-muted-foreground">
-                            Selection:
-                          </div>
-                        )}
-                        
                         {/* Base Product Line with Variation */}
                         <div className="space-y-1">
                           <div className="text-base">
@@ -424,10 +448,10 @@ const QuoteSuccess = ({
                           </div>
                         </div>
                         
-                        {/* Add-ons Section */}
+                        {/* Add-ons Pricing Details */}
                         {addons.filter((a: any) => a.quantity > 0).length > 0 && (
                           <div className="space-y-1">
-                            <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
+                            <div className="text-sm font-bold text-muted-foreground">Add-on Pricing:</div>
                             {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
                               let addonCalc = '';
                               let addonPrice = 0;
