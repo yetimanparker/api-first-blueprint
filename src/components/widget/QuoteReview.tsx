@@ -363,7 +363,9 @@ const QuoteReview = ({
             name: a.name,
             priceValue: a.priceValue,
             calculationType: a.calculationType,
-            quantity: a.quantity
+            quantity: a.quantity,
+            selectedOptionId: a.selectedOptionId,
+            selectedOptionName: a.selectedOptionName
           }))
         },
         notes: item.notes || '',
