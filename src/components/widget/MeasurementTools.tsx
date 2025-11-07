@@ -12,6 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 import { getZoomBasedFontSize, getZoomBasedMarkerScale, renderDimensionalProductLabels, renderEdgeMeasurements } from '@/lib/mapLabelUtils';
 import { calculateRotatedRectangle } from '@/components/widget/DimensionalPlacement';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { TouchLoupe } from '@/components/widget/TouchLoupe';
 
 interface MeasurementToolsProps {
   productId: string;
@@ -93,6 +95,12 @@ const MeasurementTools = ({
   const [isDimensionalPlaced, setIsDimensionalPlaced] = useState(false);
   const [assignedMeasurementColor, setAssignedMeasurementColor] = useState<string | null>(null);
   
+  // Touch loupe states for mobile precision
+  const isMobile = useIsMobile();
+  const [touchLoupeActive, setTouchLoupeActive] = useState(false);
+  const [touchPosition, setTouchPosition] = useState<{ x: number; y: number } | null>(null);
+  const touchThrottleRef = useRef<number | null>(null);
+  
   // Real-time measurement tracking
   const [tempMeasurementValue, setTempMeasurementValue] = useState<string>('');
   const [tempMeasurementOverlay, setTempMeasurementOverlay] = useState<google.maps.Marker | null>(null);
@@ -136,6 +144,67 @@ const MeasurementTools = ({
   
   // Store map state in sessionStorage to persist across component unmounts
   const STORAGE_KEY = `map-state-${customerAddress || 'default'}`;
+
+  // Setup touch event listeners for mobile loupe
+  useEffect(() => {
+    if (!isMobile || !mapContainerRef.current) return;
+    
+    const container = mapContainerRef.current;
+    
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1 && (isDrawing || !currentMeasurement)) {
+        const touch = e.touches[0];
+        const rect = container.getBoundingClientRect();
+        setTouchPosition({
+          x: touch.clientX - rect.left,
+          y: touch.clientY - rect.top
+        });
+        setTouchLoupeActive(true);
+      }
+    };
+    
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1 && touchLoupeActive) {
+        // Throttle updates for performance
+        if (touchThrottleRef.current) return;
+        
+        touchThrottleRef.current = window.setTimeout(() => {
+          touchThrottleRef.current = null;
+        }, 16); // ~60fps
+        
+        const touch = e.touches[0];
+        const rect = container.getBoundingClientRect();
+        setTouchPosition({
+          x: touch.clientX - rect.left,
+          y: touch.clientY - rect.top
+        });
+      }
+    };
+    
+    const handleTouchEnd = () => {
+      setTouchLoupeActive(false);
+      setTouchPosition(null);
+      if (touchThrottleRef.current) {
+        clearTimeout(touchThrottleRef.current);
+        touchThrottleRef.current = null;
+      }
+    };
+    
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd);
+    container.addEventListener('touchcancel', handleTouchEnd);
+    
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', handleTouchEnd);
+      if (touchThrottleRef.current) {
+        clearTimeout(touchThrottleRef.current);
+      }
+    };
+  }, [isMobile, isDrawing, currentMeasurement, touchLoupeActive]);
 
   useEffect(() => {
     fetchProduct();
@@ -2178,6 +2247,17 @@ const MeasurementTools = ({
           ref={mapContainerCallbackRef}
           className="w-full h-full absolute inset-0"
         />
+        
+        {/* Touch Loupe for mobile precision */}
+        {isMobile && (
+          <TouchLoupe
+            mapContainer={mapContainerRef.current}
+            isActive={touchLoupeActive}
+            touchPosition={touchPosition}
+            mapInstance={mapRef.current}
+            magnification={2.5}
+          />
+        )}
         
         {mapLoading && (
           <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center z-50">
