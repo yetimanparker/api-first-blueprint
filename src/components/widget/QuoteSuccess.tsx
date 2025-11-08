@@ -17,7 +17,7 @@ import { formatExactPrice, calculatePriceRange, formatPriceRange, calculateAddon
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
-import { getZoomBasedFontSize, renderDimensionalProductLabels } from '@/lib/mapLabelUtils';
+import { getZoomBasedFontSize, renderDimensionalProductLabels, renderEdgeMeasurements } from '@/lib/mapLabelUtils';
 
 interface QuoteSuccessProps {
   quoteNumber: string;
@@ -53,6 +53,7 @@ const QuoteSuccess = ({
   const mapRef = useRef<google.maps.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [currentZoom, setCurrentZoom] = useState(19);
+  const edgeLabelsRef = useRef<google.maps.Marker[]>([]);
 
   useEffect(() => {
     fetchContractorInfo();
@@ -139,11 +140,15 @@ const QuoteSuccess = ({
 
       mapRef.current = map;
 
-      // Track zoom changes for dynamic font sizing
+      // Track zoom changes for dynamic font sizing and update edge labels
       map.addListener('zoom_changed', () => {
         const newZoom = map.getZoom();
         if (newZoom) {
           setCurrentZoom(newZoom);
+          // Clear old edge labels
+          edgeLabelsRef.current.forEach(marker => marker.setMap(null));
+          edgeLabelsRef.current = [];
+          // Re-render will happen via state change
         }
       });
 
@@ -227,9 +232,19 @@ const QuoteSuccess = ({
             },
           });
 
+          // Add edge measurements for all area polygons
+          const edgeMarkers = renderEdgeMeasurements(
+            map,
+            latLngs,
+            color,
+            currentZoom,
+            true // closed shape for polygons
+          );
+          edgeLabelsRef.current.push(...edgeMarkers);
+
           // Add side dimension labels for dimensional products
           if (item.measurement.isDimensional && item.measurement.dimensions) {
-            renderDimensionalProductLabels(
+            const dimensionMarkers = renderDimensionalProductLabels(
               map,
               latLngs,
               item.measurement.dimensions.width,
@@ -237,6 +252,7 @@ const QuoteSuccess = ({
               color,
               currentZoom
             );
+            edgeLabelsRef.current.push(...dimensionMarkers);
           }
         } else if (item.measurement.type === 'linear' && item.measurement.coordinates) {
           const latLngs = item.measurement.coordinates.map(coord => ({
@@ -253,13 +269,23 @@ const QuoteSuccess = ({
           });
           polyline.setMap(map);
 
+          // Add edge measurements for linear measurements
+          const edgeMarkers = renderEdgeMeasurements(
+            map,
+            latLngs,
+            color,
+            currentZoom,
+            false // open shape for polylines
+          );
+          edgeLabelsRef.current.push(...edgeMarkers);
+
           const midIndex = Math.floor(latLngs.length / 2);
           new google.maps.Marker({
             position: latLngs[midIndex],
             map: map,
             icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
             label: {
-              text: `${item.measurement.value.toLocaleString()} ft`,
+              text: `Total: ${item.measurement.value.toLocaleString()} ft`,
               color: color,
               fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
               fontWeight: 'bold',
