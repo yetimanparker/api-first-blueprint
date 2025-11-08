@@ -32,15 +32,8 @@ export const TouchLoupe = ({
       position: touchPosition
     });
     
-    if (!isActive || !touchPosition || !mapContainer || !mapInstance || !canvasRef.current) {
+    if (!isActive || !touchPosition || !mapContainer || !mapInstance) {
       setLoupePosition(null);
-      return;
-    }
-    
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.error('TouchLoupe: Could not get canvas 2D context');
       return;
     }
     
@@ -55,6 +48,19 @@ export const TouchLoupe = ({
       : touchPosition.y - OFFSET_Y;
     
     setLoupePosition({ x: loupeX, y: loupeY });
+    
+    // Wait for canvas ref to be set before attempting to draw
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      console.log('TouchLoupe: Canvas ref not yet set, will draw on next render');
+      return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      console.error('TouchLoupe: Could not get canvas 2D context');
+      return;
+    }
     
     // Render magnified map section
     try {
