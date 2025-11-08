@@ -23,6 +23,15 @@ export const TouchLoupe = ({
   const OFFSET_Y = 80; // Distance above/below the finger
   
   useEffect(() => {
+    console.log('TouchLoupe render attempt', { 
+      isActive, 
+      hasPosition: !!touchPosition, 
+      hasContainer: !!mapContainer, 
+      hasMap: !!mapInstance,
+      hasCanvas: !!canvasRef.current,
+      position: touchPosition
+    });
+    
     if (!isActive || !touchPosition || !mapContainer || !mapInstance || !canvasRef.current) {
       setLoupePosition(null);
       return;
@@ -30,7 +39,10 @@ export const TouchLoupe = ({
     
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error('TouchLoupe: Could not get canvas 2D context');
+      return;
+    }
     
     // Determine if loupe should be below (if touch is near top of screen)
     const shouldShowBelow = touchPosition.y < LOUPE_SIZE + OFFSET_Y + 20;
@@ -46,14 +58,47 @@ export const TouchLoupe = ({
     
     // Render magnified map section
     try {
-      // Get the map's canvas element
-      const mapCanvas = mapContainer.querySelector('canvas') as HTMLCanvasElement;
-      if (!mapCanvas) return;
+      // Try multiple ways to find the map canvas
+      let mapCanvas = mapContainer.querySelector('canvas') as HTMLCanvasElement;
+      
+      if (!mapCanvas) {
+        // Try finding all canvases and use the first one
+        const allCanvases = mapContainer.querySelectorAll('canvas');
+        console.log('TouchLoupe: Found canvases via querySelectorAll:', allCanvases.length);
+        if (allCanvases.length > 0) {
+          mapCanvas = allCanvases[0] as HTMLCanvasElement;
+        }
+      }
+      
+      if (!mapCanvas) {
+        // Try looking in nested divs
+        const nestedCanvas = mapContainer.querySelector('div canvas') as HTMLCanvasElement;
+        if (nestedCanvas) {
+          console.log('TouchLoupe: Found canvas in nested div');
+          mapCanvas = nestedCanvas;
+        }
+      }
+      
+      if (!mapCanvas) {
+        console.error('TouchLoupe: Could not find map canvas element');
+        return;
+      }
+      
+      console.log('TouchLoupe: Map canvas found', { 
+        width: mapCanvas.width, 
+        height: mapCanvas.height,
+        tagName: mapCanvas.tagName 
+      });
       
       // Calculate the source area to magnify (area under the finger)
+      // Get container position for calculating map-relative coordinates
+      const rect = mapContainer.getBoundingClientRect();
+      const mapX = touchPosition.x - rect.left;
+      const mapY = touchPosition.y - rect.top;
+      
       const sourceSize = LOUPE_SIZE / magnification;
-      const sourceX = touchPosition.x - sourceSize / 2;
-      const sourceY = touchPosition.y - sourceSize / 2;
+      const sourceX = mapX - sourceSize / 2;
+      const sourceY = mapY - sourceSize / 2;
       
       // Clear canvas
       ctx.clearRect(0, 0, LOUPE_SIZE, LOUPE_SIZE);

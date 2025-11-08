@@ -152,14 +152,22 @@ const MeasurementTools = ({
     const container = mapContainerRef.current;
     
     const handleTouchStart = (e: TouchEvent) => {
+      console.log('Touch start detected', { 
+        isMobile, 
+        isDrawing, 
+        hasCurrentMeasurement: !!currentMeasurement,
+        touches: e.touches.length 
+      });
+      
       if (e.touches.length === 1 && (isDrawing || !currentMeasurement)) {
         const touch = e.touches[0];
-        const rect = container.getBoundingClientRect();
+        // Use viewport coordinates directly for fixed positioning
         setTouchPosition({
-          x: touch.clientX - rect.left,
-          y: touch.clientY - rect.top
+          x: touch.clientX,
+          y: touch.clientY
         });
         setTouchLoupeActive(true);
+        console.log('Touch loupe activated', { x: touch.clientX, y: touch.clientY });
       }
     };
     
@@ -173,10 +181,10 @@ const MeasurementTools = ({
         }, 16); // ~60fps
         
         const touch = e.touches[0];
-        const rect = container.getBoundingClientRect();
+        // Use viewport coordinates directly
         setTouchPosition({
-          x: touch.clientX - rect.left,
-          y: touch.clientY - rect.top
+          x: touch.clientX,
+          y: touch.clientY
         });
       }
     };
