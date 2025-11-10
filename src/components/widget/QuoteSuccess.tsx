@@ -60,6 +60,62 @@ const QuoteSuccess = ({
     initializeMap();
   }, []);
 
+  // Re-render edge labels when zoom changes
+  useEffect(() => {
+    if (!mapRef.current || !quoteItems.length) return;
+
+    // Clear old edge labels
+    edgeLabelsRef.current.forEach(marker => marker.setMap(null));
+    edgeLabelsRef.current = [];
+
+    // Re-render edge labels with new zoom level
+    quoteItems.forEach((item) => {
+      const color = item.measurement.mapColor || '#3B82F6';
+
+      if (item.measurement.type === 'area' && item.measurement.coordinates) {
+        const latLngs = item.measurement.coordinates.map(coord => ({
+          lat: coord[0],
+          lng: coord[1]
+        }));
+
+        const edgeMarkers = renderEdgeMeasurements(
+          mapRef.current!,
+          latLngs,
+          color,
+          currentZoom,
+          true
+        );
+        edgeLabelsRef.current.push(...edgeMarkers);
+
+        if (item.measurement.isDimensional && item.measurement.dimensions) {
+          const dimensionMarkers = renderDimensionalProductLabels(
+            mapRef.current!,
+            latLngs,
+            item.measurement.dimensions.width,
+            item.measurement.dimensions.length,
+            color,
+            currentZoom
+          );
+          edgeLabelsRef.current.push(...dimensionMarkers);
+        }
+      } else if (item.measurement.type === 'linear' && item.measurement.coordinates) {
+        const latLngs = item.measurement.coordinates.map(coord => ({
+          lat: coord[0],
+          lng: coord[1]
+        }));
+
+        const edgeMarkers = renderEdgeMeasurements(
+          mapRef.current!,
+          latLngs,
+          color,
+          currentZoom,
+          false
+        );
+        edgeLabelsRef.current.push(...edgeMarkers);
+      }
+    });
+  }, [currentZoom, quoteItems]);
+
   const fetchContractorInfo = async () => {
     const { data } = await supabase
       .from('contractors')
@@ -140,15 +196,11 @@ const QuoteSuccess = ({
 
       mapRef.current = map;
 
-      // Track zoom changes for dynamic font sizing and update edge labels
+      // Track zoom changes for dynamic font sizing
       map.addListener('zoom_changed', () => {
         const newZoom = map.getZoom();
         if (newZoom) {
           setCurrentZoom(newZoom);
-          // Clear old edge labels
-          edgeLabelsRef.current.forEach(marker => marker.setMap(null));
-          edgeLabelsRef.current = [];
-          // Re-render will happen via state change
         }
       });
 
@@ -232,28 +284,7 @@ const QuoteSuccess = ({
             },
           });
 
-          // Add edge measurements for all area polygons
-          const edgeMarkers = renderEdgeMeasurements(
-            map,
-            latLngs,
-            color,
-            currentZoom,
-            true // closed shape for polygons
-          );
-          edgeLabelsRef.current.push(...edgeMarkers);
-
-          // Add side dimension labels for dimensional products
-          if (item.measurement.isDimensional && item.measurement.dimensions) {
-            const dimensionMarkers = renderDimensionalProductLabels(
-              map,
-              latLngs,
-              item.measurement.dimensions.width,
-              item.measurement.dimensions.length,
-              color,
-              currentZoom
-            );
-            edgeLabelsRef.current.push(...dimensionMarkers);
-          }
+          // Edge measurements are rendered in separate useEffect
         } else if (item.measurement.type === 'linear' && item.measurement.coordinates) {
           const latLngs = item.measurement.coordinates.map(coord => ({
             lat: coord[0],
@@ -269,15 +300,7 @@ const QuoteSuccess = ({
           });
           polyline.setMap(map);
 
-          // Add edge measurements for linear measurements
-          const edgeMarkers = renderEdgeMeasurements(
-            map,
-            latLngs,
-            color,
-            currentZoom,
-            false // open shape for polylines
-          );
-          edgeLabelsRef.current.push(...edgeMarkers);
+          // Edge measurements are rendered in separate useEffect
 
           const midIndex = Math.floor(latLngs.length / 2);
           new google.maps.Marker({
