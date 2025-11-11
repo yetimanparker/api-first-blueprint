@@ -770,35 +770,29 @@ export default function QuoteEdit() {
                         </div>
                       </div>
                       
-                      <div className="space-y-1">
-                          {/* Selection Header */}
+                      <div className="space-y-2">
+                          {/* Variation selection */}
                           {variations.length > 0 && (
-                            <div className="text-sm font-bold text-muted-foreground">Selection:</div>
+                            <div className="text-sm text-muted-foreground">
+                              ({variations.map((v) => v.name).join(', ')})
+                            </div>
                           )}
                           
-                          {/* Base Product Line with Variation */}
-                          <div className="space-y-1">
-                            <div className="text-base">
-                              {variations.map((v) => (
-                                <span key={v.id}>{v.name} </span>
-                              ))}
-                              {item.product.name}:
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {item.quantity.toLocaleString()} {unitAbbr} × {formatExactPrice(baseUnitPrice, {
-                                currency_symbol: settings?.currency_symbol || '$',
-                                decimal_precision: settings?.decimal_precision || 2
-                              })}/{unitAbbr} = <span className="font-bold">{formatExactPrice(baseTotal, {
-                                currency_symbol: settings?.currency_symbol || '$',
-                                decimal_precision: settings?.decimal_precision || 2
-                              })}</span>
-                            </div>
+                          {/* Base Product Calculation */}
+                          <div className="text-sm text-muted-foreground pl-3">
+                            {item.quantity.toLocaleString()} {unitAbbr} × {formatExactPrice(baseUnitPrice, {
+                              currency_symbol: settings?.currency_symbol || '$',
+                              decimal_precision: settings?.decimal_precision || 2
+                            })}/{unitAbbr} = <span className="font-semibold text-foreground">{formatExactPrice(baseTotal, {
+                              currency_symbol: settings?.currency_symbol || '$',
+                              decimal_precision: settings?.decimal_precision || 2
+                            })}</span>
                           </div>
                           
-                          {/* Add-ons Section */}
+                          {/* Add-ons Pricing Details */}
                           {addons.filter((a) => a.quantity > 0).length > 0 && (
                             <div className="space-y-1">
-                              <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
+                              <div className="text-sm text-muted-foreground mt-2">Add-ons:</div>
                               {addons.filter((a) => a.quantity > 0).map((addon) => {
                                 // Handle both old and new field name formats
                                 const addonName = addon.name || addon.addon_name;
@@ -843,21 +837,12 @@ export default function QuoteEdit() {
                                 }
                                 
                                 return (
-                                  <div key={addonId} className="space-y-1">
-                                    <div className="text-base">
-                                      {addonName}
-                                      {addon.selectedOptionName && (
-                                        <span className="text-sm text-muted-foreground ml-1">
-                                          ({addon.selectedOptionName})
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">
-                                      {addonCalc} = <span className="font-bold">{formatExactPrice(addonPrice, {
-                                        currency_symbol: settings?.currency_symbol || '$',
-                                        decimal_precision: settings?.decimal_precision || 2
-                                      })}</span>
-                                    </div>
+                                  <div key={addonId} className="text-sm text-muted-foreground pl-3">
+                                    <span className="font-medium text-foreground">{addonName}</span>
+                                    {addon.selectedOptionName && `(${addon.selectedOptionName})`}: {addonCalc} = <span className="font-semibold text-foreground">{formatExactPrice(addonPrice, {
+                                      currency_symbol: settings?.currency_symbol || '$',
+                                      decimal_precision: settings?.decimal_precision || 2
+                                    })}</span>
                                   </div>
                                 );
                               })}
