@@ -336,10 +336,10 @@ const QuoteSuccess = ({
   const total = subtotal + taxAmount;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 py-4 space-y-4">
       {/* Success Header */}
       <Card className="border-green-500 bg-green-50 dark:bg-green-950">
-        <CardContent className="py-4">
+        <CardContent className="py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {contractorInfo?.logo_url && (
@@ -357,9 +357,9 @@ const QuoteSuccess = ({
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Main Quote Details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4">
           {/* Quote Items */}
           <Card>
             <CardHeader>

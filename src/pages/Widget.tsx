@@ -612,8 +612,8 @@ const Widget = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30" style={brandStyle}>
-      {/* Business Header */}
-      {contractorInfo && (
+      {/* Business Header - Hide on confirmation step */}
+      {contractorInfo && widgetState.currentStep !== 'confirmation' && (
         <div 
           className="py-4 px-6 shadow-sm"
           style={{ 
@@ -635,8 +635,9 @@ const Widget = () => {
         </div>
       )}
       
-      {/* Header with Steps */}
-      <div className={`hidden md:block border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
+      {/* Header with Steps - Hide on confirmation step */}
+      {widgetState.currentStep !== 'confirmation' && (
+        <div className={`hidden md:block border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             {stepConfig.map((step, index) => (
@@ -656,7 +657,8 @@ const Widget = () => {
             ))}
           </div>
         </div>
-      </div>
+        </div>
+      )}
       
       <div className="max-w-[1920px] mx-auto">
         {/* Contact Form Section - Only show when actively on this step */}
