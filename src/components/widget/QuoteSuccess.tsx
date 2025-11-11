@@ -454,7 +454,7 @@ const QuoteSuccess = ({
                         {/* Add-ons Pricing Details */}
                         {addons.filter((a: any) => a.quantity > 0).length > 0 && (
                           <div className="space-y-1">
-                            <div className="text-sm text-muted-foreground mt-2">Add-on Pricing:</div>
+                            <div className="text-sm text-muted-foreground mt-2">Add-ons:</div>
                             {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
                               let addonCalc = '';
                               let addonPrice = 0;
