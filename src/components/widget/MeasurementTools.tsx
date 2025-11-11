@@ -353,6 +353,22 @@ const MeasurementTools = ({
     }
   }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, isManualEntry, mapLoading]);
 
+  // Auto-scroll to buttons when measurement is complete
+  useEffect(() => {
+    if (currentMeasurement && !isConfigurationMode) {
+      // Small delay to ensure DOM has updated
+      setTimeout(() => {
+        const buttonContainer = document.getElementById('measurement-action-buttons');
+        if (buttonContainer) {
+          buttonContainer.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'nearest' 
+          });
+        }
+      }, 300);
+    }
+  }, [currentMeasurement, isConfigurationMode]);
+
   useEffect(() => {
     // Update ref when measurement type changes
     measurementTypeRef.current = measurementType;
