@@ -348,24 +348,6 @@ const QuoteSuccess = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Quote Details */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Map */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Project Location & Measurements
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div ref={mapContainerRef} className="w-full h-[400px] rounded-lg" />
-              {customerInfo.address && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  {customerInfo.address}, {customerInfo.city}, {customerInfo.state} {customerInfo.zipCode}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
           {/* Quote Items */}
           <Card>
             <CardHeader>
@@ -640,6 +622,24 @@ const QuoteSuccess = ({
                   </span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Map */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Project Location & Measurements
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div ref={mapContainerRef} className="w-full h-[400px] rounded-lg" />
+              {customerInfo.address && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  {customerInfo.address}, {customerInfo.city}, {customerInfo.state} {customerInfo.zipCode}
+                </p>
+              )}
             </CardContent>
           </Card>
 
