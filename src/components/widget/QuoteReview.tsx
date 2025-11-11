@@ -764,9 +764,9 @@ const QuoteReview = ({
                                   <div className="flex-1 text-sm text-muted-foreground">
                                     <span className={`font-medium ${isEnabled ? 'text-foreground' : 'line-through text-muted-foreground'}`}>
                                       {addon.name}
+                                      {addon.selectedOptionName && ` (${addon.selectedOptionName})`}
                                     </span>
-                                    {addon.selectedOptionName && `(${addon.selectedOptionName})`}: 
-                                    {(() => {
+                                    : {(() => {
                                       const variationData = item.measurement.variations && item.measurement.variations.length > 0
                                         ? {
                                             height: item.measurement.variations[0].height_value || null,
