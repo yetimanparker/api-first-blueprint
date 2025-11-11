@@ -62,7 +62,7 @@ const Widget = () => {
       if (contractorId) {
         const { data } = await supabase
           .from('contractors')
-          .select('business_name, brand_color, secondary_color')
+          .select('business_name, brand_color, secondary_color, logo_url')
           .eq('id', contractorId)
           .single();
         
@@ -612,6 +612,29 @@ const Widget = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30" style={brandStyle}>
+      {/* Business Header */}
+      {contractorInfo && (
+        <div 
+          className="py-4 px-6 shadow-sm"
+          style={{ 
+            backgroundColor: contractorInfo.brand_color || '#3B82F6',
+          }}
+        >
+          <div className="flex items-center justify-center gap-3">
+            {contractorInfo.logo_url && (
+              <img 
+                src={contractorInfo.logo_url} 
+                alt={`${contractorInfo.business_name} logo`}
+                className="h-8 w-auto object-contain"
+              />
+            )}
+            <h1 className="text-2xl font-bold text-white">
+              {contractorInfo.business_name}
+            </h1>
+          </div>
+        </div>
+      )}
+      
       {/* Header with Steps */}
       <div className={`hidden md:block border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="container mx-auto px-4 py-4">

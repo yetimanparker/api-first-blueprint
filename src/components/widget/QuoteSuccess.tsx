@@ -38,6 +38,7 @@ interface ContractorInfo {
   zip_code?: string;
   website?: string;
   brand_color?: string;
+  logo_url?: string;
 }
 
 const QuoteSuccess = ({
@@ -339,9 +340,20 @@ const QuoteSuccess = ({
       {/* Success Header */}
       <Card className="border-green-500 bg-green-50 dark:bg-green-950">
         <CardContent className="py-4">
-          <p className="text-sm text-green-900 dark:text-green-100">
-            Thank you! We will contact you shortly. Quote <span className="font-semibold">#{quoteNumber}</span> details are below.
-          </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {contractorInfo?.logo_url && (
+                <img 
+                  src={contractorInfo.logo_url} 
+                  alt={`${contractorInfo.business_name} logo`}
+                  className="h-12 w-auto object-contain"
+                />
+              )}
+              <p className="text-sm text-green-900 dark:text-green-100">
+                Thank you! We will contact you shortly. Quote <span className="font-semibold">#{quoteNumber}</span> details are below.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
