@@ -398,7 +398,7 @@ const QuoteSuccess = ({
                 return (
                   <div 
                     key={item.id} 
-                    className="border-l-4 pl-4 py-2 space-y-3"
+                    className="border-l-4 pl-4 py-2 space-y-1"
                     style={{ borderLeftColor: item.measurement.mapColor || '#3B82F6' }}
                   >
                     {/* Header: Product name with color indicator and quantity */}
@@ -415,34 +415,25 @@ const QuoteSuccess = ({
                       </span>
                     </div>
                     
-                    {/* Variations Section - Always show */}
+                    {/* Product details with variations inline */}
                     {variations.length > 0 && (
-                      <div className="space-y-1 bg-muted/30 p-3 rounded-md">
-                        <div className="text-sm font-semibold text-foreground">Selection:</div>
-                        <div className="text-base">
-                          {variations.map((v: any) => v.name).join(' ')} {item.productName}
-                        </div>
+                      <div className="text-sm text-foreground">
+                        {variations.map((v: any) => v.name).join(' ')} {item.productName}
                       </div>
                     )}
                     
-                    {/* Add-ons Section - Always show */}
+                    {/* Add-ons inline */}
                     {addons.filter((a: any) => a.quantity > 0).length > 0 && (
-                      <div className="space-y-2 bg-muted/30 p-3 rounded-md">
-                        <div className="text-sm font-semibold text-foreground">Add-ons:</div>
-                        {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
-                          return (
-                            <div key={addon.id} className="space-y-1">
-                              <div className="text-base font-medium">
-                                {addon.name}
-                                {addon.selectedOptionName && (
-                                  <span className="text-sm text-foreground/70 ml-1">
-                                    - {addon.selectedOptionName}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
+                      <div className="text-sm text-foreground">
+                        <span className="font-medium">Add-ons:</span>
+                        {' '}
+                        {addons.filter((a: any) => a.quantity > 0).map((addon: any, idx: number) => (
+                          <span key={addon.id}>
+                            {addon.name}
+                            {addon.selectedOptionName && ` (${addon.selectedOptionName})`}
+                            {idx < addons.filter((a: any) => a.quantity > 0).length - 1 && ', '}
+                          </span>
+                        ))}
                       </div>
                     )}
                     
