@@ -799,25 +799,6 @@ const Widget = () => {
           </div>
         )}
 
-        {/* Confirmation Section */}
-        {isStepVisible('confirmation') && (
-          <div id="step-confirmation" className="px-4 py-6">
-            <Card className="p-8 text-center">
-              <div className="w-16 h-16 bg-success rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-success-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold mb-2">Quote Submitted Successfully!</h3>
-              <p className="text-muted-foreground mb-4">
-                Thank you for your interest. A representative will contact you shortly to discuss your project.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Quote ID: {Date.now()} {/* This will be replaced with actual quote ID from backend */}
-              </p>
-            </Card>
-          </div>
-        )}
       </div>
 
       {/* Method Selection Dialog for 'each' products */}
