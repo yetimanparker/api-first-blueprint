@@ -338,20 +338,9 @@ const QuoteSuccess = ({
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
       {/* Success Header */}
       <Card className="border-green-500 bg-green-50 dark:bg-green-950">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4 mb-4">
-            <CheckCircle2 className="h-12 w-12 text-green-600" />
-            <div>
-              <h1 className="text-2xl font-bold text-green-900 dark:text-green-100">
-                Quote Submitted Successfully!
-              </h1>
-              <p className="text-green-700 dark:text-green-300">
-                Quote #{quoteNumber} has been created
-              </p>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            We've received your quote request and will be in touch soon. Below is a detailed overview of your quote.
+        <CardContent className="py-4">
+          <p className="text-sm text-green-900 dark:text-green-100">
+            Thank you! We will contact you shortly. Quote <span className="font-semibold">#{quoteNumber}</span> details are below.
           </p>
         </CardContent>
       </Card>
