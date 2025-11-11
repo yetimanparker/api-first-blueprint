@@ -9,7 +9,9 @@ import {
   MapPin, 
   Phone, 
   Globe,
-  Calculator 
+  Calculator,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { QuoteItem, CustomerInfo } from '@/types/widget';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
@@ -18,6 +20,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 import { getZoomBasedFontSize, renderDimensionalProductLabels, renderEdgeMeasurements } from '@/lib/mapLabelUtils';
+import { cn } from '@/lib/utils';
 
 interface QuoteSuccessProps {
   quoteNumber: string;
@@ -54,6 +57,7 @@ const QuoteSuccess = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [currentZoom, setCurrentZoom] = useState(19);
   const edgeLabelsRef = useRef<google.maps.Marker[]>([]);
+  const [mapExpanded, setMapExpanded] = useState(false);
 
   useEffect(() => {
     fetchContractorInfo();
@@ -335,57 +339,132 @@ const QuoteSuccess = ({
   const total = subtotal + taxAmount;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-6 animate-fade-in">
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          .print-break-inside-avoid { break-inside: avoid; }
+          body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
+      `}</style>
+
       {/* Success Header */}
-      <Card className="border-green-500 bg-green-50 dark:bg-green-950">
+      <Card className="border-green-500 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 shadow-lg">
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4 mb-4">
-            <CheckCircle2 className="h-12 w-12 text-green-600" />
-            <div>
-              <h1 className="text-2xl font-bold text-green-900 dark:text-green-100">
+          <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
+            <CheckCircle2 className="h-16 w-16 text-green-600 flex-shrink-0" />
+            <div className="text-center sm:text-left">
+              <h1 className="text-3xl md:text-4xl font-bold text-green-900 dark:text-green-100 mb-2">
                 Quote Submitted Successfully!
               </h1>
-              <p className="text-green-700 dark:text-green-300">
-                Quote #{quoteNumber} has been created
-              </p>
+              <div className="inline-flex items-center gap-2 bg-white/50 dark:bg-black/30 px-4 py-2 rounded-full">
+                <span className="text-sm text-green-700 dark:text-green-300">Quote Number</span>
+                <span className="text-xl font-bold text-green-900 dark:text-green-100">#{quoteNumber}</span>
+              </div>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-green-800 dark:text-green-200">
             We've received your quote request and will be in touch soon. Below is a detailed overview of your quote.
           </p>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Quote Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Map */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Project Location & Measurements
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div ref={mapContainerRef} className="w-full h-[400px] rounded-lg" />
-              {customerInfo.address && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  {customerInfo.address}, {customerInfo.city}, {customerInfo.state} {customerInfo.zipCode}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+      {/* Quick Summary Card */}
+      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 shadow-md">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Total Amount */}
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground mb-1">Total Amount</div>
+              <div className="text-2xl font-bold text-green-600">
+                {formatExactPrice(total, {
+                  currency_symbol: settings.currency_symbol,
+                  decimal_precision: settings.decimal_precision
+                })}
+              </div>
+            </div>
+            
+            {/* Number of Items */}
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground mb-1">Items</div>
+              <div className="text-2xl font-bold">{items.length}</div>
+            </div>
+            
+            {/* Project Location */}
+            <div className="text-center col-span-2">
+              <div className="text-sm text-muted-foreground mb-1">Project Location</div>
+              <div className="text-base font-semibold truncate">
+                {customerInfo.city}, {customerInfo.state}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-          {/* Quote Items */}
-          <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Mobile: Show contractor info first */}
+        <div className="lg:hidden space-y-6">
+          {contractorInfo && (
+            <Card className="shadow-md">
+              <CardHeader>
+                <CardTitle>Contractor Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="font-semibold text-lg">{contractorInfo.business_name}</p>
+                </div>
+                
+                <Separator />
+                
+                {contractorInfo.phone && (
+                  <Button className="w-full" variant="default" asChild>
+                    <a href={`tel:${contractorInfo.phone}`}>
+                      <Phone className="h-4 w-4 mr-2" />
+                      Call {contractorInfo.business_name}
+                    </a>
+                  </Button>
+                )}
+                {contractorInfo.email && (
+                  <Button className="w-full" variant="outline" asChild>
+                    <a href={`mailto:${contractorInfo.email}`}>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email Us
+                    </a>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Main Quote Details - Always visible */}
+        <div className="lg:col-span-2 space-y-4 md:space-y-6">
+          {/* Quote Items - MOVED UP */}
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                Quote Details
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5" />
+                  Quote Details
+                </div>
+                <span className="text-sm font-normal text-muted-foreground">
+                  {items.length} {items.length === 1 ? 'item' : 'items'}
+                </span>
               </CardTitle>
+              {/* Map Color Legend */}
+              <div className="flex flex-wrap gap-3 mt-2 text-xs">
+                {items.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-1.5">
+                    <div 
+                      className="w-3 h-3 rounded-full border border-white shadow-sm" 
+                      style={{ backgroundColor: item.measurement.mapColor || '#3B82F6' }}
+                    />
+                    <span className="text-muted-foreground">{item.productName}</span>
+                  </div>
+                ))}
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 print-break-inside-avoid">
             {items.map((item) => {
                 const variations = item.measurement.variations || [];
                 const addons = item.measurement.addons || [];
@@ -427,16 +506,16 @@ const QuoteSuccess = ({
                 return (
                   <div 
                     key={item.id} 
-                    className="border-l-4 pl-4 py-2 space-y-3"
+                    className="border-l-4 pl-4 py-3 space-y-3 hover:bg-muted/30 transition-all duration-200 rounded-r-lg print-break-inside-avoid"
                     style={{ borderLeftColor: item.measurement.mapColor || '#3B82F6' }}
                   >
                     {/* Header: Product name with color indicator and quantity */}
                     <div className="flex items-center gap-2">
                       <div 
-                        className="w-3 h-3 rounded-full" 
+                        className="w-4 h-4 rounded-full shadow-sm border border-white" 
                         style={{ backgroundColor: item.measurement.mapColor || '#3B82F6' }}
                       />
-                      <span className="font-semibold">
+                      <span className="font-semibold text-base">
                         {item.productName}
                         <span className="text-sm text-muted-foreground font-normal ml-2">
                           ({quantity.toLocaleString()} {unitAbbr})
@@ -654,9 +733,61 @@ const QuoteSuccess = ({
             </CardContent>
           </Card>
 
+          {/* Map - MOVED DOWN */}
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Project Location & Measurements
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setMapExpanded(!mapExpanded)}
+                  className="no-print"
+                >
+                  {mapExpanded ? (
+                    <>
+                      <Minimize2 className="h-4 w-4 mr-1" />
+                      Collapse
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="h-4 w-4 mr-1" />
+                      Expand
+                    </>
+                  )}
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div 
+                ref={mapContainerRef} 
+                className={cn(
+                  "w-full rounded-lg transition-all duration-300 border border-border",
+                  mapExpanded ? "h-[600px]" : "h-[400px]"
+                )}
+              />
+              <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground flex-wrap gap-2">
+                <div>
+                  {customerInfo.address && (
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      <span>
+                        {customerInfo.address}, {customerInfo.city}, {customerInfo.state} {customerInfo.zipCode}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <span className="text-xs no-print">Use mouse/touch to zoom and pan</span>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Project Comments */}
           {projectComments && (
-            <Card>
+            <Card className="shadow-md">
               <CardHeader>
                 <CardTitle>Project Comments</CardTitle>
               </CardHeader>
@@ -667,11 +798,11 @@ const QuoteSuccess = ({
           )}
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
+        {/* Desktop Sidebar - Sticky on Desktop */}
+        <div className="hidden lg:block space-y-6 lg:sticky lg:top-6 lg:self-start">
           {/* Contractor Info */}
           {contractorInfo && (
-            <Card>
+            <Card className="shadow-md hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle>Contractor Information</CardTitle>
               </CardHeader>
@@ -722,32 +853,83 @@ const QuoteSuccess = ({
             </Card>
           )}
 
-          {/* Actions */}
-          <Card>
+          {/* Next Steps */}
+          <Card className="shadow-md">
             <CardHeader>
-              <CardTitle>Actions</CardTitle>
+              <CardTitle>Next Steps</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full" variant="outline" disabled>
-                <Download className="h-4 w-4 mr-2" />
-                Download PDF
-              </Button>
-              <Button className="w-full" variant="outline" disabled>
-                <Mail className="h-4 w-4 mr-2" />
-                Email Quote
-              </Button>
-              <Button className="w-full" variant="outline" disabled>
-                <Calendar className="h-4 w-4 mr-2" />
-                Schedule Appointment
-              </Button>
-              <p className="text-xs text-muted-foreground text-center">
-                Additional features coming soon
-              </p>
+              <div className="bg-muted/50 border-2 border-dashed border-muted-foreground/20 rounded-lg p-4 text-center no-print">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Download className="h-4 w-4" />
+                    <Mail className="h-4 w-4" />
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                  <p className="text-sm font-medium">Coming Soon</p>
+                  <p className="text-xs text-muted-foreground">
+                    PDF download, email sharing, and appointment scheduling will be available shortly
+                  </p>
+                </div>
+              </div>
+              
+              {/* Contact Contractor CTA */}
+              {contractorInfo && (
+                <div className="pt-3 border-t">
+                  <p className="text-sm font-medium mb-3">Questions about your quote?</p>
+                  {contractorInfo.phone && (
+                    <Button className="w-full" variant="default" asChild>
+                      <a href={`tel:${contractorInfo.phone}`}>
+                        <Phone className="h-4 w-4 mr-2" />
+                        Call {contractorInfo.business_name}
+                      </a>
+                    </Button>
+                  )}
+                  {contractorInfo.email && (
+                    <Button className="w-full mt-2" variant="outline" asChild>
+                      <a href={`mailto:${contractorInfo.email}`}>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Email {contractorInfo.business_name}
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* Customer Info */}
-          <Card>
+          <Card className="shadow-md">
+            <CardHeader>
+              <CardTitle>Your Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div>
+                <span className="font-medium">Name:</span> {customerInfo.firstName} {customerInfo.lastName}
+              </div>
+              {customerInfo.email && (
+                <div>
+                  <span className="font-medium">Email:</span> {customerInfo.email}
+                </div>
+              )}
+              {customerInfo.phone && (
+                <div>
+                  <span className="font-medium">Phone:</span> {customerInfo.phone}
+                </div>
+              )}
+              {customerInfo.address && (
+                <div>
+                  <span className="font-medium">Address:</span> {customerInfo.address}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Mobile: Show remaining sidebar items at bottom */}
+        <div className="lg:hidden space-y-6">
+          {/* Customer Info on Mobile */}
+          <Card className="shadow-md">
             <CardHeader>
               <CardTitle>Your Information</CardTitle>
             </CardHeader>
