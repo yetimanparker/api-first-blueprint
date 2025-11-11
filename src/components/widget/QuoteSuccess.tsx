@@ -398,7 +398,7 @@ const QuoteSuccess = ({
                 return (
                   <div 
                     key={item.id} 
-                    className="border-l-4 pl-4 py-2 space-y-1"
+                    className="border-l-4 pl-4 py-2 space-y-2"
                     style={{ borderLeftColor: item.measurement.mapColor || '#3B82F6' }}
                   >
                     {/* Header: Product name with color indicator and quantity */}
@@ -415,10 +415,10 @@ const QuoteSuccess = ({
                       </span>
                     </div>
                     
-                    {/* Product details with variations inline */}
+                    {/* Variation selection */}
                     {variations.length > 0 && (
-                      <div className="text-sm text-foreground">
-                        {variations.map((v: any) => v.name).join(' ')} {item.productName}
+                      <div className="text-sm text-muted-foreground">
+                        ({variations.map((v: any) => v.name).join(', ')})
                       </div>
                     )}
                     
@@ -439,30 +439,22 @@ const QuoteSuccess = ({
                     
                     {/* Pricing Breakdown - only show if pricing should be visible */}
                     {showPricing && (
-                      <div className="space-y-1">
-                        {/* Base Product Line with Variation */}
-                        <div className="space-y-1">
-                          <div className="text-base">
-                            {variations.map((v: any) => (
-                              <span key={v.id}>{v.name} </span>
-                            ))}
-                            {item.productName}:
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {quantity.toLocaleString()} {unitAbbr} × {formatExactPrice(baseUnitPrice, {
-                              currency_symbol: settings.currency_symbol,
-                              decimal_precision: settings.decimal_precision
-                            })}/{unitAbbr} = <span className="font-bold">{formatExactPrice(baseTotal, {
-                              currency_symbol: settings.currency_symbol,
-                              decimal_precision: settings.decimal_precision
-                            })}</span>
-                          </div>
+                      <div className="space-y-2">
+                        {/* Base Product Calculation */}
+                        <div className="text-sm text-muted-foreground pl-3">
+                          {quantity.toLocaleString()} {unitAbbr} × {formatExactPrice(baseUnitPrice, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })}/{unitAbbr} = <span className="font-semibold text-foreground">{formatExactPrice(baseTotal, {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          })}</span>
                         </div>
                         
                         {/* Add-ons Pricing Details */}
                         {addons.filter((a: any) => a.quantity > 0).length > 0 && (
                           <div className="space-y-1">
-                            <div className="text-sm font-bold text-muted-foreground">Add-on Pricing:</div>
+                            <div className="text-sm text-muted-foreground mt-2">Add-on Pricing:</div>
                             {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
                               let addonCalc = '';
                               let addonPrice = 0;
@@ -519,14 +511,12 @@ const QuoteSuccess = ({
                               }
                               
                               return (
-                                <div key={addon.id} className="space-y-1">
-                                  <div className="text-base">{addon.name}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {addonCalc} = <span className="font-bold">{formatExactPrice(addonPrice * addon.quantity, {
-                                      currency_symbol: settings.currency_symbol,
-                                      decimal_precision: settings.decimal_precision
-                                    })}</span>
-                                  </div>
+                                <div key={addon.id} className="text-sm text-muted-foreground pl-3">
+                                  <span className="font-medium text-foreground">{addon.name}</span>
+                                  {addon.selectedOptionName && `(${addon.selectedOptionName})`}: {addonCalc} = <span className="font-semibold text-foreground">{formatExactPrice(addonPrice * addon.quantity, {
+                                    currency_symbol: settings.currency_symbol,
+                                    decimal_precision: settings.decimal_precision
+                                  })}</span>
                                 </div>
                               );
                             })}
@@ -534,9 +524,9 @@ const QuoteSuccess = ({
                         )}
                         
                         {/* Item Total */}
-                        <div className="border-t-2 border-border pt-3">
+                        <div className="border-t border-border pt-2.5 mt-3">
                           <div className="flex justify-end">
-                            <span className="text-lg font-bold text-green-600">
+                            <span className="text-base font-semibold text-green-600">
                               Total: {formatExactPrice(item.lineTotal, {
                                 currency_symbol: settings.currency_symbol,
                                 decimal_precision: settings.decimal_precision
