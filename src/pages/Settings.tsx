@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin, Navigation, Code, ExternalLink, Copy, Check, MessageSquare, Plus, Trash2 } from "lucide-react";
+import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin, Navigation, Code, ExternalLink, Copy, Check, MessageSquare, Plus, Trash2, Upload, X } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -84,6 +84,8 @@ const Settings = () => {
   const [geocodingAddress, setGeocodingAddress] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedEmbed, setCopiedEmbed] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoInputMethod, setLogoInputMethod] = useState<'url' | 'upload'>('url');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -220,6 +222,119 @@ const Settings = () => {
       toast({
         title: "Error",
         description: "Failed to load settings",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !contractorId) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Error",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "File size must be less than 2MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${contractorId}/logo.${fileExt}`;
+
+      // Delete existing logo if present
+      const currentLogoUrl = contractorForm.getValues('logo_url');
+      if (currentLogoUrl?.includes('contractor-logos')) {
+        const oldPath = currentLogoUrl.split('contractor-logos/')[1]?.split('?')[0];
+        if (oldPath) {
+          await supabase.storage.from('contractor-logos').remove([oldPath]);
+        }
+      }
+
+      // Upload new logo
+      const { error: uploadError, data } = await supabase.storage
+        .from('contractor-logos')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('contractor-logos')
+        .getPublicUrl(fileName);
+
+      // Update form and database
+      contractorForm.setValue('logo_url', publicUrl);
+      
+      const { error: updateError } = await supabase
+        .from('contractors')
+        .update({ logo_url: publicUrl })
+        .eq('id', contractorId);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Success",
+        description: "Logo uploaded successfully",
+      });
+    } catch (error: any) {
+      console.error('Error uploading logo:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload logo",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const removeLogo = async () => {
+    if (!contractorId) return;
+
+    try {
+      const currentLogoUrl = contractorForm.getValues('logo_url');
+      
+      // Delete from storage if it's a storage URL
+      if (currentLogoUrl?.includes('contractor-logos')) {
+        const path = currentLogoUrl.split('contractor-logos/')[1]?.split('?')[0];
+        if (path) {
+          await supabase.storage.from('contractor-logos').remove([path]);
+        }
+      }
+
+      // Update database
+      contractorForm.setValue('logo_url', '');
+      const { error } = await supabase
+        .from('contractors')
+        .update({ logo_url: null })
+        .eq('id', contractorId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Logo removed successfully",
+      });
+    } catch (error: any) {
+      console.error('Error removing logo:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove logo",
         variant: "destructive",
       });
     }
@@ -613,10 +728,80 @@ const Settings = () => {
                       name="logo_url"
                       render={({ field }) => (
                         <FormItem className="md:col-span-2">
-                          <FormLabel>Logo URL</FormLabel>
-                          <FormControl>
-                            <Input placeholder="https://yoursite.com/logo.png" {...field} />
-                          </FormControl>
+                          <FormLabel>Business Logo</FormLabel>
+                          
+                          {/* Logo Preview */}
+                          {field.value && (
+                            <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/50">
+                              <img 
+                                src={field.value} 
+                                alt="Logo preview" 
+                                className="h-16 w-16 object-contain rounded"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">Current Logo</p>
+                                <p className="text-xs text-muted-foreground truncate max-w-md">{field.value}</p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={removeLogo}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* Input Method Selector */}
+                          <div className="flex gap-2 mb-2">
+                            <Button
+                              type="button"
+                              variant={logoInputMethod === 'upload' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setLogoInputMethod('upload')}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload File
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={logoInputMethod === 'url' ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setLogoInputMethod('url')}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Use URL
+                            </Button>
+                          </div>
+
+                          {/* Upload or URL Input */}
+                          {logoInputMethod === 'upload' ? (
+                            <div className="space-y-2">
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleLogoUpload}
+                                disabled={uploadingLogo}
+                              />
+                              {uploadingLogo && (
+                                <p className="text-sm text-muted-foreground">Uploading logo...</p>
+                              )}
+                              <p className="text-xs text-muted-foreground">
+                                Max file size: 2MB. Supported formats: JPG, PNG, SVG, WebP
+                              </p>
+                            </div>
+                          ) : (
+                            <FormControl>
+                              <Input 
+                                placeholder="https://yoursite.com/logo.png" 
+                                {...field} 
+                              />
+                            </FormControl>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
