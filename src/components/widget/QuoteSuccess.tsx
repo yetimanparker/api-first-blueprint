@@ -434,21 +434,6 @@ const QuoteSuccess = ({
                       </div>
                     )}
                     
-                    {/* Add-ons inline */}
-                    {addons.filter((a: any) => a.quantity > 0).length > 0 && (
-                      <div className="text-sm text-foreground">
-                        <span className="font-medium">Add-ons:</span>
-                        {' '}
-                        {addons.filter((a: any) => a.quantity > 0).map((addon: any, idx: number) => (
-                          <span key={addon.id}>
-                            {addon.name}
-                            {addon.selectedOptionName && ` (${addon.selectedOptionName})`}
-                            {idx < addons.filter((a: any) => a.quantity > 0).length - 1 && ', '}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    
                     {/* Pricing Breakdown - only show if pricing should be visible */}
                     {showPricing && (
                       <div className="space-y-2">
