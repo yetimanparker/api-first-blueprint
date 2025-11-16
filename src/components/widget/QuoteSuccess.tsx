@@ -346,7 +346,7 @@ const QuoteSuccess = ({
                 <img 
                   src={contractorInfo.logo_url} 
                   alt={`${contractorInfo.business_name} logo`}
-                  className="h-16 w-auto min-w-[100px] max-w-[300px] object-contain"
+                  className="h-auto w-full max-w-[300px] max-h-16 object-contain"
                 />
               )}
               <p className="text-sm text-green-900 dark:text-green-100">

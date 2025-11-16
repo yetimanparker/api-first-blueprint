@@ -736,7 +736,7 @@ const Settings = () => {
                               <img 
                                 src={field.value} 
                                 alt="Logo preview" 
-                                className="h-16 w-auto max-w-xs object-contain rounded"
+                                className="h-auto w-full max-w-xs max-h-24 object-contain rounded"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';
                                 }}
