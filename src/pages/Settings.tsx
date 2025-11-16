@@ -736,7 +736,7 @@ const Settings = () => {
                               <img 
                                 src={field.value} 
                                 alt="Logo preview" 
-                                className="h-16 w-16 object-contain rounded"
+                                className="h-16 w-auto max-w-xs object-contain rounded"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';
                                 }}
@@ -791,7 +791,7 @@ const Settings = () => {
                                 <p className="text-sm text-muted-foreground">Uploading logo...</p>
                               )}
                               <p className="text-xs text-muted-foreground">
-                                Max file size: 2MB. Supported formats: JPG, PNG, SVG, WebP
+                                Max file size: 2MB. Supported formats: JPG, PNG, SVG, WebP. Recommended size: At least 400px wide × 200px tall for best results.
                               </p>
                             </div>
                           ) : (
