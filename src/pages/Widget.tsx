@@ -625,7 +625,7 @@ const Widget = () => {
               <img 
                 src={contractorInfo.logo_url} 
                 alt={`${contractorInfo.business_name} logo`}
-                className="h-auto w-full max-w-[200px] max-h-12 object-contain"
+                className="h-16 w-auto max-w-[300px] object-contain"
               />
             )}
             <h1 className="text-2xl font-bold text-white">
