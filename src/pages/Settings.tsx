@@ -272,17 +272,20 @@ const Settings = () => {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
+      // Get public URL with cache-busting timestamp
       const { data: { publicUrl } } = supabase.storage
         .from('contractor-logos')
         .getPublicUrl(fileName);
+      
+      // Add timestamp to force cache refresh
+      const cacheBustedUrl = `${publicUrl}?t=${Date.now()}`;
 
       // Update form and database
-      contractorForm.setValue('logo_url', publicUrl);
+      contractorForm.setValue('logo_url', cacheBustedUrl);
       
       const { error: updateError } = await supabase
         .from('contractors')
-        .update({ logo_url: publicUrl })
+        .update({ logo_url: cacheBustedUrl })
         .eq('id', contractorId);
 
       if (updateError) throw updateError;
