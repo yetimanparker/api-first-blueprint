@@ -181,7 +181,7 @@ export default function Products() {
         .from("products")
         .select(`
           *,
-          product_addons(*),
+          product_addons!product_addons_product_id_fkey(*),
           product_variations(*)
         `)
         .order("display_order", { ascending: true })
