@@ -2000,8 +2000,11 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                       );
                     })()}
                   </div>
+                    </>
+                  )}
                 </Card>
-              ))
+                );
+              })
             )}
           </CardContent>
         </Card>
