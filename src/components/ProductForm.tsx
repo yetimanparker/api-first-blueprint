@@ -71,6 +71,7 @@ interface ProductAddon {
   calculation_type: "total" | "per_unit" | "area_calculation";
   calculation_formula?: string;
   addon_options?: ProductAddonOption[];
+  linked_product_id?: string | null;
 }
 
 interface ProductVariation {
@@ -136,6 +137,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const [showNewCategoryDialog, setShowNewCategoryDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryColor, setNewCategoryColor] = useState("#3B82F6");
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [addonModes, setAddonModes] = useState<Record<number, 'manual' | 'linked'>>({});
   const [showNewSubcategoryDialog, setShowNewSubcategoryDialog] = useState(false);
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const { toast } = useToast();
@@ -232,6 +235,26 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
     loadProductData();
   }, [product]);
 
+  // Fetch available products for add-on linking
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!contractorId) return;
+      
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, description, unit_price, unit_type, is_active')
+        .eq('contractor_id', contractorId)
+        .eq('is_active', true)
+        .order('name');
+      
+      if (!error && data) {
+        setAvailableProducts(data as Product[]);
+      }
+    };
+    
+    fetchProducts();
+  }, [contractorId]);
+
   // Convert category/subcategory UUIDs to names for form initialization (only once)
   const [initialValuesSet, setInitialValuesSet] = useState(false);
   useEffect(() => {
@@ -269,8 +292,40 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       is_active: true,
       calculation_type: "total",
       calculation_formula: "",
+      linked_product_id: null,
     };
     setAddons([...addons, newAddon]);
+    setAddonModes({ ...addonModes, [addons.length]: 'manual' });
+  };
+
+  const handleProductLink = (index: number, productId: string) => {
+    const linkedProduct = availableProducts.find(p => p.id === productId);
+    if (!linkedProduct) return;
+    
+    const updatedAddons = [...addons];
+    updatedAddons[index] = {
+      ...updatedAddons[index],
+      linked_product_id: productId,
+      name: linkedProduct.name,
+      description: linkedProduct.description || "",
+      price_value: linkedProduct.unit_price,
+      price_type: "fixed",
+    };
+    setAddons(updatedAddons);
+  };
+
+  const toggleAddonMode = (index: number, mode: 'manual' | 'linked') => {
+    setAddonModes({ ...addonModes, [index]: mode });
+    
+    if (mode === 'manual') {
+      // Clear linked product data
+      const updatedAddons = [...addons];
+      updatedAddons[index] = {
+        ...updatedAddons[index],
+        linked_product_id: null,
+      };
+      setAddons(updatedAddons);
+    }
   };
 
   const addNewVariation = () => {
@@ -1638,8 +1693,102 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                 No add-ons yet. Click "Add Add-on" to create optional upgrades for this product.
               </p>
             ) : (
-              addons.map((addon, index) => (
+              addons.map((addon, index) => {
+                const currentMode = addonModes[index] || (addon.linked_product_id ? 'linked' : 'manual');
+                
+                return (
                 <Card key={index} className="p-4">
+                  {/* Mode Toggle */}
+                  <div className="flex items-center gap-2 mb-4 pb-3 border-b">
+                    <Button
+                      type="button"
+                      variant={currentMode === 'manual' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => toggleAddonMode(index, 'manual')}
+                    >
+                      Custom Add-on
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={currentMode === 'linked' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => toggleAddonMode(index, 'linked')}
+                    >
+                      Link Product
+                    </Button>
+                  </div>
+
+                  {currentMode === 'linked' ? (
+                    // Product Linking Mode
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor={`addon-product-${index}`}>Select Product</Label>
+                        <Select
+                          value={addon.linked_product_id || ""}
+                          onValueChange={(value) => handleProductLink(index, value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose a product..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableProducts.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name} (${product.unit_price}/{product.unit_type})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {addon.linked_product_id && (
+                        <>
+                          <div className="p-3 bg-muted/50 rounded border space-y-2">
+                            <p className="text-sm font-medium">Linked Product Details:</p>
+                            <p className="text-sm text-muted-foreground">Name: {addon.name}</p>
+                            <p className="text-sm text-muted-foreground">Price: ${addon.price_value}</p>
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor={`addon-price-override-${index}`}>Price Override (Optional)</Label>
+                            <Input
+                              id={`addon-price-override-${index}`}
+                              type="number"
+                              step="0.01"
+                              value={addon.price_value}
+                              onChange={(e) => updateAddon(index, "price_value", parseFloat(e.target.value) || 0)}
+                              placeholder="Override price"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Leave as-is to use product price, or enter custom amount
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={addon.is_active}
+                              onCheckedChange={(checked) => updateAddon(index, "is_active", checked)}
+                            />
+                            <Label>Active</Label>
+                          </div>
+                        </>
+                      )}
+                      
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeAddon(index)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    // Manual Add-on Mode
+                    <>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                       <Label htmlFor={`addon-name-${index}`}>Name</Label>
