@@ -53,6 +53,9 @@ export interface QuoteItem {
   notes?: string;
   variations?: ProductVariation[];
   addons?: ProductAddon[];
+  parentQuoteItemId?: string; // For add-on items that are children of a main product
+  addonId?: string; // Reference to the addon configuration
+  isAddonItem?: boolean; // Flag to identify if this is a placed add-on
 }
 
 export interface ProductVariation {
@@ -75,6 +78,8 @@ export interface ProductAddon {
   quantity: number;
   selectedOptionId?: string;
   selectedOptionName?: string;
+  allowMapPlacement?: boolean; // Whether this addon can be placed on the map
+  placedLocations?: Array<{lat: number, lng: number}>; // Coordinates where addon is placed
 }
 
 export interface QuoteSummary {
@@ -92,6 +97,7 @@ export type WorkflowStep =
   | 'quantity-input'
   | 'measurement' 
   | 'product-configuration' 
+  | 'addon-placement' // New step for placing add-ons on map
   | 'add-another-check'
   | 'project-comments' 
   | 'quote-review' 
@@ -107,4 +113,14 @@ export interface WidgetState {
   quoteItems: QuoteItem[];
   quoteSummary?: QuoteSummary;
   isServiceAreaValid?: boolean;
+  pendingAddon?: {
+    addonId: string;
+    addonName: string;
+    priceValue: number;
+    calculationType: string;
+    selectedOptionId?: string;
+    selectedOptionName?: string;
+    selectedVariations?: ProductVariation[];
+  };
+  currentMainProductItem?: QuoteItem; // Track the main product for addon placement context
 }
