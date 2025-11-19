@@ -71,6 +71,8 @@ interface ProductAddon {
   calculation_type: "total" | "per_unit" | "area_calculation";
   calculation_formula?: string;
   addon_options?: ProductAddonOption[];
+  linked_product_id?: string | null;
+  isLinked?: boolean; // UI state to track link mode
 }
 
 interface ProductVariation {
@@ -127,6 +129,7 @@ interface ProductFormProps {
 
 export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const [addons, setAddons] = useState<ProductAddon[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [addonOptions, setAddonOptions] = useState<Record<string, ProductAddonOption[]>>({});
   const [variations, setVariations] = useState<ProductVariation[]>([]);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
@@ -269,6 +272,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       is_active: true,
       calculation_type: "total",
       calculation_formula: "",
+      isLinked: false,
+      linked_product_id: null,
     };
     setAddons([...addons, newAddon]);
   };
@@ -309,6 +314,39 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
 
   const removeAddon = (index: number) => {
     setAddons(addons.filter((_, i) => i !== index));
+  };
+  
+  const toggleAddonLinkMode = (index: number) => {
+    const updatedAddons = [...addons];
+    const addon = updatedAddons[index];
+    addon.isLinked = !addon.isLinked;
+    
+    if (!addon.isLinked) {
+      // Switching to custom mode - clear linked product
+      addon.linked_product_id = null;
+    } else {
+      // Switching to linked mode - clear custom fields
+      addon.name = "";
+      addon.description = "";
+      addon.price_value = 0;
+    }
+    setAddons(updatedAddons);
+  };
+  
+  const linkProductToAddon = (index: number, productId: string) => {
+    const linkedProduct = availableProducts.find(p => p.id === productId);
+    if (!linkedProduct) return;
+    
+    const updatedAddons = [...addons];
+    updatedAddons[index] = {
+      ...updatedAddons[index],
+      linked_product_id: productId,
+      name: linkedProduct.name,
+      description: linkedProduct.description || "",
+      price_value: linkedProduct.unit_price,
+      price_type: "fixed",
+    };
+    setAddons(updatedAddons);
   };
 
   const updateVariation = (index: number, field: keyof ProductVariation, value: any) => {
@@ -1640,6 +1678,67 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             ) : (
               addons.map((addon, index) => (
                 <Card key={index} className="p-4">
+                  {/* Tab Toggle for Link vs Custom */}
+                  <div className="flex items-center gap-2 mb-4 pb-3 border-b">
+                    <Button
+                      type="button"
+                      variant={!addon.isLinked ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => toggleAddonLinkMode(index)}
+                    >
+                      Custom Add-on
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={addon.isLinked ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => toggleAddonLinkMode(index)}
+                    >
+                      Link Product
+                    </Button>
+                    {addon.linked_product_id && (
+                      <Badge variant="secondary" className="ml-auto">
+                        Linked to: {availableProducts.find(p => p.id === addon.linked_product_id)?.name}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {addon.isLinked ? (
+                    /* Linked Product Mode */
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor={`addon-link-product-${index}`}>Select Product</Label>
+                        <Select
+                          value={addon.linked_product_id || ""}
+                          onValueChange={(value) => linkProductToAddon(index, value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose a product to link..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableProducts.map(product => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name} - ${product.unit_price}/{product.unit_type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {addon.linked_product_id && (
+                        <div className="p-3 bg-muted/30 rounded border">
+                          <p className="text-sm text-muted-foreground mb-2">Linked Product Details:</p>
+                          <div className="space-y-1 text-sm">
+                            <p><span className="font-medium">Name:</span> {addon.name}</p>
+                            <p><span className="font-medium">Price:</span> ${addon.price_value}</p>
+                            {addon.description && <p><span className="font-medium">Description:</span> {addon.description}</p>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Custom Add-on Mode */
+                    <>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                       <Label htmlFor={`addon-name-${index}`}>Name</Label>
@@ -1851,6 +1950,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                       );
                     })()}
                   </div>
+                  </>
+                  )}
                 </Card>
               ))
             )}

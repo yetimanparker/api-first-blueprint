@@ -109,10 +109,10 @@ serve(async (req) => {
       console.error('Error fetching variations:', variationsError);
     }
 
-    // Fetch addons for all products
+    // Fetch addons for all products (explicit foreign key to avoid ambiguity)
     const { data: addons, error: addonsError } = await supabaseClient
       .from('product_addons')
-      .select('*')
+      .select('id, product_id, name, description, price_type, price_value, calculation_type, calculation_formula, display_order, is_active, linked_product_id')
       .in('product_id', productIds)
       .eq('is_active', true)
       .order('display_order', { ascending: true });
