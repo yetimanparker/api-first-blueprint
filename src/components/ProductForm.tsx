@@ -121,6 +121,14 @@ interface Product {
   allow_partial_increments?: boolean;
 }
 
+interface AvailableProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  unit_price: number;
+  unit_type: string;
+}
+
 interface ProductFormProps {
   product?: Product | null;
   onSaved: () => void;
@@ -129,7 +137,7 @@ interface ProductFormProps {
 
 export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
   const [addons, setAddons] = useState<ProductAddon[]>([]);
-  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<AvailableProduct[]>([]);
   const [addonOptions, setAddonOptions] = useState<Record<string, ProductAddonOption[]>>({});
   const [variations, setVariations] = useState<ProductVariation[]>([]);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
@@ -261,6 +269,39 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       setInitialValuesSet(true);
     }
   }, [product, categories, initialValuesSet, form, getSubcategoriesForCategory]);
+  
+  // Load available products for linking
+  useEffect(() => {
+    loadAvailableProducts();
+  }, [contractorId]);
+  
+  const loadAvailableProducts = async () => {
+    try {
+      if (!contractorId) return;
+      
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, unit_price, unit_type, description")
+        .eq("contractor_id", contractorId)
+        .eq("is_active", true)
+        .order("name");
+        
+      if (error) throw error;
+      
+      // Filter out the current product being edited (if any)
+      const filtered = data?.filter(p => p.id !== product?.id) || [];
+      setAvailableProducts(filtered);
+      
+      console.log("Loaded available products for linking:", filtered.length);
+    } catch (error) {
+      console.error("Error loading available products:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load products for linking",
+        variant: "destructive",
+      });
+    }
+  };
 
   const addNewAddon = () => {
     const newAddon: ProductAddon = {
@@ -1715,12 +1756,18 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                           <SelectTrigger>
                             <SelectValue placeholder="Choose a product to link..." />
                           </SelectTrigger>
-                          <SelectContent>
-                            {availableProducts.map(product => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name} - ${product.unit_price}/{product.unit_type}
-                              </SelectItem>
-                            ))}
+                          <SelectContent className="bg-background z-50">
+                            {availableProducts.length === 0 ? (
+                              <div className="p-2 text-sm text-muted-foreground">
+                                No products available for linking
+                              </div>
+                            ) : (
+                              availableProducts.map(product => (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name} - ${product.unit_price}/{product.unit_type}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
