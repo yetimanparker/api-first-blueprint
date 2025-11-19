@@ -374,7 +374,6 @@ export type Database = {
           display_order: number | null
           id: string
           is_active: boolean
-          linked_product_id: string | null
           name: string
           price_type: string
           price_value: number
@@ -389,7 +388,6 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean
-          linked_product_id?: string | null
           name: string
           price_type: string
           price_value: number
@@ -404,7 +402,6 @@ export type Database = {
           display_order?: number | null
           id?: string
           is_active?: boolean
-          linked_product_id?: string | null
           name?: string
           price_type?: string
           price_value?: number
@@ -412,13 +409,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "product_addons_linked_product_id_fkey"
-            columns: ["linked_product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "product_addons_product_id_fkey"
             columns: ["product_id"]
