@@ -621,6 +621,7 @@ export type Database = {
       }
       products: {
         Row: {
+          allow_addon_map_placement: boolean | null
           allow_dimension_editing: boolean | null
           allow_partial_increments: boolean | null
           base_height: number | null
@@ -652,6 +653,7 @@ export type Database = {
           use_tiered_pricing: boolean
         }
         Insert: {
+          allow_addon_map_placement?: boolean | null
           allow_dimension_editing?: boolean | null
           allow_partial_increments?: boolean | null
           base_height?: number | null
@@ -683,6 +685,7 @@ export type Database = {
           use_tiered_pricing?: boolean
         }
         Update: {
+          allow_addon_map_placement?: boolean | null
           allow_dimension_editing?: boolean | null
           allow_partial_increments?: boolean | null
           base_height?: number | null

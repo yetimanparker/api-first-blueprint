@@ -119,6 +119,7 @@ interface Product {
   increment_unit_label?: string | null;
   increment_description?: string | null;
   allow_partial_increments?: boolean;
+  allow_addon_map_placement?: boolean;
 }
 
 interface AvailableProduct {

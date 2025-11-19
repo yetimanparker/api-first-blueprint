@@ -481,7 +481,8 @@ const Widget = () => {
       'product-selection': 'measurement',
       'quantity-input': 'product-configuration',
       'measurement': 'product-configuration',
-      'product-configuration': 'add-another-check',
+      'product-configuration': 'addon-placement', // May skip to add-another-check if no map-placeable addons
+      'addon-placement': 'add-another-check',
       'add-another-check': 'project-comments',
       'project-comments': 'quote-review',
       'contact-after': 'quote-review',
