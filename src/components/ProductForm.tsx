@@ -1029,6 +1029,56 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           />
         </div>
 
+        {/* Product Photo */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Product Photo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="cursor-pointer"
+                  />
+                </div>
+                {photoPreview && (
+                  <div className="relative">
+                    <img
+                      src={photoPreview}
+                      alt="Product preview"
+                      className="w-20 h-20 object-cover rounded border"
+                    />
+                  </div>
+                )}
+              </div>
+              <FormField
+                control={form.control}
+                name="photo_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Photo URL (optional)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="https://example.com/photo.jpg" 
+                        {...field} 
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      You can also provide a direct URL to the product photo
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Base Product Height - For Area Calculation */}
         <Card>
           <CardHeader>
@@ -1404,56 +1454,6 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Product Photo */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Product Photo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoChange}
-                    className="cursor-pointer"
-                  />
-                </div>
-                {photoPreview && (
-                  <div className="relative">
-                    <img
-                      src={photoPreview}
-                      alt="Product preview"
-                      className="w-20 h-20 object-cover rounded border"
-                    />
-                  </div>
-                )}
-              </div>
-              <FormField
-                control={form.control}
-                name="photo_url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Photo URL (optional)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://example.com/photo.jpg" 
-                        {...field} 
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      You can also provide a direct URL to the product photo
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
           </CardContent>
         </Card>
 
