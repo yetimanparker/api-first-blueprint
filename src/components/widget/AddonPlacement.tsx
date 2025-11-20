@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,11 @@ export function AddonPlacement({
   const [placedMarkers, setPlacedMarkers] = useState<google.maps.Marker[]>([]);
   const [placedLocations, setPlacedLocations] = useState<Array<{lat: number, lng: number}>>([]);
 
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const placedMarkersRef = useRef<google.maps.Marker[]>([]);
+  const placedLocationsRef = useRef<Array<{ lat: number; lng: number }>>([]);
+  const STORAGE_KEY = `map-state-${customerAddress || 'default'}`;
+
   useEffect(() => {
     initializeMap();
   }, []);
@@ -43,28 +48,70 @@ export function AddonPlacement({
       const mapElement = document.getElementById('addon-placement-map');
       if (!mapElement) return;
 
-      // Determine center point
+      // Start with a sensible default
       let center = { lat: 40.7128, lng: -74.0060 }; // Default NYC
-      
-      if (mainProductMeasurement.centerPoint) {
-        center = mainProductMeasurement.centerPoint;
-      } else if (mainProductMeasurement.coordinates && mainProductMeasurement.coordinates.length > 0) {
-        const coords = mainProductMeasurement.coordinates[0];
-        center = { lat: coords[0], lng: coords[1] };
-      } else if (mainProductMeasurement.pointLocations && mainProductMeasurement.pointLocations.length > 0) {
-        center = mainProductMeasurement.pointLocations[0];
+      let zoom = 20;
+
+      // Try to restore saved map state from the main measurement view
+      const savedState = sessionStorage.getItem(STORAGE_KEY);
+      if (savedState) {
+        try {
+          const parsed = JSON.parse(savedState);
+          if (parsed.center) {
+            center = parsed.center;
+          }
+          if (parsed.zoom) {
+            zoom = parsed.zoom;
+          }
+        } catch (e) {
+          console.error('Failed to parse saved map state:', e);
+        }
+      } else {
+        // Fallback to main product measurement geometry
+        if (mainProductMeasurement.centerPoint) {
+          center = mainProductMeasurement.centerPoint;
+        } else if (mainProductMeasurement.coordinates && mainProductMeasurement.coordinates.length > 0) {
+          const coords = mainProductMeasurement.coordinates[0];
+          center = { lat: coords[0], lng: coords[1] };
+        } else if (mainProductMeasurement.pointLocations && mainProductMeasurement.pointLocations.length > 0) {
+          center = mainProductMeasurement.pointLocations[0];
+        }
       }
 
       const mapInstance = new google.maps.Map(mapElement, {
         center,
-        zoom: 20,
-        mapTypeId: 'satellite',
-        tilt: 0,
-        mapTypeControl: true,
+        zoom,
+        mapTypeId: google.maps.MapTypeId.HYBRID,
+        mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
+        zoomControl: true,
+        zoomControlOptions: {
+          position: google.maps.ControlPosition.RIGHT_CENTER,
+        },
+        tilt: 0,
+        rotateControl: false,
+        gestureHandling: 'greedy',
+        disableDefaultUI: true,
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }],
+          },
+          {
+            featureType: 'poi.business',
+            stylers: [{ visibility: 'off' }],
+          },
+          {
+            featureType: 'transit',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }],
+          },
+        ],
       });
 
+      mapRef.current = mapInstance;
       setMap(mapInstance);
 
       // Draw the main product measurement (read-only)
@@ -128,8 +175,12 @@ export function AddonPlacement({
   };
 
   const placeAddonMarker = (mapInstance: google.maps.Map, latLng: google.maps.LatLng) => {
+    // Use refs so the map click handler always has the latest marker count
+    const currentMarkers = placedMarkersRef.current;
+    const currentLocations = placedLocationsRef.current;
+
     // Calculate the number for this new marker
-    const markerNumber = placedMarkers.length + 1;
+    const markerNumber = currentMarkers.length + 1;
     
     const marker = new google.maps.Marker({
       position: latLng,
@@ -158,12 +209,15 @@ export function AddonPlacement({
       removeMarker(marker);
     });
 
-    const newMarkers = [...placedMarkers, marker];
-    const newLocations = [...placedLocations, {
+    const newMarkers = [...currentMarkers, marker];
+    const newLocations = [...currentLocations, {
       lat: latLng.lat(),
       lng: latLng.lng()
     }];
     
+    placedMarkersRef.current = newMarkers;
+    placedLocationsRef.current = newLocations;
+
     setPlacedMarkers(newMarkers);
     setPlacedLocations(newLocations);
 
@@ -171,13 +225,20 @@ export function AddonPlacement({
   };
 
   const removeMarker = (marker: google.maps.Marker) => {
-    const index = placedMarkers.indexOf(marker);
+    const currentMarkers = placedMarkersRef.current;
+    const currentLocations = placedLocationsRef.current;
+
+    const index = currentMarkers.indexOf(marker);
     if (index > -1) {
       marker.setMap(null);
-      const updatedMarkers = placedMarkers.filter((_, i) => i !== index);
+      const updatedMarkers = currentMarkers.filter((_, i) => i !== index);
+      const updatedLocations = currentLocations.filter((_, i) => i !== index);
       
+      placedMarkersRef.current = updatedMarkers;
+      placedLocationsRef.current = updatedLocations;
+
       setPlacedMarkers(updatedMarkers);
-      setPlacedLocations(prev => prev.filter((_, i) => i !== index));
+      setPlacedLocations(updatedLocations);
       
       // Update remaining markers' labels with correct sequential numbers
       updatedMarkers.forEach((m, i) => {
@@ -214,7 +275,7 @@ export function AddonPlacement({
         {/* Map Container */}
         <div 
           id="addon-placement-map" 
-          className="w-full h-[400px] border-b"
+          className="w-full min-h-[500px] border-b"
         />
 
         {/* Instructions */}
