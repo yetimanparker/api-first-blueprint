@@ -40,8 +40,6 @@ const Widget = () => {
   const [submittedQuoteNumber, setSubmittedQuoteNumber] = useState<string | null>(null);
   const [submittedProjectComments, setSubmittedProjectComments] = useState<string>('');
   const [showMethodDialog, setShowMethodDialog] = useState(false);
-  const [showHeader, setShowHeader] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
   const [showIncrementDialog, setShowIncrementDialog] = useState(false);
   const [pendingMeasurement, setPendingMeasurement] = useState<MeasurementData | null>(null);
   const [widgetCategories, setWidgetCategories] = useState<Array<{ id: string; name: string; color_hex: string }>>([]);
@@ -162,40 +160,6 @@ const Widget = () => {
       });
     }
   }, [isServiceAreaValid, toast]);
-
-  // Hide header after product selection step
-  useEffect(() => {
-    const isProductSelectionStep = ['contact-before', 'product-selection'].includes(widgetState.currentStep);
-    if (!isProductSelectionStep) {
-      setShowHeader(false);
-    }
-  }, [widgetState.currentStep]);
-
-  // Handle scroll to show/hide header (only during product selection)
-  useEffect(() => {
-    const handleScroll = () => {
-      const isProductSelectionStep = ['contact-before', 'product-selection'].includes(widgetState.currentStep);
-      if (!isProductSelectionStep) return; // Don't handle scroll if past product selection
-      
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY < 50) {
-        // Always show header at top of page
-        setShowHeader(true);
-      } else if (currentScrollY > lastScrollY) {
-        // Scrolling down - hide header
-        setShowHeader(false);
-      } else {
-        // Scrolling up - show header
-        setShowHeader(true);
-      }
-      
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY, widgetState.currentStep]);
 
   // Auto-scroll to current step with debugging
   useEffect(() => {
@@ -634,31 +598,6 @@ const Widget = () => {
               {contractorInfo.business_name}
             </h1>
           </div>
-        </div>
-      )}
-      
-      {/* Header with Steps - Hide on confirmation step */}
-      {widgetState.currentStep !== 'confirmation' && (
-        <div className={`hidden md:block border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 transition-transform duration-300 ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            {stepConfig.map((step, index) => (
-              <div key={step.key} className="flex items-center gap-2 flex-1">
-                <div className={`flex items-center gap-2 ${index <= currentStepIndex ? 'opacity-100' : 'opacity-40'}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    index <= currentStepIndex ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {index + 1}
-                  </div>
-                  <span className="text-sm font-medium hidden sm:inline">{step.label}</span>
-                </div>
-                {index < stepConfig.length - 1 && (
-                  <div className={`flex-1 h-1 rounded ${index < currentStepIndex ? 'bg-primary' : 'bg-muted'}`} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
         </div>
       )}
       
