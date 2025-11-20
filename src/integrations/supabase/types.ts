@@ -646,6 +646,7 @@ export type Database = {
           min_order_quantity: number
           name: string
           photo_url: string | null
+          show_in_widget_selector: boolean
           show_pricing_before_submit: boolean
           sold_in_increments_of: number | null
           subcategory: string | null
@@ -678,6 +679,7 @@ export type Database = {
           min_order_quantity?: number
           name: string
           photo_url?: string | null
+          show_in_widget_selector?: boolean
           show_pricing_before_submit?: boolean
           sold_in_increments_of?: number | null
           subcategory?: string | null
@@ -710,6 +712,7 @@ export type Database = {
           min_order_quantity?: number
           name?: string
           photo_url?: string | null
+          show_in_widget_selector?: boolean
           show_pricing_before_submit?: boolean
           sold_in_increments_of?: number | null
           subcategory?: string | null

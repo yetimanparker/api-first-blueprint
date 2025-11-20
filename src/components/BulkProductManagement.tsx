@@ -24,6 +24,7 @@ interface ProductManagementItem {
   subcategory?: string;
   photoUrl?: string;
   isActive: boolean;
+  showInWidgetSelector: boolean;
   displayOrder: number;
   selected: boolean;
   isNew?: boolean;
@@ -368,6 +369,12 @@ export function BulkProductManagement() {
     ));
   };
 
+  const updateItemWidgetSelector = (index: number, showInWidgetSelector: boolean) => {
+    setPreviewItems(prev => prev.map((item, i) => 
+      i === index ? { ...item, showInWidgetSelector } : item
+    ));
+  };
+
   const getChangeDescription = (item: ProductManagementItem) => {
     const changes = [];
     if (item.isNew) {
@@ -623,6 +630,22 @@ export function BulkProductManagement() {
                             <SelectContent>
                               <SelectItem value="active">Active</SelectItem>
                               <SelectItem value="inactive">Inactive</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
+                          <Label className="text-xs">Widget Visibility</Label>
+                          <Select
+                            value={item.showInWidgetSelector ? 'visible' : 'hidden'}
+                            onValueChange={(value) => updateItemWidgetSelector(index, value === 'visible')}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="visible">Visible</SelectItem>
+                              <SelectItem value="hidden">Hidden</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
