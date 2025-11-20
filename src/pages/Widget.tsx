@@ -32,6 +32,7 @@ const Widget = () => {
     currentStep: 'product-selection', // Will be updated by useEffect based on settings
     customerInfo: {},
     quoteItems: [],
+    pendingAddons: [],
   });
 
   const [contractorInfo, setContractorInfo] = useState<any>(null);
@@ -486,7 +487,10 @@ const Widget = () => {
       ...prev,
       currentStep: 'product-selection',
       currentProductId: undefined,
-      currentMeasurement: undefined
+      currentMeasurement: undefined,
+      pendingAddon: undefined,
+      currentMainProductItem: undefined,
+      pendingAddons: []
     }));
   };
 
@@ -702,8 +706,9 @@ const Widget = () => {
               settings={settings}
               onRemove={goToProductSelection}
               cachedProducts={widgetProducts}
+              pendingAddons={widgetState.pendingAddons}
               onAddonPlacementStart={(addon, mainItem) => {
-                addQuoteItem(mainItem);
+                // Don't add mainItem yet - keep it for reference
                 setWidgetState(prev => ({
                   ...prev,
                   pendingAddon: {
@@ -713,6 +718,12 @@ const Widget = () => {
                   currentMainProductItem: mainItem
                 }));
                 setShowAddonMethodDialog(true);
+              }}
+              onRemovePendingAddon={(addonItemId) => {
+                setWidgetState(prev => ({
+                  ...prev,
+                  pendingAddons: prev.pendingAddons?.filter(item => item.id !== addonItemId) || []
+                }));
               }}
             />
           </div>
@@ -755,20 +766,19 @@ const Widget = () => {
                   variations: widgetState.pendingAddon!.selectedVariations
                 }));
                 
+                // Add to pending addons instead of quoteItems and return to configuration
                 setWidgetState(prev => ({
                   ...prev,
-                  quoteItems: [...prev.quoteItems, ...newAddonItems],
+                  pendingAddons: [...(prev.pendingAddons || []), ...newAddonItems],
                   pendingAddon: undefined,
-                  currentMainProductItem: undefined,
-                  currentStep: settings.contact_capture_timing === 'after_quote' ? 'contact-after' : 'quote-review'
+                  currentStep: 'product-configuration'
                 }));
               }}
               onCancel={() => {
                 setWidgetState(prev => ({
                   ...prev,
                   pendingAddon: undefined,
-                  currentMainProductItem: undefined,
-                  currentStep: settings.contact_capture_timing === 'after_quote' ? 'contact-after' : 'quote-review'
+                  currentStep: 'product-configuration'
                 }));
               }}
             />
@@ -813,12 +823,12 @@ const Widget = () => {
                   variations: widgetState.pendingAddon!.selectedVariations
                 }));
 
+                // Add to pending addons instead of quoteItems and return to configuration
                 setWidgetState(prev => ({
                   ...prev,
-                  quoteItems: [...prev.quoteItems, ...newAddonItems],
+                  pendingAddons: [...(prev.pendingAddons || []), ...newAddonItems],
                   pendingAddon: undefined,
-                  currentMainProductItem: undefined,
-                  currentStep: settings.contact_capture_timing === 'after_quote' ? 'contact-after' : 'quote-review'
+                  currentStep: 'product-configuration'
                 }));
               }}
             />

@@ -125,4 +125,5 @@ export interface WidgetState {
     linkedProductId?: string;
   };
   currentMainProductItem?: QuoteItem; // Track the main product for addon placement context
+  pendingAddons?: QuoteItem[]; // Track add-ons that have been configured but not yet added to quote
 }

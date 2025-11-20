@@ -105,6 +105,7 @@ interface ProductConfigurationProps {
   settings: GlobalSettings;
   onRemove?: () => void;
   cachedProducts?: any[];
+  pendingAddons?: QuoteItem[];
   onAddonPlacementStart?: (addon: {
     addonId: string;
     addonName: string;
@@ -115,6 +116,7 @@ interface ProductConfigurationProps {
     selectedVariations?: any[];
     linkedProductId?: string;
   }, mainItem: QuoteItem) => void;
+  onRemovePendingAddon?: (addonItemId: string) => void;
 }
 
 const ProductConfiguration = ({ 
@@ -125,7 +127,9 @@ const ProductConfiguration = ({
   settings,
   onRemove,
   cachedProducts,
-  onAddonPlacementStart
+  pendingAddons,
+  onAddonPlacementStart,
+  onRemovePendingAddon
 }: ProductConfigurationProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [variations, setVariations] = useState<Variation[]>([]);
@@ -447,8 +451,17 @@ const ProductConfiguration = ({
       coordinates: quoteItem.measurement.coordinates?.length
     });
 
-    console.log('🚀 Calling onAddToQuote with quoteItem');
+    // Add main item + all pending addons to quote
+    console.log('🚀 Calling onAddToQuote with main item and pending addons');
     onAddToQuote(quoteItem);
+    
+    // Add all pending addons to quote
+    if (pendingAddons && pendingAddons.length > 0) {
+      pendingAddons.forEach(addonItem => {
+        onAddToQuote(addonItem);
+      });
+    }
+    
     console.log('✅ onAddToQuote completed, setting isAdded to true');
     setIsAdded(true);
   };
@@ -792,6 +805,52 @@ const ProductConfiguration = ({
         </CardContent>
       </Card>
 
+      {/* Pending Add-ons Section */}
+      {pendingAddons && pendingAddons.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
+                <CardTitle>Add-ons Ready to Add</CardTitle>
+              </div>
+              <Badge variant="secondary">{pendingAddons.length} item{pendingAddons.length !== 1 ? 's' : ''}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {pendingAddons.map((addonItem) => (
+                <div key={addonItem.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{addonItem.productName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {addonItem.quantity} × {formatExactPrice(addonItem.unitPrice, {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      })} = {formatExactPrice(addonItem.lineTotal, {
+                        currency_symbol: settings.currency_symbol,
+                        decimal_precision: settings.decimal_precision
+                      })}
+                    </p>
+                  </div>
+                  {onRemovePendingAddon && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRemovePendingAddon(addonItem.id)}
+                      className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Product Summary Card at Bottom */}
       <Card className="border-l-4 shadow-sm border-primary">
         <CardContent className="p-6">
@@ -957,12 +1016,36 @@ const ProductConfiguration = ({
 
                 {/* Separator and Total */}
                 <div className="border-t-2 border-border pt-3">
+                  {pendingAddons && pendingAddons.length > 0 && (
+                    <div className="text-sm text-muted-foreground mb-2 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Main Product:</span>
+                        <span>{formatExactPrice(lineTotal, {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        })}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Add-ons ({pendingAddons.length}):</span>
+                        <span>{formatExactPrice(
+                          pendingAddons.reduce((sum, item) => sum + item.lineTotal, 0),
+                          {
+                            currency_symbol: settings.currency_symbol,
+                            decimal_precision: settings.decimal_precision
+                          }
+                        )}</span>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex justify-end">
                     <span className="text-2xl font-bold">
-                      Total: {formatExactPrice(lineTotal, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })}
+                      Total: {formatExactPrice(
+                        lineTotal + (pendingAddons?.reduce((sum, item) => sum + item.lineTotal, 0) || 0),
+                        {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        }
+                      )}
                     </span>
                   </div>
                 </div>
