@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Package, Loader2, Trash2, Calculator } from 'lucide-react';
+import { Plus, Minus, Package, Loader2, Trash2, Calculator, MapPin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { QuoteItem, MeasurementData, ProductVariation, ProductAddon } from '@/types/widget';
@@ -637,8 +637,8 @@ const ProductConfiguration = ({
                             return (
                               <Button
                                 type="button"
-                                variant="default"
-                                size="sm"
+                                variant="outline"
+                                className="h-8 gap-2"
                                 onClick={() => {
                                   // Build main product quote item using same logic as handleAddToQuote
                                   const selectedVariationObjects: ProductVariation[] = [];
@@ -700,6 +700,7 @@ const ProductConfiguration = ({
                                   );
                                 }}
                               >
+                                <MapPin className="h-3 w-3" />
                                 Place on Map
                               </Button>
                             );
