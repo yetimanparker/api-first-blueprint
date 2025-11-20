@@ -582,8 +582,18 @@ const Widget = () => {
   // Helper to check if a step should be visible
   const isStepVisible = (step: WorkflowStep): boolean => {
     const stepOrder: WorkflowStep[] = [
-      'contact-before', 'product-selection', 'quantity-input', 'measurement', 'product-configuration',
-      'add-another-check', 'contact-after', 'project-comments', 'quote-review', 'confirmation'
+      'contact-before',
+      'product-selection',
+      'quantity-input',
+      'measurement',
+      'product-configuration',
+      'addon-placement',
+      'addon-quantity-input',
+      'add-another-check',
+      'contact-after',
+      'project-comments',
+      'quote-review',
+      'confirmation',
     ];
     const currentIndex = stepOrder.indexOf(widgetState.currentStep);
     const stepIndex = stepOrder.indexOf(step);
