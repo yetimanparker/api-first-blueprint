@@ -210,17 +210,6 @@ export function AddonPlacement({
 
   return (
     <Card className="w-full">
-      <CardHeader className="bg-primary text-primary-foreground">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            <span>Place {addonName} on Map</span>
-          </div>
-          <Badge variant="secondary" className="bg-background/20 text-primary-foreground">
-            {placedLocations.length} placed
-          </Badge>
-        </CardTitle>
-      </CardHeader>
       <CardContent className="p-0">
         {/* Map Container */}
         <div 
