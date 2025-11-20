@@ -26,6 +26,7 @@ const productSchema = z.object({
   min_order_quantity: z.number().min(0.01, "Minimum order quantity must be greater than 0"),
   unit_type: z.enum(["sq_ft", "linear_ft", "each", "hour", "cubic_yard", "pound", "ton", "pallet"]),
   is_active: z.boolean(),
+  show_in_widget_selector: z.boolean(),
   show_pricing_before_submit: z.boolean(),
   use_tiered_pricing: z.boolean(),
   display_order: z.number().optional(),
@@ -100,6 +101,7 @@ interface Product {
   min_order_quantity: number;
   unit_type: string;
   is_active: boolean;
+  show_in_widget_selector?: boolean;
   show_pricing_before_submit: boolean;
   use_tiered_pricing?: boolean;
   display_order: number | null;
@@ -166,6 +168,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       min_order_quantity: product?.min_order_quantity || 1,
       unit_type: (product?.unit_type as any) || globalSettings?.default_unit_type || "sq_ft",
       is_active: product?.is_active ?? (globalSettings?.auto_activate_products ?? true),
+      show_in_widget_selector: product?.show_in_widget_selector ?? true,
       show_pricing_before_submit: product?.show_pricing_before_submit ?? true,
       use_tiered_pricing: product?.use_tiered_pricing ?? false,
       display_order: product?.display_order || 0,
@@ -580,6 +583,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         min_order_quantity: Number(data.min_order_quantity),
         unit_type: data.unit_type,
         is_active: data.is_active,
+        show_in_widget_selector: data.show_in_widget_selector,
         show_pricing_before_submit: data.show_pricing_before_submit,
         use_tiered_pricing: data.use_tiered_pricing,
         display_order: data.display_order || 0,
@@ -1264,7 +1268,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <FormField
             control={form.control}
             name="is_active"
@@ -1273,7 +1277,28 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                 <div className="space-y-0.5">
                   <FormLabel className="text-base">Active Product</FormLabel>
                   <FormDescription>
-                    Active products are available for quotes
+                    Available in system and as add-on
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="show_in_widget_selector"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Show in Widget</FormLabel>
+                  <FormDescription>
+                    Display in customer product selector
                   </FormDescription>
                 </div>
                 <FormControl>
