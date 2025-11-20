@@ -40,6 +40,7 @@ const Widget = () => {
   const [submittedQuoteNumber, setSubmittedQuoteNumber] = useState<string | null>(null);
   const [submittedProjectComments, setSubmittedProjectComments] = useState<string>('');
   const [showMethodDialog, setShowMethodDialog] = useState(false);
+  const [showAddonMethodDialog, setShowAddonMethodDialog] = useState(false);
   const [showIncrementDialog, setShowIncrementDialog] = useState(false);
   const [pendingMeasurement, setPendingMeasurement] = useState<MeasurementData | null>(null);
   const [widgetCategories, setWidgetCategories] = useState<Array<{ id: string; name: string; color_hex: string }>>([]);
@@ -428,6 +429,15 @@ const Widget = () => {
     }));
   };
 
+  const handleAddonMethodSelect = (method: 'manual' | 'map') => {
+    setShowAddonMethodDialog(false);
+    const nextStep = method === 'manual' ? 'addon-quantity-input' : 'addon-placement';
+    setWidgetState(prev => ({
+      ...prev,
+      currentStep: nextStep
+    }));
+  };
+
   const resetToMeasurement = () => {
     console.log('Resetting to measurement step, clearing current measurement');
     setWidgetState(prev => ({
@@ -448,6 +458,7 @@ const Widget = () => {
       'measurement': 'product-configuration',
       'product-configuration': 'addon-placement', // May skip to add-another-check if no map-placeable addons
       'addon-placement': 'add-another-check',
+      'addon-quantity-input': 'add-another-check',
       'add-another-check': 'project-comments',
       'project-comments': 'quote-review',
       'contact-after': 'quote-review',
@@ -699,9 +710,9 @@ const Widget = () => {
                     ...addon,
                     calculationType: 'total'
                   },
-                  currentMainProductItem: mainItem,
-                  currentStep: 'addon-placement'
+                  currentMainProductItem: mainItem
                 }));
+                setShowAddonMethodDialog(true);
               }}
             />
           </div>
@@ -755,6 +766,56 @@ const Widget = () => {
               onCancel={() => {
                 setWidgetState(prev => ({
                   ...prev,
+                  pendingAddon: undefined,
+                  currentMainProductItem: undefined,
+                  currentStep: settings.contact_capture_timing === 'after_quote' ? 'contact-after' : 'quote-review'
+                }));
+              }}
+            />
+          </div>
+        )}
+
+        {/* Addon Quantity Input Section - For manual quantity entry */}
+        {widgetState.currentStep === 'addon-quantity-input' && widgetState.pendingAddon && widgetState.currentMainProductItem && (
+          <div id="step-addon-quantity-input" className="px-4 py-6">
+            <QuantityInput
+              productId={widgetState.pendingAddon.linkedProductId || ''}
+              productName={widgetState.pendingAddon.addonName}
+              productImage={undefined}
+              unitType="each"
+              minQuantity={1}
+              settings={settings}
+              onQuantitySet={(quantity, measurement) => {
+                const addonProductId = widgetState.pendingAddon!.linkedProductId || widgetState.currentMainProductItem!.productId;
+                const addonProductName = widgetState.pendingAddon!.linkedProductId 
+                  ? widgetState.pendingAddon!.addonName 
+                  : `${widgetState.currentMainProductItem!.productName} - ${widgetState.pendingAddon!.addonName}`;
+                
+                const newAddonItems = Array.from({ length: quantity }, (_, index) => ({
+                  id: `addon-${Date.now()}-${index}`,
+                  productId: addonProductId,
+                  productName: addonProductName,
+                  unitType: 'each' as const,
+                  measurement: {
+                    type: 'point' as const,
+                    value: 1,
+                    unit: 'each',
+                    pointLocations: [],
+                    centerPoint: undefined,
+                    mapColor: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
+                  },
+                  unitPrice: widgetState.pendingAddon!.priceValue,
+                  quantity: 1,
+                  lineTotal: widgetState.pendingAddon!.priceValue,
+                  parentQuoteItemId: widgetState.currentMainProductItem!.id,
+                  addonId: widgetState.pendingAddon!.addonId,
+                  isAddonItem: true,
+                  variations: widgetState.pendingAddon!.selectedVariations
+                }));
+
+                setWidgetState(prev => ({
+                  ...prev,
+                  quoteItems: [...prev.quoteItems, ...newAddonItems],
                   pendingAddon: undefined,
                   currentMainProductItem: undefined,
                   currentStep: settings.contact_capture_timing === 'after_quote' ? 'contact-after' : 'quote-review'
@@ -842,6 +903,15 @@ const Widget = () => {
           open={showMethodDialog}
           productName={selectedProduct.name}
           onMethodSelect={handleMethodSelect}
+        />
+      )}
+
+      {/* Method Selection Dialog for add-ons */}
+      {widgetState.pendingAddon && (
+        <QuantityMethodDialog
+          open={showAddonMethodDialog}
+          productName={widgetState.pendingAddon.addonName}
+          onMethodSelect={handleAddonMethodSelect}
         />
       )}
 

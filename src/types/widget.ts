@@ -98,6 +98,7 @@ export type WorkflowStep =
   | 'measurement' 
   | 'product-configuration' 
   | 'addon-placement' // New step for placing add-ons on map
+  | 'addon-quantity-input' // New step for manual quantity entry of add-ons
   | 'add-another-check'
   | 'project-comments' 
   | 'quote-review' 
