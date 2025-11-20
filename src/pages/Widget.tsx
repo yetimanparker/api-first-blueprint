@@ -776,10 +776,16 @@ const Widget = () => {
               mainProductMeasurement={widgetState.currentMainProductItem.measurement}
               customerAddress={widgetState.customerInfo.address}
               onComplete={(locations) => {
+                // Use linked product ID if available, otherwise fall back to main product ID
+                const addonProductId = widgetState.pendingAddon!.linkedProductId || widgetState.currentMainProductItem!.productId;
+                const addonProductName = widgetState.pendingAddon!.linkedProductId 
+                  ? widgetState.pendingAddon!.addonName 
+                  : `${widgetState.currentMainProductItem!.productName} - ${widgetState.pendingAddon!.addonName}`;
+                
                 const newAddonItems = locations.map((location, index) => ({
                   id: `addon-${Date.now()}-${index}`,
-                  productId: widgetState.currentMainProductItem!.productId,
-                  productName: `${widgetState.currentMainProductItem!.productName} - ${widgetState.pendingAddon!.addonName}`,
+                  productId: addonProductId,
+                  productName: addonProductName,
                   unitType: 'each' as const,
                   measurement: {
                     type: 'point' as const,

@@ -37,6 +37,15 @@ const getDisplayUnit = (unitType: string, isVolumeBased: boolean = false) => {
   return unitMap[unitType] || unitType;
 };
 
+interface AddonOption {
+  id: string;
+  name: string;
+  description?: string;
+  price_adjustment: number;
+  adjustment_type: 'fixed' | 'percentage';
+  image_url?: string;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -52,6 +61,7 @@ interface Product {
   increment_unit_label?: string | null;
   increment_description?: string | null;
   allow_partial_increments?: boolean;
+  allow_addon_map_placement?: boolean;
 }
 
 interface Variation {
@@ -74,6 +84,9 @@ interface Addon {
   price_value: number;
   calculation_type: 'total' | 'per_unit' | 'area_calculation';
   price_type: string;
+  addon_options?: AddonOption[];
+  linked_product_id?: string | null;
+  allow_map_placement?: boolean;
 }
 
 interface PricingTier {
@@ -96,7 +109,11 @@ interface ProductConfigurationProps {
     addonId: string;
     addonName: string;
     priceValue: number;
+    calculationType?: string;
+    selectedOptionId?: string;
+    selectedOptionName?: string;
     selectedVariations?: any[];
+    linkedProductId?: string;
   }, mainItem: QuoteItem) => void;
 }
 
@@ -611,29 +628,109 @@ const ProductConfiguration = ({
                           </p>
                         </div>
                         
-                        {/* Quantity controls */}
-                        <div className="flex items-center gap-2 justify-end sm:justify-start flex-shrink-0">
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) - 1)}
-                            disabled={(selectedAddons[addon.id] || 0) <= 0}
-                            className="h-8 w-8"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-6 text-center text-sm font-semibold">
-                            {selectedAddons[addon.id] || 0}
-                          </span>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) + 1)}
-                            className="h-8 w-8"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
+                        {/* Addon controls - map placement or quantity */}
+                        {(() => {
+                          const canPlaceOnMap = product?.allow_addon_map_placement && addon.allow_map_placement;
+                          
+                          if (canPlaceOnMap && onAddonPlacementStart) {
+                            // Map-placeable addon - show "Place on Map" button
+                            return (
+                              <Button
+                                type="button"
+                                variant="default"
+                                size="sm"
+                                onClick={() => {
+                                  // Build main product quote item using same logic as handleAddToQuote
+                                  const selectedVariationObjects: ProductVariation[] = [];
+                                  if (selectedVariationId) {
+                                    const variation = variations.find(v => v.id === selectedVariationId);
+                                    if (variation) {
+                                      selectedVariationObjects.push({
+                                        id: variation.id,
+                                        name: variation.name,
+                                        priceAdjustment: variation.price_adjustment,
+                                        adjustmentType: variation.adjustment_type,
+                                        height_value: variation.height_value,
+                                        unit_of_measurement: variation.unit_of_measurement,
+                                        affects_area_calculation: variation.affects_area_calculation
+                                      });
+                                    }
+                                  }
+
+                                  const depthValue = parseFloat(depth);
+                                  let actualQuantity = measurement.value;
+                                  if (depthValue && !isNaN(depthValue) && isVolumeBased && measurement.type === 'area') {
+                                    actualQuantity = (measurement.value * depthValue) / 324;
+                                  }
+
+                                  const measurementWithOptions: MeasurementData = {
+                                    ...measurement,
+                                    depth: (depthValue && !isNaN(depthValue) && isVolumeBased) ? depthValue : undefined,
+                                    variations: selectedVariationObjects.length > 0 ? selectedVariationObjects : undefined,
+                                  };
+
+                                  const mainItem: QuoteItem = {
+                                    id: Date.now().toString(),
+                                    productId: product.id,
+                                    productName: product.name,
+                                    unitType: product.unit_type,
+                                    measurement: measurementWithOptions,
+                                    unitPrice: product.unit_price,
+                                    quantity: actualQuantity,
+                                    lineTotal: calculateItemPrice(),
+                                    variations: selectedVariationObjects,
+                                  };
+                                  
+                                  // Calculate addon price with any option adjustments
+                                  const selectedOption = hasOptions ? addonOptions[addon.id].find(opt => opt.id === selectedAddonOptions[addon.id]) : null;
+                                  const optionPrice = selectedOption?.price_adjustment || 0;
+                                  const totalAddonPrice = addon.price_value + optionPrice;
+                                  
+                                  onAddonPlacementStart(
+                                    {
+                                      addonId: addon.id,
+                                      addonName: addon.name,
+                                      priceValue: totalAddonPrice,
+                                      calculationType: addon.calculation_type,
+                                      selectedOptionId: selectedAddonOptions[addon.id],
+                                      selectedOptionName: selectedOption?.name,
+                                      linkedProductId: addon.linked_product_id || undefined,
+                                    },
+                                    mainItem
+                                  );
+                                }}
+                              >
+                                Place on Map
+                              </Button>
+                            );
+                          }
+                          
+                          // Normal addon behavior - show quantity controls
+                          return (
+                            <div className="flex items-center gap-2 justify-end sm:justify-start flex-shrink-0">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) - 1)}
+                                disabled={(selectedAddons[addon.id] || 0) <= 0}
+                                className="h-8 w-8"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-6 text-center text-sm font-semibold">
+                                {selectedAddons[addon.id] || 0}
+                              </span>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => updateAddonQuantity(addon.id, (selectedAddons[addon.id] || 0) + 1)}
+                                className="h-8 w-8"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          );
+                        })()}
                       </div>
                       
                       {/* Option Selector (only show if addon has options and quantity > 0) */}

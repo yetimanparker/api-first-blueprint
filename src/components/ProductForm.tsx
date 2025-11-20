@@ -74,6 +74,7 @@ interface ProductAddon {
   addon_options?: ProductAddonOption[];
   linked_product_id?: string | null;
   isLinked?: boolean; // UI state to track link mode
+  allow_map_placement?: boolean;
 }
 
 interface ProductVariation {
@@ -644,6 +645,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             is_active: addon.is_active,
             calculation_type: addon.calculation_type,
             calculation_formula: (addon.calculation_formula || "").trim() || null,
+            linked_product_id: addon.linked_product_id || null,
+            allow_map_placement: addon.allow_map_placement || false,
           }));
 
           const { data: insertedAddons, error: addonError } = await supabase
@@ -1737,6 +1740,26 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="allow_addon_map_placement"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-muted/30">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Enable Map-Placed Add-ons</FormLabel>
+                    <FormDescription>
+                      Allows certain add-ons (like gates) to be placed as individual locations on the map in the widget
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
             {addons.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">
                 No add-ons yet. Click "Add Add-on" to create optional upgrades for this product.
@@ -1798,14 +1821,43 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                       </div>
                       
                       {addon.linked_product_id && (
-                        <div className="p-3 bg-muted/30 rounded border">
-                          <p className="text-sm text-muted-foreground mb-2">Linked Product Details:</p>
-                          <div className="space-y-1 text-sm">
-                            <p><span className="font-medium">Name:</span> {addon.name}</p>
-                            <p><span className="font-medium">Price:</span> ${addon.price_value}</p>
-                            {addon.description && <p><span className="font-medium">Description:</span> {addon.description}</p>}
+                        <>
+                          <div className="p-3 bg-muted/30 rounded border">
+                            <p className="text-sm text-muted-foreground mb-2">Linked Product Details:</p>
+                            <div className="space-y-1 text-sm">
+                              <p><span className="font-medium">Name:</span> {addon.name}</p>
+                              <p><span className="font-medium">Price:</span> ${addon.price_value}</p>
+                              {addon.description && <p><span className="font-medium">Description:</span> {addon.description}</p>}
+                            </div>
                           </div>
-                        </div>
+                          
+                          {/* Map placement toggle - only show if product-level setting is enabled and linked product is compatible */}
+                          {form.watch("allow_addon_map_placement") && (() => {
+                            const linkedProduct = availableProducts.find(p => p.id === addon.linked_product_id);
+                            const isCompatibleForMap = linkedProduct?.unit_type === 'each';
+                            
+                            return isCompatibleForMap ? (
+                              <div className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                <div className="space-y-0.5">
+                                  <Label className="text-sm font-medium">Place this add-on on the map in widget</Label>
+                                  <p className="text-xs text-muted-foreground">
+                                    Each placement becomes its own quote line (e.g., each gate along a fence)
+                                  </p>
+                                </div>
+                                <Switch
+                                  checked={addon.allow_map_placement || false}
+                                  onCheckedChange={(checked) => updateAddon(index, "allow_map_placement", checked)}
+                                />
+                              </div>
+                            ) : (
+                              <div className="p-3 bg-muted/50 rounded border border-dashed">
+                                <p className="text-xs text-muted-foreground">
+                                  Map placement only available for 'each'-based products
+                                </p>
+                              </div>
+                            );
+                          })()}
+                        </>
                       )}
                     </div>
                   ) : (

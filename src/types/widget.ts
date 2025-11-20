@@ -121,6 +121,7 @@ export interface WidgetState {
     selectedOptionId?: string;
     selectedOptionName?: string;
     selectedVariations?: ProductVariation[];
+    linkedProductId?: string;
   };
   currentMainProductItem?: QuoteItem; // Track the main product for addon placement context
 }
