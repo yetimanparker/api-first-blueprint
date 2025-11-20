@@ -57,7 +57,7 @@ export function AddonPlacement({
 
       const mapInstance = new google.maps.Map(mapElement, {
         center,
-        zoom: 19,
+        zoom: 20,
         mapTypeId: 'satellite',
         tilt: 0,
         mapTypeControl: true,
@@ -69,6 +69,9 @@ export function AddonPlacement({
 
       // Draw the main product measurement (read-only)
       drawMainProductShape(mapInstance);
+      
+      // Fit bounds to show the main product measurement
+      fitMapBounds(mapInstance);
 
       // Add click listener for placing add-on markers
       mapInstance.addListener('click', (e: google.maps.MapMouseEvent) => {
@@ -80,6 +83,42 @@ export function AddonPlacement({
     } catch (error) {
       console.error('Error initializing map:', error);
       toast.error('Failed to load map');
+    }
+  };
+
+  const fitMapBounds = (mapInstance: google.maps.Map) => {
+    const bounds = new google.maps.LatLngBounds();
+    
+    if (mainProductMeasurement.coordinates && mainProductMeasurement.coordinates.length > 0) {
+      mainProductMeasurement.coordinates.forEach(coord => {
+        bounds.extend({ lat: coord[0], lng: coord[1] });
+      });
+      mapInstance.fitBounds(bounds);
+      
+      // Add padding and ensure minimum zoom
+      google.maps.event.addListenerOnce(mapInstance, 'idle', () => {
+        const currentZoom = mapInstance.getZoom();
+        if (currentZoom && currentZoom > 20) {
+          mapInstance.setZoom(20);
+        } else if (currentZoom && currentZoom < 18) {
+          mapInstance.setZoom(18);
+        }
+      });
+    } else if (mainProductMeasurement.pointLocations && mainProductMeasurement.pointLocations.length > 0) {
+      mainProductMeasurement.pointLocations.forEach(point => {
+        bounds.extend(point);
+      });
+      mapInstance.fitBounds(bounds);
+      
+      // Add padding and ensure minimum zoom
+      google.maps.event.addListenerOnce(mapInstance, 'idle', () => {
+        const currentZoom = mapInstance.getZoom();
+        if (currentZoom && currentZoom > 20) {
+          mapInstance.setZoom(20);
+        } else if (currentZoom && currentZoom < 18) {
+          mapInstance.setZoom(18);
+        }
+      });
     }
   };
 
@@ -128,12 +167,15 @@ export function AddonPlacement({
   };
 
   const placeAddonMarker = (mapInstance: google.maps.Map, latLng: google.maps.LatLng) => {
+    // Calculate the number for this new marker
+    const markerNumber = placedMarkers.length + 1;
+    
     const marker = new google.maps.Marker({
       position: latLng,
       map: mapInstance,
-      title: `${addonName} #${placedMarkers.length + 1}`,
+      title: `${addonName} #${markerNumber}`,
       label: {
-        text: `${placedMarkers.length + 1}`,
+        text: `${markerNumber}`,
         color: 'white',
         fontSize: '12px',
         fontWeight: 'bold'
@@ -155,32 +197,35 @@ export function AddonPlacement({
       removeMarker(marker);
     });
 
-    setPlacedMarkers(prev => [...prev, marker]);
-    setPlacedLocations(prev => [...prev, {
+    const newMarkers = [...placedMarkers, marker];
+    const newLocations = [...placedLocations, {
       lat: latLng.lat(),
       lng: latLng.lng()
-    }]);
+    }];
+    
+    setPlacedMarkers(newMarkers);
+    setPlacedLocations(newLocations);
 
-    toast.success(`${addonName} #${placedMarkers.length + 1} placed`);
+    toast.success(`${addonName} #${markerNumber} placed`);
   };
 
   const removeMarker = (marker: google.maps.Marker) => {
     const index = placedMarkers.indexOf(marker);
     if (index > -1) {
       marker.setMap(null);
-      setPlacedMarkers(prev => prev.filter((_, i) => i !== index));
+      const updatedMarkers = placedMarkers.filter((_, i) => i !== index);
+      
+      setPlacedMarkers(updatedMarkers);
       setPlacedLocations(prev => prev.filter((_, i) => i !== index));
       
-      // Update remaining markers' labels
-      placedMarkers.forEach((m, i) => {
-        if (i > index) {
-          m.setLabel({
-            text: `${i}`,
-            color: 'white',
-            fontSize: '12px',
-            fontWeight: 'bold'
-          });
-        }
+      // Update remaining markers' labels with correct sequential numbers
+      updatedMarkers.forEach((m, i) => {
+        m.setLabel({
+          text: `${i + 1}`,
+          color: 'white',
+          fontSize: '12px',
+          fontWeight: 'bold'
+        });
       });
       
       toast.info(`${addonName} removed`);
