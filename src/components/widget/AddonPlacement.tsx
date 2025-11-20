@@ -182,6 +182,9 @@ export function AddonPlacement({
     // Calculate the number for this new marker
     const markerNumber = currentMarkers.length + 1;
     
+    // Use the main product's color for consistency
+    const markerColor = mainProductMeasurement.mapColor || '#3B82F6';
+    
     const marker = new google.maps.Marker({
       position: latLng,
       map: mapInstance,
@@ -195,7 +198,7 @@ export function AddonPlacement({
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
         scale: 12,
-        fillColor: '#10B981',
+        fillColor: markerColor,
         fillOpacity: 1,
         strokeColor: 'white',
         strokeWeight: 2,
