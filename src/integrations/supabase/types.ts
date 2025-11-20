@@ -367,6 +367,7 @@ export type Database = {
       }
       product_addons: {
         Row: {
+          allow_map_placement: boolean
           calculation_formula: string | null
           calculation_type: string
           created_at: string
@@ -382,6 +383,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allow_map_placement?: boolean
           calculation_formula?: string | null
           calculation_type?: string
           created_at?: string
@@ -397,6 +399,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allow_map_placement?: boolean
           calculation_formula?: string | null
           calculation_type?: string
           created_at?: string
