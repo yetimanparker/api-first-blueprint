@@ -232,7 +232,7 @@ export function AddonPlacement({
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2">
             <Button
-              variant="default"
+              variant="success"
               size="default"
               onClick={handleComplete}
               disabled={placedLocations.length === 0}
