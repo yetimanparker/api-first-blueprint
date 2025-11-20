@@ -451,6 +451,7 @@ const QuoteReview = ({
               <Button 
                 onClick={onNext} 
                 variant="outline" 
+                size="lg"
                 className="flex-1"
               >
                 Skip
