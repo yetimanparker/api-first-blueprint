@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import ContactForm from '@/components/widget/ContactForm';
 import ProductSelector from '@/components/widget/ProductSelector';
 import MeasurementTools from '@/components/widget/MeasurementTools';
-import QuantityInput from '@/components/widget/QuantityInput';
+import QuantityInputDialog from '@/components/widget/QuantityInputDialog';
 import QuantityMethodDialog from '@/components/widget/QuantityMethodDialog';
 import { IncrementConfirmationDialog } from '@/components/widget/IncrementConfirmationDialog';
 import ProductConfiguration from '@/components/widget/ProductConfiguration';
@@ -661,20 +661,21 @@ const Widget = () => {
 
         {/* Quantity Input Section - For 'each' type products */}
         {isStepVisible('quantity-input') && widgetState.currentStep === 'quantity-input' && selectedProduct && (
-          <div id="step-quantity-input" className="w-full py-6">
-            <QuantityInput
-              productId={widgetState.currentProductId!}
-              productName={selectedProduct.name}
-              productImage={selectedProduct.photo_url}
-              unitType={selectedProduct.unit_type}
-              minQuantity={selectedProduct.min_order_quantity || 1}
-              onQuantitySet={(quantity, measurement) => {
-                updateCurrentMeasurement(measurement);
-                nextStep();
-              }}
-              settings={settings}
-            />
-          </div>
+          <QuantityInputDialog
+            open={true}
+            productId={widgetState.currentProductId!}
+            productName={selectedProduct.name}
+            productImage={selectedProduct.photo_url}
+            unitType={selectedProduct.unit_type}
+            minQuantity={selectedProduct.min_order_quantity || 1}
+            onQuantitySet={(quantity, measurement) => {
+              updateCurrentMeasurement(measurement);
+              nextStep();
+            }}
+            onCancel={() => {
+              goToProductSelection();
+            }}
+          />
         )}
 
         {/* Measurement Section - Full width, always visible once reached */}
@@ -800,54 +801,59 @@ const Widget = () => {
           </div>
         )}
 
-        {/* Addon Quantity Input Section - For manual quantity entry */}
+        {/* Addon Quantity Input Dialog - For manual quantity entry */}
         {widgetState.currentStep === 'addon-quantity-input' && widgetState.pendingAddon && widgetState.currentMainProductItem && (
-          <div id="step-addon-quantity-input" className="px-4 py-6">
-            <QuantityInput
-              productId={widgetState.pendingAddon.linkedProductId || ''}
-              productName={widgetState.pendingAddon.addonName}
-              productImage={undefined}
-              unitType="each"
-              minQuantity={1}
-              settings={settings}
-              onQuantitySet={(quantity, measurement) => {
-                const addonProductId = widgetState.pendingAddon!.linkedProductId || widgetState.currentMainProductItem!.productId;
-                const addonProductName = widgetState.pendingAddon!.linkedProductId 
-                  ? widgetState.pendingAddon!.addonName 
-                  : `${widgetState.currentMainProductItem!.productName} - ${widgetState.pendingAddon!.addonName}`;
-                
-                const newAddonItems = Array.from({ length: quantity }, (_, index) => ({
-                  id: `addon-${Date.now()}-${index}`,
-                  productId: addonProductId,
-                  productName: addonProductName,
-                  unitType: 'each' as const,
-                  measurement: {
-                    type: 'point' as const,
-                    value: 1,
-                    unit: 'each',
-                    pointLocations: [],
-                    centerPoint: undefined,
-                    mapColor: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
-                  },
-                  unitPrice: widgetState.pendingAddon!.priceValue,
-                  quantity: 1,
-                  lineTotal: widgetState.pendingAddon!.priceValue,
-                  parentQuoteItemId: widgetState.currentMainProductItem!.id,
-                  addonId: widgetState.pendingAddon!.addonId,
-                  isAddonItem: true,
-                  variations: widgetState.pendingAddon!.selectedVariations
-                }));
+          <QuantityInputDialog
+            open={true}
+            productId={widgetState.pendingAddon.linkedProductId || ''}
+            productName={widgetState.pendingAddon.addonName}
+            productImage={undefined}
+            unitType="each"
+            minQuantity={1}
+            onQuantitySet={(quantity, measurement) => {
+              const addonProductId = widgetState.pendingAddon!.linkedProductId || widgetState.currentMainProductItem!.productId;
+              const addonProductName = widgetState.pendingAddon!.linkedProductId 
+                ? widgetState.pendingAddon!.addonName 
+                : `${widgetState.currentMainProductItem!.productName} - ${widgetState.pendingAddon!.addonName}`;
+              
+              const newAddonItems = Array.from({ length: quantity }, (_, index) => ({
+                id: `addon-${Date.now()}-${index}`,
+                productId: addonProductId,
+                productName: addonProductName,
+                unitType: 'each' as const,
+                measurement: {
+                  type: 'point' as const,
+                  value: 1,
+                  unit: 'each',
+                  pointLocations: [],
+                  centerPoint: undefined,
+                  mapColor: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
+                },
+                unitPrice: widgetState.pendingAddon!.priceValue,
+                quantity: 1,
+                lineTotal: widgetState.pendingAddon!.priceValue,
+                parentQuoteItemId: widgetState.currentMainProductItem!.id,
+                addonId: widgetState.pendingAddon!.addonId,
+                isAddonItem: true,
+                variations: widgetState.pendingAddon!.selectedVariations
+              }));
 
-                // Add to pending addons instead of quoteItems and return to configuration
-                setWidgetState(prev => ({
-                  ...prev,
-                  pendingAddons: [...(prev.pendingAddons || []), ...newAddonItems],
-                  pendingAddon: undefined,
-                  currentStep: 'product-configuration'
-                }));
-              }}
-            />
-          </div>
+              // Add to pending addons instead of quoteItems and return to configuration
+              setWidgetState(prev => ({
+                ...prev,
+                pendingAddons: [...(prev.pendingAddons || []), ...newAddonItems],
+                pendingAddon: undefined,
+                currentStep: 'product-configuration'
+              }));
+            }}
+            onCancel={() => {
+              setWidgetState(prev => ({
+                ...prev,
+                pendingAddon: undefined,
+                currentStep: 'product-configuration'
+              }));
+            }}
+          />
         )}
 
         {/* Contact After Section - Only show when actively on this step */}
