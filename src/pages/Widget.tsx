@@ -712,9 +712,10 @@ const Widget = () => {
           <div id="step-addon-placement" className="px-4 py-6">
             <AddonPlacement
               addonName={widgetState.pendingAddon.addonName}
+              linkedProductId={widgetState.pendingAddon.linkedProductId}
               mainProductMeasurement={widgetState.currentMainProductItem.measurement}
               customerAddress={widgetState.customerInfo.address}
-              onComplete={(locations) => {
+              onComplete={(locations, productColor) => {
                 // Use linked product ID if available, otherwise fall back to main product ID
                 const addonProductId = widgetState.pendingAddon!.linkedProductId || widgetState.currentMainProductItem!.productId;
                 const addonProductName = widgetState.pendingAddon!.linkedProductId 
@@ -731,7 +732,8 @@ const Widget = () => {
                     value: 1,
                     unit: 'each',
                     pointLocations: [location],
-                    centerPoint: location
+                    centerPoint: location,
+                    mapColor: productColor
                   },
                   unitPrice: widgetState.pendingAddon!.priceValue,
                   quantity: 1,
