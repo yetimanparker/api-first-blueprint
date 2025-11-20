@@ -713,6 +713,9 @@ const MeasurementTools = ({
     // Add a small delay to ensure Google Maps API processes the removals
     await new Promise(resolve => setTimeout(resolve, 10));
 
+    // Track sequential numbering for point markers by product ID
+    const productPointCounters = new Map<string, number>();
+
     existingQuoteItems.forEach((item, index) => {
       console.log(`📍 Rendering item ${index} (${item.productName}):`, {
         type: item.measurement.type,
@@ -948,13 +951,18 @@ const MeasurementTools = ({
         // Render point measurements
         console.log(`  ➡️ Rendering ${item.measurement.pointLocations.length} point markers with color ${color}`);
         item.measurement.pointLocations.forEach((point, idx) => {
+          // Get or initialize counter for this product name
+          const currentCount = productPointCounters.get(item.productName) || 0;
+          const markerNumber = currentCount + 1;
+          productPointCounters.set(item.productName, markerNumber);
+          
           const markerId = `${item.id}-point-${idx}`;
-          console.log(`    • Point ${idx + 1}:`, point, 'ID:', markerId);
+          console.log(`    • Point ${markerNumber}:`, point, 'ID:', markerId);
           const marker = new google.maps.Marker({
             position: point, // Already in {lat, lng} format
             map: map,
             label: {
-              text: `${idx + 1}`,
+              text: `${markerNumber}`,
               color: 'white',
               fontSize: '14px',
               fontWeight: '300'
@@ -967,7 +975,7 @@ const MeasurementTools = ({
               strokeWeight: 2,
               scale: getZoomBasedMarkerScale(currentZoom)
             },
-            title: `${item.customName || item.productName} - Point ${idx + 1}`
+            title: `${item.customName || item.productName} - Point ${markerNumber}`
           });
           
           // Store custom ID for debugging
