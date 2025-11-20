@@ -678,36 +678,87 @@ const Widget = () => {
           />
         )}
 
-        {/* Measurement Section - Full width, always visible once reached */}
+        {/* Measurement / Add-on Placement Section - shared map area */}
         {isStepVisible('measurement') && widgetState.currentProductId && widgetState.currentStep !== 'confirmation' && (
           <div id="step-measurement" className="w-full mb-2">
-            <MeasurementTools
-              contractorId={contractorId!}
-              productId={widgetState.currentProductId}
-              onMeasurementComplete={updateCurrentMeasurement}
-              onNext={() => {
-                setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }));
-              }}
-              customerAddress={widgetState.customerInfo.address}
-              selectedProduct={selectedProduct}
-              onChangeProduct={goToProductSelection}
-              isConfigurationMode={widgetState.currentStep === 'product-configuration'}
-              currentStep={widgetState.currentStep}
-              existingQuoteItems={widgetState.quoteItems}
-              onResetToMeasurement={resetToMeasurement}
-              isManualEntry={widgetState.currentMeasurement?.manualEntry === true}
-              onFinalizeMeasurement={() => {}}
-              onAddressSelect={(address) => {
-                updateCustomerInfo({
-                  address: `${address.streetAddress}, ${address.city}, ${address.state} ${address.zipCode}`,
-                  city: address.city,
-                  state: address.state,
-                  zipCode: address.zipCode,
-                  lat: address.lat,
-                  lng: address.lng
-                });
-              }}
-            />
+            {widgetState.currentStep === 'addon-placement' && widgetState.pendingAddon && widgetState.currentMainProductItem ? (
+              <AddonPlacement
+                addonName={widgetState.pendingAddon.addonName}
+                linkedProductId={widgetState.pendingAddon.linkedProductId}
+                mainProductMeasurement={widgetState.currentMainProductItem.measurement}
+                customerAddress={widgetState.customerInfo.address}
+                onComplete={(locations, productColor) => {
+                  const addonProductId = widgetState.pendingAddon!.linkedProductId || widgetState.currentMainProductItem!.productId;
+                  const addonProductName = widgetState.pendingAddon!.linkedProductId
+                    ? widgetState.pendingAddon!.addonName
+                    : `${widgetState.currentMainProductItem!.productName} - ${widgetState.pendingAddon!.addonName}`;
+
+                  const newAddonItems = locations.map((location, index) => ({
+                    id: `addon-${Date.now()}-${index}`,
+                    productId: addonProductId,
+                    productName: addonProductName,
+                    unitType: 'each' as const,
+                    measurement: {
+                      type: 'point' as const,
+                      value: 1,
+                      unit: 'each',
+                      pointLocations: [location],
+                      centerPoint: location,
+                      mapColor: productColor,
+                    },
+                    unitPrice: widgetState.pendingAddon!.priceValue,
+                    quantity: 1,
+                    lineTotal: widgetState.pendingAddon!.priceValue,
+                    parentQuoteItemId: widgetState.currentMainProductItem!.id,
+                    addonId: widgetState.pendingAddon!.addonId,
+                    isAddonItem: true,
+                    variations: widgetState.pendingAddon!.selectedVariations,
+                  }));
+
+                  setWidgetState(prev => ({
+                    ...prev,
+                    pendingAddons: [...(prev.pendingAddons || []), ...newAddonItems],
+                    pendingAddon: undefined,
+                    currentStep: 'product-configuration',
+                  }));
+                }}
+                onCancel={() => {
+                  setWidgetState(prev => ({
+                    ...prev,
+                    pendingAddon: undefined,
+                    currentStep: 'product-configuration',
+                  }));
+                }}
+              />
+            ) : (
+              <MeasurementTools
+                contractorId={contractorId!}
+                productId={widgetState.currentProductId}
+                onMeasurementComplete={updateCurrentMeasurement}
+                onNext={() => {
+                  setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }));
+                }}
+                customerAddress={widgetState.customerInfo.address}
+                selectedProduct={selectedProduct}
+                onChangeProduct={goToProductSelection}
+                isConfigurationMode={widgetState.currentStep === 'product-configuration'}
+                currentStep={widgetState.currentStep}
+                existingQuoteItems={widgetState.quoteItems}
+                onResetToMeasurement={resetToMeasurement}
+                isManualEntry={widgetState.currentMeasurement?.manualEntry === true}
+                onFinalizeMeasurement={() => {}}
+                onAddressSelect={(address) => {
+                  updateCustomerInfo({
+                    address: `${address.streetAddress}, ${address.city}, ${address.state} ${address.zipCode}`,
+                    city: address.city,
+                    state: address.state,
+                    zipCode: address.zipCode,
+                    lat: address.lat,
+                    lng: address.lng,
+                  });
+                }}
+              />
+            )}
           </div>
         )}
         
@@ -745,61 +796,6 @@ const Widget = () => {
           </div>
         )}
 
-        {/* Addon Placement Section */}
-        {widgetState.currentStep === 'addon-placement' && widgetState.pendingAddon && widgetState.currentMainProductItem && (
-          <div id="step-addon-placement" className="px-4 py-6">
-            <AddonPlacement
-              addonName={widgetState.pendingAddon.addonName}
-              linkedProductId={widgetState.pendingAddon.linkedProductId}
-              mainProductMeasurement={widgetState.currentMainProductItem.measurement}
-              customerAddress={widgetState.customerInfo.address}
-              onComplete={(locations, productColor) => {
-                // Use linked product ID if available, otherwise fall back to main product ID
-                const addonProductId = widgetState.pendingAddon!.linkedProductId || widgetState.currentMainProductItem!.productId;
-                const addonProductName = widgetState.pendingAddon!.linkedProductId 
-                  ? widgetState.pendingAddon!.addonName 
-                  : `${widgetState.currentMainProductItem!.productName} - ${widgetState.pendingAddon!.addonName}`;
-                
-                const newAddonItems = locations.map((location, index) => ({
-                  id: `addon-${Date.now()}-${index}`,
-                  productId: addonProductId,
-                  productName: addonProductName,
-                  unitType: 'each' as const,
-                  measurement: {
-                    type: 'point' as const,
-                    value: 1,
-                    unit: 'each',
-                    pointLocations: [location],
-                    centerPoint: location,
-                    mapColor: productColor
-                  },
-                  unitPrice: widgetState.pendingAddon!.priceValue,
-                  quantity: 1,
-                  lineTotal: widgetState.pendingAddon!.priceValue,
-                  parentQuoteItemId: widgetState.currentMainProductItem!.id,
-                  addonId: widgetState.pendingAddon!.addonId,
-                  isAddonItem: true,
-                  variations: widgetState.pendingAddon!.selectedVariations
-                }));
-                
-                // Add to pending addons instead of quoteItems and return to configuration
-                setWidgetState(prev => ({
-                  ...prev,
-                  pendingAddons: [...(prev.pendingAddons || []), ...newAddonItems],
-                  pendingAddon: undefined,
-                  currentStep: 'product-configuration'
-                }));
-              }}
-              onCancel={() => {
-                setWidgetState(prev => ({
-                  ...prev,
-                  pendingAddon: undefined,
-                  currentStep: 'product-configuration'
-                }));
-              }}
-            />
-          </div>
-        )}
 
         {/* Addon Quantity Input Dialog - For manual quantity entry */}
         {widgetState.currentStep === 'addon-quantity-input' && widgetState.pendingAddon && widgetState.currentMainProductItem && (
