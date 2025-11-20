@@ -255,7 +255,7 @@ export function AddonPlacement({
             
             <Button
               onClick={onCancel}
-              variant="ghost"
+              variant="outline"
               size="default"
               className="flex-1 min-w-[100px]"
             >
