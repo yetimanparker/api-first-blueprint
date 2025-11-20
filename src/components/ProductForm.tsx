@@ -44,6 +44,7 @@ const productSchema = z.object({
   increment_unit_label: z.string().optional(),
   increment_description: z.string().optional(),
   allow_partial_increments: z.boolean(),
+  allow_addon_map_placement: z.boolean(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -182,6 +183,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       increment_unit_label: product?.increment_unit_label || "",
       increment_description: product?.increment_description || "",
       allow_partial_increments: product?.allow_partial_increments ?? false,
+      allow_addon_map_placement: product?.allow_addon_map_placement ?? false,
     },
   });
 
@@ -593,6 +595,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         increment_unit_label: data.sold_in_increments_of ? (data.increment_unit_label || null) : null,
         increment_description: data.sold_in_increments_of ? (data.increment_description || null) : null,
         allow_partial_increments: data.sold_in_increments_of ? data.allow_partial_increments : false,
+        allow_addon_map_placement: data.allow_addon_map_placement || false,
       };
 
       let productId = product?.id;
@@ -1512,6 +1515,27 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                         <FormLabel className="text-base">Allow customers to adjust dimensions</FormLabel>
                         <FormDescription>
                           If enabled, customers can modify width and length in the widget
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                     </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="allow_addon_map_placement"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Allow Map-Placed Add-ons</FormLabel>
+                        <FormDescription>
+                          Enable add-ons to be placed at specific locations on the map (e.g., gate locations on a fence)
                         </FormDescription>
                       </div>
                       <FormControl>

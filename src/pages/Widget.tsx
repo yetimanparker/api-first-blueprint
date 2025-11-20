@@ -16,6 +16,7 @@ import { IncrementConfirmationDialog } from '@/components/widget/IncrementConfir
 import ProductConfiguration from '@/components/widget/ProductConfiguration';
 import QuoteReview from '@/components/widget/QuoteReview';
 import QuoteSuccess from '@/components/widget/QuoteSuccess';
+import { AddonPlacement } from '@/components/widget/AddonPlacement';
 import { ClarifyingQuestionsDialog } from '@/components/widget/ClarifyingQuestionsDialog';
 import { WidgetState, WorkflowStep, CustomerInfo, QuoteItem, MeasurementData } from '@/types/widget';
 
@@ -751,6 +752,67 @@ const Widget = () => {
               settings={settings}
               onRemove={goToProductSelection}
               cachedProducts={widgetProducts}
+              onAddonPlacementStart={(addon, mainItem) => {
+                addQuoteItem(mainItem);
+                setWidgetState(prev => ({
+                  ...prev,
+                  pendingAddon: {
+                    ...addon,
+                    calculationType: 'total'
+                  },
+                  currentMainProductItem: mainItem,
+                  currentStep: 'addon-placement'
+                }));
+              }}
+            />
+          </div>
+        )}
+
+        {/* Addon Placement Section */}
+        {widgetState.currentStep === 'addon-placement' && widgetState.pendingAddon && widgetState.currentMainProductItem && (
+          <div id="step-addon-placement" className="px-4 py-6">
+            <AddonPlacement
+              addonName={widgetState.pendingAddon.addonName}
+              mainProductMeasurement={widgetState.currentMainProductItem.measurement}
+              customerAddress={widgetState.customerInfo.address}
+              onComplete={(locations) => {
+                const newAddonItems = locations.map((location, index) => ({
+                  id: `addon-${Date.now()}-${index}`,
+                  productId: widgetState.currentMainProductItem!.productId,
+                  productName: `${widgetState.currentMainProductItem!.productName} - ${widgetState.pendingAddon!.addonName}`,
+                  unitType: 'each' as const,
+                  measurement: {
+                    type: 'point' as const,
+                    value: 1,
+                    unit: 'each',
+                    pointLocations: [location],
+                    centerPoint: location
+                  },
+                  unitPrice: widgetState.pendingAddon!.priceValue,
+                  quantity: 1,
+                  lineTotal: widgetState.pendingAddon!.priceValue,
+                  parentQuoteItemId: widgetState.currentMainProductItem!.id,
+                  addonId: widgetState.pendingAddon!.addonId,
+                  isAddonItem: true,
+                  variations: widgetState.pendingAddon!.selectedVariations
+                }));
+                
+                setWidgetState(prev => ({
+                  ...prev,
+                  quoteItems: [...prev.quoteItems, ...newAddonItems],
+                  pendingAddon: undefined,
+                  currentMainProductItem: undefined,
+                  currentStep: settings.contact_capture_timing === 'after_quote' ? 'contact-after' : 'quote-review'
+                }));
+              }}
+              onCancel={() => {
+                setWidgetState(prev => ({
+                  ...prev,
+                  pendingAddon: undefined,
+                  currentMainProductItem: undefined,
+                  currentStep: settings.contact_capture_timing === 'after_quote' ? 'contact-after' : 'quote-review'
+                }));
+              }}
             />
           </div>
         )}
