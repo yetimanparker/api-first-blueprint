@@ -246,7 +246,7 @@ export function AddonPlacement({
               <Button
                 onClick={clearAllMarkers}
                 variant="outline"
-                size="sm"
+                size="default"
               >
                 <Trash2 className="mr-2" />
                 Clear All
