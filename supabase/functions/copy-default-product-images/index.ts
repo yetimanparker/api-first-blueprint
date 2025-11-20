@@ -22,16 +22,16 @@ Deno.serve(async (req) => {
       }
     );
 
-    const sourceContractorId = '196be53c-184a-4e02-ad6c-501b56288961'; // test3@empoweroffgrid.com
+    const sourceContractorId = '8843d0d8-2c76-44c6-8af9-248e7c2e6616'; // welcome@birdseyepro.com
     
     const imagesToCopy = [
       { source: `${sourceContractorId}/1760906216494.jpeg`, dest: 'defaults/sod.jpg' },
       { source: `${sourceContractorId}/1760880119023.jpg`, dest: 'defaults/topsoil.jpg' },
       { source: `${sourceContractorId}/1760906057850.jpg`, dest: 'defaults/fence.jpg' },
       { source: `${sourceContractorId}/1760882438934.jpg`, dest: 'defaults/tree.jpg' },
-      { source: `${sourceContractorId}/linear-tool.png`, dest: 'defaults/linear-tool.png' },
-      { source: `${sourceContractorId}/square-tool.png`, dest: 'defaults/square-tool.png' },
-      { source: `${sourceContractorId}/cubic-tool.png`, dest: 'defaults/cubic-tool.png' },
+      { source: `${sourceContractorId}/1763579686020.png`, dest: 'defaults/linear-tool.png' },
+      { source: `${sourceContractorId}/1763578820610.png`, dest: 'defaults/square-tool.png' },
+      { source: `${sourceContractorId}/1763579929368.png`, dest: 'defaults/cubic-tool.png' },
     ];
 
     const results = [];
