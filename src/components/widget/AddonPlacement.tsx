@@ -232,11 +232,13 @@ export function AddonPlacement({
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2">
             <Button
+              variant="default"
+              size="default"
               onClick={handleComplete}
               disabled={placedLocations.length === 0}
               className="flex-1 min-w-[140px]"
             >
-              <Check className="h-4 w-4 mr-2" />
+              <Check className="mr-2" />
               Done ({placedLocations.length})
             </Button>
             
@@ -246,7 +248,7 @@ export function AddonPlacement({
                 variant="outline"
                 size="sm"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash2 className="mr-2" />
                 Clear All
               </Button>
             )}
@@ -254,6 +256,7 @@ export function AddonPlacement({
             <Button
               onClick={onCancel}
               variant="ghost"
+              size="default"
               className="flex-1 min-w-[100px]"
             >
               Cancel
