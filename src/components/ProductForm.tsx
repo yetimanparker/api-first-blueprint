@@ -198,6 +198,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           display_order: addon.display_order || index,
           calculation_type: addon.calculation_type || "total",
           calculation_formula: addon.calculation_formula || "",
+          isLinked: !!addon.linked_product_id,
+          allow_map_placement: addon.allow_map_placement ?? false,
         })));
         
         // Load addon options for existing addons
@@ -369,6 +371,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
     if (!addon.isLinked) {
       // Switching to custom mode - clear linked product
       addon.linked_product_id = null;
+      addon.allow_map_placement = false;
     } else {
       // Switching to linked mode - clear custom fields
       addon.name = "";
