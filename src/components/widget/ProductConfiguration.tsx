@@ -92,6 +92,12 @@ interface ProductConfigurationProps {
   settings: GlobalSettings;
   onRemove?: () => void;
   cachedProducts?: any[];
+  onAddonPlacementStart?: (addon: {
+    addonId: string;
+    addonName: string;
+    priceValue: number;
+    selectedVariations?: any[];
+  }, mainItem: QuoteItem) => void;
 }
 
 const ProductConfiguration = ({ 
@@ -101,7 +107,8 @@ const ProductConfiguration = ({
   onAddToQuote, 
   settings,
   onRemove,
-  cachedProducts
+  cachedProducts,
+  onAddonPlacementStart
 }: ProductConfigurationProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [variations, setVariations] = useState<Variation[]>([]);
