@@ -69,9 +69,6 @@ export function AddonPlacement({
 
       // Draw the main product measurement (read-only)
       drawMainProductShape(mapInstance);
-      
-      // Fit bounds to show the main product measurement
-      fitMapBounds(mapInstance);
 
       // Add click listener for placing add-on markers
       mapInstance.addListener('click', (e: google.maps.MapMouseEvent) => {
@@ -83,42 +80,6 @@ export function AddonPlacement({
     } catch (error) {
       console.error('Error initializing map:', error);
       toast.error('Failed to load map');
-    }
-  };
-
-  const fitMapBounds = (mapInstance: google.maps.Map) => {
-    const bounds = new google.maps.LatLngBounds();
-    
-    if (mainProductMeasurement.coordinates && mainProductMeasurement.coordinates.length > 0) {
-      mainProductMeasurement.coordinates.forEach(coord => {
-        bounds.extend({ lat: coord[0], lng: coord[1] });
-      });
-      mapInstance.fitBounds(bounds);
-      
-      // Add padding and ensure minimum zoom
-      google.maps.event.addListenerOnce(mapInstance, 'idle', () => {
-        const currentZoom = mapInstance.getZoom();
-        if (currentZoom && currentZoom > 20) {
-          mapInstance.setZoom(20);
-        } else if (currentZoom && currentZoom < 18) {
-          mapInstance.setZoom(18);
-        }
-      });
-    } else if (mainProductMeasurement.pointLocations && mainProductMeasurement.pointLocations.length > 0) {
-      mainProductMeasurement.pointLocations.forEach(point => {
-        bounds.extend(point);
-      });
-      mapInstance.fitBounds(bounds);
-      
-      // Add padding and ensure minimum zoom
-      google.maps.event.addListenerOnce(mapInstance, 'idle', () => {
-        const currentZoom = mapInstance.getZoom();
-        if (currentZoom && currentZoom > 20) {
-          mapInstance.setZoom(20);
-        } else if (currentZoom && currentZoom < 18) {
-          mapInstance.setZoom(18);
-        }
-      });
     }
   };
 
