@@ -5,9 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Trash2, Check } from 'lucide-react';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AddonPlacementProps {
   addonName: string;
+  linkedProductId?: string;
   mainProductMeasurement: {
     type: 'area' | 'linear' | 'point';
     coordinates?: number[][];
@@ -16,18 +18,20 @@ interface AddonPlacementProps {
     mapColor?: string;
   };
   customerAddress?: string;
-  onComplete: (locations: Array<{lat: number, lng: number}>) => void;
+  onComplete: (locations: Array<{lat: number, lng: number}>, productColor: string) => void;
   onCancel: () => void;
 }
 
 export function AddonPlacement({
   addonName,
+  linkedProductId,
   mainProductMeasurement,
   customerAddress,
   onComplete,
   onCancel
 }: AddonPlacementProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [addonProductColor, setAddonProductColor] = useState<string | null>(null);
   const [mainProductShape, setMainProductShape] = useState<google.maps.Polygon | google.maps.Polyline | null>(null);
   const [placedMarkers, setPlacedMarkers] = useState<google.maps.Marker[]>([]);
   const [placedLocations, setPlacedLocations] = useState<Array<{lat: number, lng: number}>>([]);
@@ -40,6 +44,25 @@ export function AddonPlacement({
   useEffect(() => {
     initializeMap();
   }, []);
+
+  // Fetch linked product color if linkedProductId is provided
+  useEffect(() => {
+    if (linkedProductId) {
+      const fetchProductColor = async () => {
+        const { data, error } = await supabase
+          .from('products')
+          .select('color_hex')
+          .eq('id', linkedProductId)
+          .single();
+        
+        if (data && !error) {
+          setAddonProductColor(data.color_hex);
+        }
+      };
+      
+      fetchProductColor();
+    }
+  }, [linkedProductId]);
 
   const initializeMap = async () => {
     try {
@@ -182,8 +205,8 @@ export function AddonPlacement({
     // Calculate the number for this new marker
     const markerNumber = currentMarkers.length + 1;
     
-    // Use the main product's color for consistency
-    const markerColor = mainProductMeasurement.mapColor || '#3B82F6';
+    // Use the linked product's color if available, otherwise fall back to main product color
+    const markerColor = addonProductColor || mainProductMeasurement.mapColor || '#3B82F6';
     
     const marker = new google.maps.Marker({
       position: latLng,
@@ -262,7 +285,8 @@ export function AddonPlacement({
       toast.error('Please place at least one add-on on the map');
       return;
     }
-    onComplete(placedLocations);
+    const finalColor = addonProductColor || mainProductMeasurement.mapColor || '#3B82F6';
+    onComplete(placedLocations, finalColor);
   };
 
   const clearAllMarkers = () => {
