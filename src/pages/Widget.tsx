@@ -324,8 +324,9 @@ const Widget = () => {
     }));
   };
 
-  const addQuoteItem = (item: QuoteItem) => {
-    console.log('🟢 Widget.addQuoteItem called with item:', item);
+  const addQuoteItem = (item: QuoteItem | QuoteItem[]) => {
+    const items = Array.isArray(item) ? item : [item];
+    console.log('🟢 Widget.addQuoteItem called with items:', items.length);
     
     // Finalize the measurement (make nodes non-editable) before adding to quote
     if ((window as any).__finalizeMeasurement) {
@@ -341,8 +342,12 @@ const Widget = () => {
     
     setWidgetState(prev => ({
       ...prev,
-      quoteItems: [...prev.quoteItems, item],
-      currentStep: nextStep
+      quoteItems: [...prev.quoteItems, ...items],
+      currentStep: nextStep,
+      // Clear pending state after adding to quote
+      pendingAddons: [],
+      currentMainProductItem: undefined,
+      pendingAddon: undefined
     }));
   };
 

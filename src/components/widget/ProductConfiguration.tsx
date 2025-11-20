@@ -101,7 +101,7 @@ interface ProductConfigurationProps {
   productId: string;
   contractorId: string;
   measurement: MeasurementData;
-  onAddToQuote: (item: QuoteItem) => void;
+  onAddToQuote: (item: QuoteItem | QuoteItem[]) => void;
   settings: GlobalSettings;
   onRemove?: () => void;
   cachedProducts?: any[];
@@ -451,16 +451,10 @@ const ProductConfiguration = ({
       coordinates: quoteItem.measurement.coordinates?.length
     });
 
-    // Add main item + all pending addons to quote
+    // Add main item + all pending addons to quote in a single call
     console.log('🚀 Calling onAddToQuote with main item and pending addons');
-    onAddToQuote(quoteItem);
-    
-    // Add all pending addons to quote
-    if (pendingAddons && pendingAddons.length > 0) {
-      pendingAddons.forEach(addonItem => {
-        onAddToQuote(addonItem);
-      });
-    }
+    const allItems = [quoteItem, ...(pendingAddons || [])];
+    onAddToQuote(allItems);
     
     console.log('✅ onAddToQuote completed, setting isAdded to true');
     setIsAdded(true);
