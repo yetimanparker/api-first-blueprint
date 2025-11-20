@@ -29,6 +29,9 @@ Deno.serve(async (req) => {
       { source: `${sourceContractorId}/1760880119023.jpg`, dest: 'defaults/topsoil.jpg' },
       { source: `${sourceContractorId}/1760906057850.jpg`, dest: 'defaults/fence.jpg' },
       { source: `${sourceContractorId}/1760882438934.jpg`, dest: 'defaults/tree.jpg' },
+      { source: `${sourceContractorId}/linear-tool.png`, dest: 'defaults/linear-tool.png' },
+      { source: `${sourceContractorId}/square-tool.png`, dest: 'defaults/square-tool.png' },
+      { source: `${sourceContractorId}/cubic-tool.png`, dest: 'defaults/cubic-tool.png' },
     ];
 
     const results = [];
