@@ -24,9 +24,9 @@ const QuantityMethodDialog = ({ open, productName, onMethodSelect }: QuantityMet
             size="lg"
             variant="default"
             onClick={() => onMethodSelect('manual')}
-            className="w-full h-20 text-base"
+            className="w-full"
           >
-            <Calculator className="h-5 w-5 mr-2" />
+            <Calculator className="mr-2" />
             Enter Quantity Manually
           </Button>
           
@@ -34,9 +34,9 @@ const QuantityMethodDialog = ({ open, productName, onMethodSelect }: QuantityMet
             size="lg"
             variant="outline"
             onClick={() => onMethodSelect('map')}
-            className="w-full h-20 text-base"
+            className="w-full"
           >
-            <Map className="h-5 w-5 mr-2" />
+            <Map className="mr-2" />
             Use Map to Add Quantities
           </Button>
         </div>

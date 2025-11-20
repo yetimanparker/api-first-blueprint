@@ -2296,7 +2296,7 @@ const MeasurementTools = ({
             </Button>
             
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               onClick={clearAllPoints}
             >
@@ -2304,10 +2304,9 @@ const MeasurementTools = ({
             </Button>
             
             <Button
-              variant="default"
+              variant="success"
               size="sm"
               onClick={() => setIsDrawing(false)}
-              className="bg-green-600 text-white hover:bg-green-700"
             >
               Done ({pointLocations.length})
             </Button>
@@ -2351,7 +2350,6 @@ const MeasurementTools = ({
                   onClick={handleManualSubmit}
                   disabled={!manualValue || parseFloat(manualValue) <= 0}
                   className="flex-1"
-                  variant="outline"
                 >
                   Submit
                 </Button>
@@ -2386,7 +2384,7 @@ const MeasurementTools = ({
                         setShowManualEntry(true);
                         clearMapDrawing();
                       }}
-                      className="flex-1 sm:flex-none sm:w-auto min-w-[140px] gap-2 text-orange-600 hover:text-orange-700"
+                      className="flex-1 sm:flex-none sm:w-auto min-w-[140px] gap-2"
                     >
                       <PencilRuler className="h-4 w-4" />
                       Enter Manually
