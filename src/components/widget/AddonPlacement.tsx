@@ -264,6 +264,8 @@ export function AddonPlacement({
 
   const clearAllMarkers = () => {
     placedMarkers.forEach(marker => marker.setMap(null));
+    placedMarkersRef.current = [];
+    placedLocationsRef.current = [];
     setPlacedMarkers([]);
     setPlacedLocations([]);
     toast.info('All placements cleared');
