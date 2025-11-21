@@ -769,6 +769,7 @@ export type Database = {
           line_total: number
           measurement_data: Json | null
           notes: string | null
+          parent_quote_item_id: string | null
           product_id: string
           quantity: number
           quote_id: string
@@ -780,6 +781,7 @@ export type Database = {
           line_total: number
           measurement_data?: Json | null
           notes?: string | null
+          parent_quote_item_id?: string | null
           product_id: string
           quantity: number
           quote_id: string
@@ -791,12 +793,20 @@ export type Database = {
           line_total?: number
           measurement_data?: Json | null
           notes?: string | null
+          parent_quote_item_id?: string | null
           product_id?: string
           quantity?: number
           quote_id?: string
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "quote_items_parent_quote_item_id_fkey"
+            columns: ["parent_quote_item_id"]
+            isOneToOne: false
+            referencedRelation: "quote_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quote_items_product_id_fkey"
             columns: ["product_id"]
