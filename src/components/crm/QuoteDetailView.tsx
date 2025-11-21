@@ -7,6 +7,7 @@ import { Loader } from '@googlemaps/js-api-loader';
 import { formatExactPrice, calculatePriceRange, formatPriceRange, displayQuoteTotal, displayLineItemPrice } from '@/lib/priceUtils';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
 import { getZoomBasedFontSize, renderDimensionalProductLabels } from '@/lib/mapLabelUtils';
+import { consolidateQuoteItems, ConsolidatedMainProduct } from '@/lib/quoteConsolidation';
 
 interface QuoteItem {
   id: string;
@@ -329,97 +330,58 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {quoteItems.map((item) => {
-            const variations = item.measurement_data?.variations || [];
-            const addons = item.measurement_data?.addons || [];
+          {(() => {
+            // Transform quoteItems to QuoteItem format for consolidation
+            const itemsForConsolidation = quoteItems.map((item: any) => ({
+              id: item.id,
+              productId: item.product_id,
+              productName: item.products?.name || 'Unknown Product',
+              unitPrice: item.unit_price,
+              unitType: item.products?.unit_type || 'each',
+              quantity: item.quantity,
+              lineTotal: item.line_total,
+              parentQuoteItemId: item.parent_quote_item_id,
+              measurement: item.measurement_data || {}
+            }));
             
-            console.log('QuoteDetailView - Item:', item.products?.name, {
-              variations: variations,
-              addons: addons,
-              variationsLength: variations.length,
-              addonsLength: addons.length,
-              addonsWithQty: addons.filter((a: any) => a.quantity > 0).length
-            });
+            const { consolidatedMainProducts } = consolidateQuoteItems(itemsForConsolidation);
             
-            // Calculate unit abbreviation
-            const getUnitAbbreviation = (unitType: string) => {
-              switch (unitType) {
-                case 'sq_ft': return 'SF';
-                case 'linear_ft': return 'LF';
-                case 'cubic_yard': return 'cu yd';
-                case 'each': return 'ea';
-                default: return unitType?.replace('_', ' ') || 'unit';
-              }
-            };
-
-            // Calculate base price with variation adjustment
-            const getVariationAdjustedPrice = () => {
-              let adjustedPrice = item.unit_price;
-              variations.forEach((v: any) => {
-                if (v.adjustmentType === 'percentage') {
-                  adjustedPrice += item.unit_price * (v.priceAdjustment / 100);
-                } else {
-                  adjustedPrice += v.priceAdjustment;
+            return consolidatedMainProducts.map((product: ConsolidatedMainProduct) => {
+              const getUnitAbbreviation = (unitType: string) => {
+                switch (unitType) {
+                  case 'sq_ft': return 'SF';
+                  case 'linear_ft': return 'LF';
+                  case 'cubic_yard': return 'cu yd';
+                  case 'each': return 'ea';
+                  default: return unitType?.replace('_', ' ') || 'unit';
                 }
-              });
-              return adjustedPrice;
-            };
-
-            const baseUnitPrice = getVariationAdjustedPrice();
-            const baseTotal = baseUnitPrice * item.quantity;
-
-            // Calculate addon totals
-            const addonTotal = addons
-              .filter((a: any) => a.quantity > 0)
-              .reduce((sum: number, a: any) => {
-                if (a.calculationType === 'per_unit') {
-                  return sum + (a.priceValue * item.quantity * a.quantity);
-                } else if (a.calculationType === 'area_calculation') {
-                  // Area calculation addons
-                  return sum + (a.priceValue * a.quantity);
-                } else {
-                  // Total calculation
-                  return sum + (a.priceValue * a.quantity);
-                }
-              }, 0);
-
-            const unitAbbr = getUnitAbbreviation(item.products.unit_type);
-            
-            return (
+              };
+              
+              const unitAbbr = getUnitAbbreviation(product.unitType);
+              const showQuantity = product.totalQuantity > 1;
+              
+              return (
               <div 
-                key={item.id} 
+                key={product.productId} 
                 className="border-l-4 pl-4 py-2 space-y-3"
-                style={{ borderLeftColor: item.measurement_data?.mapColor || '#3B82F6' }}
+                style={{ borderLeftColor: product.color }}
               >
                 {/* Header: Product name with color indicator and quantity */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <div 
                     className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: item.measurement_data?.mapColor || '#3B82F6' }}
+                    style={{ backgroundColor: product.color }}
                   />
                   <span className="font-semibold">
-                    {item.products.name}
-                    <span className="text-sm text-muted-foreground font-normal ml-2">
-                      ({item.quantity.toLocaleString()} {unitAbbr})
-                    </span>
+                    {product.productName}
+                    {showQuantity && <span className="text-sm text-muted-foreground font-normal ml-2">- Qty: {product.instances.length}</span>}
                   </span>
-                  {/* Show badge for point measurements */}
-                  {item.measurement_data?.type === 'point' && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                      <MapPin className="h-3 w-3" />
-                      {item.measurement_data?.pointLocations?.length > 0 
-                        ? `${item.measurement_data.pointLocations.length} locations mapped`
-                        : item.measurement_data?.manualEntry 
-                          ? 'Manual entry'
-                          : 'Mapped'}
-                    </span>
-                  )}
                 </div>
                 
                 {/* Variation selection */}
-                {variations.length > 0 && (
-                  <div className="text-sm text-muted-foreground">
-                    ({variations.map((v: any) => v.name).join(', ')})
+                {product.variations.length > 0 && (
+                  <div className="text-sm text-muted-foreground pl-3">
+                    ({product.variations.map((v: any) => v.name).join(', ')})
                   </div>
                 )}
                 
@@ -428,76 +390,69 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                   <div className="space-y-2">
                     {/* Base Product Calculation */}
                     <div className="text-sm text-muted-foreground pl-3">
-                      {item.quantity.toLocaleString()} {unitAbbr} × {formatExactPrice(baseUnitPrice, {
+                      {showQuantity && `${product.instances.length} × (`}
+                      {product.totalQuantity.toLocaleString()} {unitAbbr} × {formatExactPrice(product.unitPrice, {
                         currency_symbol: settings.currency_symbol,
                         decimal_precision: settings.decimal_precision
-                      })}/{unitAbbr} = <span className="font-semibold text-foreground">{formatExactPrice(baseTotal, {
+                      })}/{unitAbbr}
+                      {showQuantity && ')'}
+                      {' = '}
+                      <span className="font-semibold text-foreground">{formatExactPrice(product.totalLineTotal, {
                         currency_symbol: settings.currency_symbol,
                         decimal_precision: settings.decimal_precision
                       })}</span>
                     </div>
                     
-                    {/* Add-ons Pricing Details */}
-                    {addons.filter((a: any) => a.quantity > 0).length > 0 && (
+                    {/* Traditional Add-ons */}
+                    {product.traditionalAddons.length > 0 && (
                       <div className="space-y-1">
                         <div className="text-sm text-muted-foreground mt-2">Add-ons:</div>
-                        {addons.filter((a: any) => a.quantity > 0).map((addon: any) => {
-                              let addonCalc = '';
-                              let addonPrice = 0;
-                              const addonQty = addon.quantity || 1;
-                              const addonPriceValue = addon.priceValue || addon.addon_price || 0;
-                              const addonCalcType = addon.calculationType || addon.calculation_type;
-                              
-                              // Get variation data for area calculations
-                              const variationData = variations[0] ? {
-                                height: variations[0].height_value || variations[0].height || variations[0].heightValue,
-                                unit: variations[0].unit_of_measurement || variations[0].unit,
-                                affects_area_calculation: variations[0].affects_area_calculation || variations[0].affectsAreaCalculation
-                              } : undefined;
-                              
-                              if (addonCalcType === 'per_unit') {
-                                addonPrice = addonPriceValue * item.quantity * addonQty;
-                                addonCalc = `${item.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addonPriceValue, {
-                                  currency_symbol: settings.currency_symbol,
-                                  decimal_precision: settings.decimal_precision
-                                })}/${unitAbbr}${addonQty > 1 ? ` × ${addonQty}` : ''}`;
-                              } else if (addonCalcType === 'area_calculation') {
-                                // Calculate area with height
-                                const squareFeet = variationData?.affects_area_calculation && variationData.height
-                                  ? item.quantity * variationData.height
-                                  : item.quantity;
-                                addonPrice = squareFeet * addonPriceValue * addonQty;
-                                addonCalc = `${squareFeet.toLocaleString()} SF × ${formatExactPrice(addonPriceValue, {
-                                  currency_symbol: settings.currency_symbol,
-                                  decimal_precision: settings.decimal_precision
-                                })}/SF${addonQty > 1 ? ` × ${addonQty}` : ''}`;
-                              } else {
-                                // Total calculation
-                                addonPrice = addonPriceValue * addonQty;
-                                addonCalc = `${addonQty} × ${formatExactPrice(addonPriceValue, {
-                                  currency_symbol: settings.currency_symbol,
-                                  decimal_precision: settings.decimal_precision
-                                })}`;
-                              }
-                              
-                              return (
-                                <div key={addon.id} className="text-sm text-muted-foreground pl-3">
-                                  <span className="font-medium text-foreground">{addon.name}</span>
-                                  {addon.selectedOptionName && `(${addon.selectedOptionName})`}: {addonCalc} = <span className="font-semibold text-foreground">{formatExactPrice(addonPrice, {
-                                    currency_symbol: settings.currency_symbol,
-                                    decimal_precision: settings.decimal_precision
-                                  })}</span>
-                                </div>
-                              );
-                            })}
+                        {product.traditionalAddons.map((addon) => {
+                          const totalQty = addon.instances.reduce((sum, inst) => sum + inst.addonData.quantity, 0);
+                          const displayName = addon.selectedOption 
+                            ? `${addon.name}(${addon.selectedOption})`
+                            : addon.name;
+                          
+                          return (
+                            <div key={addon.id} className="text-sm text-muted-foreground pl-3">
+                              <span className="font-medium text-foreground">{displayName}</span>: {totalQty} × {formatExactPrice(addon.priceValue, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })} = <span className="font-semibold text-foreground">{formatExactPrice(addon.priceValue * totalQty, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                     
-                    {/* Item Total */}
+                    {/* Map-Placed Add-ons */}
+                    {product.mapPlacedAddons.length > 0 && (
+                      <div className="space-y-1">
+                        {product.mapPlacedAddons.map((mapAddon) => {
+                          const mapUnitAbbr = getUnitAbbreviation(mapAddon.unitType);
+                          return (
+                            <div key={mapAddon.productId} className="text-sm text-muted-foreground pl-3">
+                              <span className="font-medium text-foreground">{mapAddon.productName}</span>: {mapAddon.totalQuantity} × {formatExactPrice(mapAddon.unitPrice, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })}/{mapUnitAbbr} = <span className="font-semibold text-foreground">{formatExactPrice(mapAddon.totalLineTotal, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    
+                    {/* Product Total */}
                     <div className="border-t border-border pt-2.5 mt-3">
                       <div className="flex justify-end">
-                        <span className="text-base font-semibold text-green-600">
-                          Total: {formatExactPrice(item.line_total, {
+                        <span className="text-base font-semibold text-primary">
+                          Total: {formatExactPrice(product.totalLineTotal, {
                             currency_symbol: settings.currency_symbol,
                             decimal_precision: settings.decimal_precision
                           })}
@@ -506,14 +461,10 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                     </div>
                   </div>
                 )}
-                
-                {/* Notes */}
-                {item.notes && (
-                  <p className="text-sm text-muted-foreground mt-2 italic">{item.notes}</p>
-                )}
               </div>
             );
-          })}
+          });
+          })()}
 
           <Separator />
 
