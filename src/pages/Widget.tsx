@@ -704,6 +704,31 @@ const Widget = () => {
                 linkedProductId={widgetState.pendingAddon.linkedProductId}
                 mainProductMeasurement={widgetState.currentMainProductItem.measurement}
                 customerAddress={widgetState.customerInfo.address}
+                existingAddonLocations={[
+                  // Pending add-ons for this main product (not yet committed to quote)
+                  ...(widgetState.pendingAddons || []),
+                  // Any already-committed add-on items linked to this main product
+                  ...widgetState.quoteItems.filter(
+                    (item) =>
+                      item.parentQuoteItemId &&
+                      widgetState.currentMainProductItem &&
+                      item.parentQuoteItemId === widgetState.currentMainProductItem.id,
+                  ),
+                ]
+                  .map((item) => {
+                    const m = item.measurement;
+                    const center = m.centerPoint || m.pointLocations?.[0];
+                    if (!center) return null;
+                    return {
+                      lat: center.lat,
+                      lng: center.lng,
+                      color: m.mapColor,
+                    };
+                  })
+                  .filter(
+                    (loc): loc is { lat: number; lng: number; color: string } =>
+                      loc !== null,
+                  )}
                 onComplete={(locations, productColor) => {
                   const addonProductId = widgetState.pendingAddon!.linkedProductId || widgetState.currentMainProductItem!.productId;
                   const addonProductName = widgetState.pendingAddon!.linkedProductId
@@ -732,7 +757,7 @@ const Widget = () => {
                     variations: widgetState.pendingAddon!.selectedVariations,
                   }));
 
-                  setWidgetState(prev => ({
+                  setWidgetState((prev) => ({
                     ...prev,
                     pendingAddons: [...(prev.pendingAddons || []), ...newAddonItems],
                     pendingAddon: undefined,
@@ -740,7 +765,7 @@ const Widget = () => {
                   }));
                 }}
                 onCancel={() => {
-                  setWidgetState(prev => ({
+                  setWidgetState((prev) => ({
                     ...prev,
                     pendingAddon: undefined,
                     currentStep: 'product-configuration',

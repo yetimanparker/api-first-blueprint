@@ -12,12 +12,13 @@ interface AddonPlacementProps {
   mainProductMeasurement: {
     type: 'area' | 'linear' | 'point';
     coordinates?: number[][];
-    pointLocations?: Array<{lat: number, lng: number}>;
-    centerPoint?: {lat: number, lng: number};
+    pointLocations?: Array<{ lat: number; lng: number }>;
+    centerPoint?: { lat: number; lng: number };
     mapColor?: string;
   };
   customerAddress?: string;
-  onComplete: (locations: Array<{lat: number, lng: number}>, productColor: string) => void;
+  existingAddonLocations?: Array<{ lat: number; lng: number; color: string }>;
+  onComplete: (locations: Array<{ lat: number; lng: number }>, productColor: string) => void;
   onCancel: () => void;
 }
 
@@ -26,8 +27,9 @@ export function AddonPlacement({
   linkedProductId,
   mainProductMeasurement,
   customerAddress,
+  existingAddonLocations,
   onComplete,
-  onCancel
+  onCancel,
 }: AddonPlacementProps) {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [addonProductColor, setAddonProductColor] = useState<string | null>(null);
@@ -148,6 +150,49 @@ export function AddonPlacement({
 
       // Draw the main product measurement (read-only)
       drawMainProductShape(mapInstance);
+
+      // Render any existing addon markers so they stay visible across sessions
+      if (existingAddonLocations && existingAddonLocations.length > 0) {
+        existingAddonLocations.forEach((loc) => {
+          const markerNumber = placedMarkersRef.current.length + 1;
+          const markerColor =
+            loc.color || addonProductColor || mainProductMeasurement.mapColor || '#3B82F6';
+
+          const marker = new google.maps.Marker({
+            position: { lat: loc.lat, lng: loc.lng },
+            map: mapInstance,
+            title: `${addonName} #${markerNumber}`,
+            label: {
+              text: `${markerNumber}`,
+              color: 'white',
+              fontSize: '12px',
+              fontWeight: 'bold',
+            },
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 12,
+              fillColor: markerColor,
+              fillOpacity: 1,
+              strokeColor: 'white',
+              strokeWeight: 2,
+            },
+            draggable: true,
+          });
+
+          marker.addListener('click', () => {
+            removeMarker(marker);
+          });
+
+          placedMarkersRef.current = [...placedMarkersRef.current, marker];
+          placedLocationsRef.current = [
+            ...placedLocationsRef.current,
+            { lat: loc.lat, lng: loc.lng },
+          ];
+        });
+
+        setPlacedMarkers(placedMarkersRef.current);
+        setPlacedLocations(placedLocationsRef.current);
+      }
 
       // Add click listener for placing add-on markers
       mapInstance.addListener('click', (e: google.maps.MapMouseEvent) => {
