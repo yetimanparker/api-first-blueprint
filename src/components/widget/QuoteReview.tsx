@@ -9,7 +9,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ClarifyingQuestionsDialog } from '@/components/widget/ClarifyingQuestionsDialog';
 import { Input } from '@/components/ui/input';
-import { Loader2, FileText, DollarSign, Plus, MessageSquare, Calculator, Trash2, User, Pencil } from 'lucide-react';
+import { Loader2, FileText, DollarSign, Plus, MessageSquare, Calculator, Trash2, User } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { QuoteItem, CustomerInfo, WorkflowStep } from '@/types/widget';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,6 +70,7 @@ const QuoteReview = ({
   const [dialogErrors, setDialogErrors] = useState<Record<string, string>>({});
   const [showPredictions, setShowPredictions] = useState(false);
   const [showClarifyingDialog, setShowClarifyingDialog] = useState(false);
+  const [addonToggleStates, setAddonToggleStates] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const quoteSummaryRef = useRef<HTMLDivElement>(null);
   const { getAutocomplete, getPlaceDetails, predictions, loading } = useGooglePlaces();
@@ -99,6 +101,25 @@ const QuoteReview = ({
   // Sync local items state with parent quoteItems prop
   useEffect(() => {
     setItems(quoteItems);
+    
+    // Initialize addon toggle states - all addons enabled by default
+    const initialToggleStates: Record<string, boolean> = {};
+    quoteItems.forEach(item => {
+      // Traditional add-ons
+      item.measurement.addons?.forEach(addon => {
+        const key = `${item.id}-${addon.id}`;
+        initialToggleStates[key] = true;
+      });
+      
+      // Map-placed add-ons (child items)
+      const childItems = quoteItems.filter(child => child.parentQuoteItemId === item.id);
+      childItems.forEach(child => {
+        const key = `${item.id}-${child.id}`;
+        initialToggleStates[key] = true;
+      });
+    });
+    
+    setAddonToggleStates(initialToggleStates);
   }, [quoteItems]);
 
   // Group items by parent-child relationships and consolidate duplicate add-ons
@@ -150,7 +171,78 @@ const QuoteReview = ({
     return { parentItems, consolidatedChildrenByParent };
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
+  const handleAddonToggle = (itemId: string, addonId: string, enabled: boolean) => {
+    const key = `${itemId}-${addonId}`;
+    setAddonToggleStates(prev => ({
+      ...prev,
+      [key]: enabled
+    }));
+  };
+  
+  // Calculate subtotal excluding disabled add-ons
+  const subtotal = items.reduce((sum, item) => {
+    let itemTotal = item.lineTotal;
+    
+    // For parent items with traditional add-ons, adjust total based on toggles
+    if (!item.parentQuoteItemId && item.measurement.addons) {
+      // Recalculate item total excluding disabled add-ons
+      const baseQuantity = item.measurement.depth 
+        ? (item.measurement.value * item.measurement.depth) / 324 
+        : item.measurement.value;
+      
+      let basePrice = baseQuantity * item.unitPrice;
+      
+      // Apply variations
+      if (item.measurement.variations && item.measurement.variations.length > 0) {
+        item.measurement.variations.forEach(variation => {
+          if (variation.adjustmentType === 'percentage') {
+            basePrice += basePrice * (variation.priceAdjustment / 100);
+          } else {
+            basePrice += variation.priceAdjustment * baseQuantity;
+          }
+        });
+      }
+      
+      // Apply only enabled add-ons
+      let addonsTotal = 0;
+      item.measurement.addons.forEach(addon => {
+        const key = `${item.id}-${addon.id}`;
+        const isEnabled = addonToggleStates[key] !== false; // Default to true
+        
+        if (isEnabled && addon.quantity > 0) {
+          const variationData = item.measurement.variations && item.measurement.variations.length > 0
+            ? {
+                height: item.measurement.variations[0].height_value || null,
+                unit: item.measurement.variations[0].unit_of_measurement || 'ft',
+                affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
+              }
+            : undefined;
+          
+          const addonPrice = calculateAddonWithAreaData(
+            addon.priceValue,
+            baseQuantity,
+            addon.calculationType,
+            variationData
+          );
+          
+          addonsTotal += addonPrice * addon.quantity;
+        }
+      });
+      
+      itemTotal = basePrice + addonsTotal;
+    }
+    
+    // For map-placed add-ons (child items), check if they're enabled
+    if (item.parentQuoteItemId) {
+      const key = `${item.parentQuoteItemId}-${item.id}`;
+      const isEnabled = addonToggleStates[key] !== false;
+      if (!isEnabled) {
+        return sum; // Don't add disabled map-placed addon to total
+      }
+    }
+    
+    return sum + itemTotal;
+  }, 0);
   const markupAmount = 0;
   const taxableAmount = subtotal;
   const taxAmount = settings.global_tax_rate > 0 
@@ -815,14 +907,17 @@ const QuoteReview = ({
                                 addonPrice = addon.priceValue;
                               }
                               
+                              const addonKey = `${item.id}-${addon.id}`;
+                              const isEnabled = addonToggleStates[addonKey] !== false;
+                              
                               return (
                                 <div key={addon.id} className="flex items-start justify-between gap-2 pl-3">
                                   <div className="flex-1 text-sm">
-                                    <span className="font-medium text-foreground">
+                                    <span className="font-medium text-foreground" style={{ opacity: isEnabled ? 1 : 0.5 }}>
                                       {addon.name}
                                       {addon.selectedOptionName && ` (${addon.selectedOptionName})`}
                                     </span>
-                                    <span className="text-muted-foreground">
+                                    <span className="text-muted-foreground" style={{ opacity: isEnabled ? 1 : 0.5 }}>
                                       : {(() => {
                                         const variationData = item.measurement.variations && item.measurement.variations.length > 0
                                           ? {
@@ -866,36 +961,17 @@ const QuoteReview = ({
                                         })}/${displayUnit}${qtyMultiplier} = `;
                                       })()}
                                     </span>
-                                    <span className="font-semibold text-foreground">
+                                    <span className="font-semibold text-foreground" style={{ opacity: isEnabled ? 1 : 0.5 }}>
                                       {formatExactPrice(addonPrice * addon.quantity, {
                                         currency_symbol: settings.currency_symbol,
                                         decimal_precision: settings.decimal_precision
                                       })}
                                     </span>
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                                      onClick={() => {
-                                        toast({
-                                          title: "Edit Add-on",
-                                          description: "Edit functionality coming soon. For now, you can delete and re-add the add-on.",
-                                        });
-                                      }}
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                      onClick={() => removeAddon(item.id, addon.id)}
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
+                                  <Switch
+                                    checked={isEnabled}
+                                    onCheckedChange={(checked) => handleAddonToggle(item.id, addon.id, checked)}
+                                  />
                                 </div>
                               );
                             })}
@@ -903,6 +979,8 @@ const QuoteReview = ({
                             {/* Consolidated map-placed add-ons */}
                             {consolidatedChildren.map((consolidated) => {
                               const displayUnit = getDisplayUnit(consolidated.unitType);
+                              const addonKey = `${item.id}-${consolidated.items[0].id}`;
+                              const isEnabled = addonToggleStates[addonKey] !== false;
                               
                               return (
                                 <div key={consolidated.productId} className="flex items-start justify-between gap-2 pl-3">
@@ -910,13 +988,13 @@ const QuoteReview = ({
                                     <div className="flex items-center gap-2">
                                       <div 
                                         className="w-2 h-2 rounded-full flex-shrink-0" 
-                                        style={{ backgroundColor: consolidated.mapColor }}
+                                        style={{ backgroundColor: consolidated.mapColor, opacity: isEnabled ? 1 : 0.5 }}
                                       />
-                                      <span className="font-medium text-sm text-foreground">
+                                      <span className="font-medium text-sm text-foreground" style={{ opacity: isEnabled ? 1 : 0.5 }}>
                                         {consolidated.productName}:
                                       </span>
                                     </div>
-                                    <div className="text-sm text-muted-foreground ml-4">
+                                    <div className="text-sm text-muted-foreground ml-4" style={{ opacity: isEnabled ? 1 : 0.5 }}>
                                       {consolidated.quantity} × {formatExactPrice(consolidated.unitPrice, {
                                         currency_symbol: settings.currency_symbol,
                                         decimal_precision: settings.decimal_precision
@@ -928,31 +1006,15 @@ const QuoteReview = ({
                                       </span>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                                      onClick={() => {
-                                        toast({
-                                          title: "Edit Add-on",
-                                          description: "Edit functionality coming soon. For now, you can delete and re-add the add-on.",
-                                        });
-                                      }}
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    {onRemoveItem && consolidated.items.length === 1 && (
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                        onClick={() => onRemoveItem(consolidated.items[0].id)}
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                    )}
-                                  </div>
+                                  <Switch
+                                    checked={isEnabled}
+                                    onCheckedChange={(checked) => {
+                                      // Toggle all items in the consolidated group
+                                      consolidated.items.forEach(childItem => {
+                                        handleAddonToggle(item.id, childItem.id, checked);
+                                      });
+                                    }}
+                                  />
                                 </div>
                               );
                             })}
@@ -966,7 +1028,53 @@ const QuoteReview = ({
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">Main Product:</span>
-                                <span className="font-medium">{formatExactPrice(item.lineTotal, {
+                                <span className="font-medium">{formatExactPrice((() => {
+                                  // Calculate main product price including only enabled traditional add-ons
+                                  const baseQuantity = item.measurement.depth 
+                                    ? (item.measurement.value * item.measurement.depth) / 324 
+                                    : item.measurement.value;
+                                  
+                                  let basePrice = baseQuantity * item.unitPrice;
+                                  
+                                  // Apply variations
+                                  if (item.measurement.variations && item.measurement.variations.length > 0) {
+                                    item.measurement.variations.forEach(variation => {
+                                      if (variation.adjustmentType === 'percentage') {
+                                        basePrice += basePrice * (variation.priceAdjustment / 100);
+                                      } else {
+                                        basePrice += variation.priceAdjustment * baseQuantity;
+                                      }
+                                    });
+                                  }
+                                  
+                                  // Apply only enabled add-ons
+                                  let addonsTotal = 0;
+                                  item.measurement.addons?.forEach(addon => {
+                                    const addonKey = `${item.id}-${addon.id}`;
+                                    const isEnabled = addonToggleStates[addonKey] !== false;
+                                    
+                                    if (isEnabled && addon.quantity > 0) {
+                                      const variationData = item.measurement.variations && item.measurement.variations.length > 0
+                                        ? {
+                                            height: item.measurement.variations[0].height_value || null,
+                                            unit: item.measurement.variations[0].unit_of_measurement || 'ft',
+                                            affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
+                                          }
+                                        : undefined;
+                                      
+                                      const addonPrice = calculateAddonWithAreaData(
+                                        addon.priceValue,
+                                        baseQuantity,
+                                        addon.calculationType,
+                                        variationData
+                                      );
+                                      
+                                      addonsTotal += addonPrice * addon.quantity;
+                                    }
+                                  });
+                                  
+                                  return basePrice + addonsTotal;
+                                })(), {
                                   currency_symbol: settings.currency_symbol,
                                   decimal_precision: settings.decimal_precision
                                 })}</span>
@@ -974,10 +1082,18 @@ const QuoteReview = ({
                               {consolidatedChildren.length > 0 && (
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">
-                                    Add-ons ({consolidatedChildren.reduce((sum, c) => sum + c.quantity, 0)}):
+                                    Add-ons ({consolidatedChildren.reduce((sum, c) => {
+                                      const addonKey = `${item.id}-${c.items[0].id}`;
+                                      const isEnabled = addonToggleStates[addonKey] !== false;
+                                      return isEnabled ? sum + c.quantity : sum;
+                                    }, 0)}):
                                   </span>
                                   <span className="font-medium">{formatExactPrice(
-                                    consolidatedChildren.reduce((sum, c) => sum + c.lineTotal, 0),
+                                    consolidatedChildren.reduce((sum, c) => {
+                                      const addonKey = `${item.id}-${c.items[0].id}`;
+                                      const isEnabled = addonToggleStates[addonKey] !== false;
+                                      return isEnabled ? sum + c.lineTotal : sum;
+                                    }, 0),
                                     {
                                       currency_symbol: settings.currency_symbol,
                                       decimal_precision: settings.decimal_precision
@@ -989,13 +1105,63 @@ const QuoteReview = ({
                             <Separator className="my-2" />
                             <div className="flex justify-between font-semibold">
                               <span>Total:</span>
-                              <span className="text-green-600">{formatExactPrice(
-                                item.lineTotal + consolidatedChildren.reduce((sum, c) => sum + c.lineTotal, 0),
-                                {
-                                  currency_symbol: settings.currency_symbol,
-                                  decimal_precision: settings.decimal_precision
+                              <span className="text-green-600">{formatExactPrice((() => {
+                                // Calculate total including only enabled items
+                                const baseQuantity = item.measurement.depth 
+                                  ? (item.measurement.value * item.measurement.depth) / 324 
+                                  : item.measurement.value;
+                                
+                                let basePrice = baseQuantity * item.unitPrice;
+                                
+                                // Apply variations
+                                if (item.measurement.variations && item.measurement.variations.length > 0) {
+                                  item.measurement.variations.forEach(variation => {
+                                    if (variation.adjustmentType === 'percentage') {
+                                      basePrice += basePrice * (variation.priceAdjustment / 100);
+                                    } else {
+                                      basePrice += variation.priceAdjustment * baseQuantity;
+                                    }
+                                  });
                                 }
-                              )}</span>
+                                
+                                // Apply only enabled add-ons
+                                let addonsTotal = 0;
+                                item.measurement.addons?.forEach(addon => {
+                                  const addonKey = `${item.id}-${addon.id}`;
+                                  const isEnabled = addonToggleStates[addonKey] !== false;
+                                  
+                                  if (isEnabled && addon.quantity > 0) {
+                                    const variationData = item.measurement.variations && item.measurement.variations.length > 0
+                                      ? {
+                                          height: item.measurement.variations[0].height_value || null,
+                                          unit: item.measurement.variations[0].unit_of_measurement || 'ft',
+                                          affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
+                                        }
+                                      : undefined;
+                                    
+                                    const addonPrice = calculateAddonWithAreaData(
+                                      addon.priceValue,
+                                      baseQuantity,
+                                      addon.calculationType,
+                                      variationData
+                                    );
+                                    
+                                    addonsTotal += addonPrice * addon.quantity;
+                                  }
+                                });
+                                
+                                const mainProductTotal = basePrice + addonsTotal;
+                                const mapAddonsTotal = consolidatedChildren.reduce((sum, c) => {
+                                  const addonKey = `${item.id}-${c.items[0].id}`;
+                                  const isEnabled = addonToggleStates[addonKey] !== false;
+                                  return isEnabled ? sum + c.lineTotal : sum;
+                                }, 0);
+                                
+                                return mainProductTotal + mapAddonsTotal;
+                              })(), {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })}</span>
                             </div>
                           </>
                         )}
@@ -1007,82 +1173,57 @@ const QuoteReview = ({
                       <div className="space-y-1">
                         <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
                         {item.measurement.addons?.map((addon) => {
+                          const addonKey = `${item.id}-${addon.id}`;
+                          const isEnabled = addonToggleStates[addonKey] !== false;
+                          
                           return (
                             <div key={addon.id} className="flex items-center justify-between pl-3">
                               <div className="flex-1">
-                                <span className="text-sm font-medium text-foreground">{addon.name}</span>
+                                <span className="text-sm font-medium text-foreground" style={{ opacity: isEnabled ? 1 : 0.5 }}>
+                                  {addon.name}
+                                </span>
                                 {addon.selectedOptionName && (
-                                  <span className="text-sm text-muted-foreground ml-1">
+                                  <span className="text-sm text-muted-foreground ml-1" style={{ opacity: isEnabled ? 1 : 0.5 }}>
                                     ({addon.selectedOptionName})
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-1">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                                  onClick={() => {
-                                    toast({
-                                      title: "Edit Add-on",
-                                      description: "Edit functionality coming soon. For now, you can delete and re-add the add-on.",
-                                    });
-                                  }}
-                                >
-                                  <Pencil className="h-3 w-3" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => removeAddon(item.id, addon.id)}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
+                              <Switch
+                                checked={isEnabled}
+                                onCheckedChange={(checked) => handleAddonToggle(item.id, addon.id, checked)}
+                              />
                             </div>
                           );
                         })}
                         
                         {/* Consolidated map-placed add-ons (no pricing) */}
-                        {consolidatedChildren.map((consolidated) => (
-                          <div key={consolidated.productId} className="flex items-center justify-between pl-3">
-                            <div className="flex items-center gap-2 flex-1">
-                              <div 
-                                className="w-2 h-2 rounded-full flex-shrink-0" 
-                                style={{ backgroundColor: consolidated.mapColor }}
-                              />
-                              <span className="text-sm font-medium text-foreground">
-                                {consolidated.productName} ({consolidated.quantity})
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                                onClick={() => {
-                                  toast({
-                                    title: "Edit Add-on",
-                                    description: "Edit functionality coming soon. For now, you can delete and re-add the add-on.",
+                        {consolidatedChildren.map((consolidated) => {
+                          const addonKey = `${item.id}-${consolidated.items[0].id}`;
+                          const isEnabled = addonToggleStates[addonKey] !== false;
+                          
+                          return (
+                            <div key={consolidated.productId} className="flex items-center justify-between pl-3">
+                              <div className="flex items-center gap-2 flex-1">
+                                <div 
+                                  className="w-2 h-2 rounded-full flex-shrink-0" 
+                                  style={{ backgroundColor: consolidated.mapColor, opacity: isEnabled ? 1 : 0.5 }}
+                                />
+                                <span className="text-sm font-medium text-foreground" style={{ opacity: isEnabled ? 1 : 0.5 }}>
+                                  {consolidated.productName} ({consolidated.quantity})
+                                </span>
+                              </div>
+                              <Switch
+                                checked={isEnabled}
+                                onCheckedChange={(checked) => {
+                                  // Toggle all items in the consolidated group
+                                  consolidated.items.forEach(childItem => {
+                                    handleAddonToggle(item.id, childItem.id, checked);
                                   });
                                 }}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                              {onRemoveItem && consolidated.items.length === 1 && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => onRemoveItem(consolidated.items[0].id)}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              )}
+                              />
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                     
