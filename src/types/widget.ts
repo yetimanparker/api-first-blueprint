@@ -103,7 +103,8 @@ export type WorkflowStep =
   | 'project-comments' 
   | 'quote-review' 
   | 'contact-after'
-  | 'confirmation';
+  | 'confirmation'
+  | 'internal-quote-review'; // Internal contractor quote review (no customer contact capture)
 
 export interface WidgetState {
   contractorId: string;
