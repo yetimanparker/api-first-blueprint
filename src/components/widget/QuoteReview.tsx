@@ -339,6 +339,7 @@ const QuoteReview = ({
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         lineTotal: item.lineTotal,
+        parentQuoteItemId: item.parentQuoteItemId,
         measurementData: {
           type: item.measurement.type,
           value: item.measurement.value,
