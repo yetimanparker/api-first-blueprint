@@ -334,6 +334,9 @@ const QuoteReview = ({
     setIsSubmitting(true);
 
     try {
+      console.log('📤 QuoteReview: Preparing to submit quote');
+      console.log('🆔 Items before transformation:', items.map(i => ({ id: i.id, productName: i.productName, parentQuoteItemId: i.parentQuoteItemId })));
+      
       const quoteItemsData = items.map(item => ({
         id: item.id,
         productId: item.productId,
