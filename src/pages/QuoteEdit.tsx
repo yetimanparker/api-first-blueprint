@@ -937,7 +937,15 @@ export default function QuoteEdit() {
         <div className="mb-6">
           <Button 
             variant="outline"
-            onClick={() => setAddProductDialogOpen(true)}
+            onClick={() => {
+              // If quote is in draft status (contractor building), add products directly
+              // Otherwise (customer submitted), ask about change order
+              if (quote.status === 'draft') {
+                navigate(`/quote/builder/${quote.id}`);
+              } else {
+                setAddProductDialogOpen(true);
+              }
+            }}
             className="w-full sm:w-auto text-base font-bold"
           >
             + Add Product to Quote
