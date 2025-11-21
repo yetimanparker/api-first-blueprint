@@ -220,6 +220,9 @@ const QuoteSuccess = ({
 
       console.log('🎨 Starting to render measurements...');
 
+      // Track marker numbers by product ID for consistent numbering
+      const markerCounters: Record<string, number> = {};
+
       // Render all measurements
       quoteItems.forEach((item, index) => {
         // Use the mapColor that was assigned when the measurement was created
@@ -230,7 +233,16 @@ const QuoteSuccess = ({
         if (item.measurement.type === 'point' && item.measurement.pointLocations) {
           // Handle point measurements (e.g., individual trees)
           console.log(`  ➡️ Rendering ${item.measurement.pointLocations.length} point markers`);
-          item.measurement.pointLocations.forEach((position, idx) => {
+          
+          // Initialize counter for this product if not exists
+          if (!markerCounters[item.productId]) {
+            markerCounters[item.productId] = 0;
+          }
+          
+          item.measurement.pointLocations.forEach((position) => {
+            markerCounters[item.productId]++;
+            const markerNumber = markerCounters[item.productId];
+            
             new google.maps.Marker({
               position: position, // Already in {lat, lng} format
               map: map,
@@ -243,12 +255,12 @@ const QuoteSuccess = ({
                 strokeWeight: 2,
               },
               label: {
-                text: `${idx + 1}`,
+                text: `${markerNumber}`,
                 color: '#ffffff',
                 fontSize: `${Math.max(10, getZoomBasedFontSize(currentZoom) - 2)}px`,
                 fontWeight: 'bold',
               },
-              title: `${item.productName} - Location ${idx + 1}`,
+              title: `${item.productName} - Location ${markerNumber}`,
             });
           });
         }
