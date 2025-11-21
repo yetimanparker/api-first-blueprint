@@ -23,7 +23,6 @@ import {
   calculateFinalPrice,
   calculateAddonWithAreaData
 } from '@/lib/priceUtils';
-import { consolidateQuoteItems } from '@/lib/quoteConsolidation';
 
 interface QuoteReviewProps {
   quoteItems: QuoteItem[];
@@ -123,9 +122,53 @@ const QuoteReview = ({
     setAddonToggleStates(initialToggleStates);
   }, [quoteItems]);
 
-  // Use consolidated quote items utility
-  const getConsolidatedData = () => {
-    return consolidateQuoteItems(items);
+  // Group items by parent-child relationships and consolidate duplicate add-ons
+  const organizeItemsForDisplay = () => {
+    const parentItems = items.filter(item => !item.parentQuoteItemId);
+    const childItems = items.filter(item => item.parentQuoteItemId);
+    
+    // Create a map of parent ID to consolidated children
+    const consolidatedChildrenByParent = new Map<string, Array<{
+      productId: string;
+      productName: string;
+      unitPrice: number;
+      unitType: string;
+      quantity: number;
+      lineTotal: number;
+      mapColor: string;
+      items: QuoteItem[];
+    }>>();
+    
+    childItems.forEach(child => {
+      const parentId = child.parentQuoteItemId!;
+      if (!consolidatedChildrenByParent.has(parentId)) {
+        consolidatedChildrenByParent.set(parentId, []);
+      }
+      
+      const siblings = consolidatedChildrenByParent.get(parentId)!;
+      const existing = siblings.find(s => s.productId === child.productId);
+      
+      if (existing) {
+        // Consolidate duplicate products
+        existing.quantity += child.quantity;
+        existing.lineTotal += child.lineTotal;
+        existing.items.push(child);
+      } else {
+        // New product type
+        siblings.push({
+          productId: child.productId,
+          productName: child.productName,
+          unitPrice: child.unitPrice,
+          unitType: child.unitType,
+          quantity: child.quantity,
+          lineTotal: child.lineTotal,
+          mapColor: child.measurement.mapColor || '#F59E0B',
+          items: [child]
+        });
+      }
+    });
+    
+    return { parentItems, consolidatedChildrenByParent };
   };
 
   const handleAddonToggle = (itemId: string, addonId: string, enabled: boolean) => {
@@ -719,33 +762,37 @@ const QuoteReview = ({
           {/* Detailed Quote Items */}
           <div className="space-y-4 mb-6">
             {(() => {
-              const { consolidatedMainProducts } = getConsolidatedData();
+              const { parentItems, consolidatedChildrenByParent } = organizeItemsForDisplay();
               
-              return consolidatedMainProducts.map((product, itemIndex) => {
-                // For toggles, we need to work with the original items
-                const item = product.instances[0]; // Use first instance for reference
+              return parentItems.map((item, itemIndex) => {
+                const quantity = item.measurement.depth 
+                  ? (item.measurement.value * item.measurement.depth) / 324 
+                  : item.measurement.value;
+                const basePrice = quantity * item.unitPrice;
+                const consolidatedChildren = consolidatedChildrenByParent.get(item.id) || [];
                 
                 return (
-                  <div key={product.productId + '-' + itemIndex} className="space-y-2">
-                    {/* Parent Product - Consolidated */}
+                  <div key={item.id} className="space-y-2">
+                    {/* Parent Product */}
                     <div className="bg-background rounded-lg p-4 border border-green-200 dark:border-green-800">
                   {/* Mobile-optimized layout: stack everything vertically on mobile */}
                   <div className="flex flex-col gap-3 mb-3">
-                    {/* Row 1: Color badge + Product name with quantity multiplier */}
+                    {/* Row 1: Color badge + Product name with measurement inline */}
                     <div className="flex items-start gap-2">
                       <div 
                         className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5" 
                         style={{ 
-                          backgroundColor: product.color,
+                          backgroundColor: item.measurement.mapColor || '#3B82F6',
                         }}
                       />
                       <h3 className="font-semibold text-base flex-1 break-words leading-tight">
-                        {product.productName}
-                        {product.instances.length > 1 && (
-                          <span className="text-sm text-muted-foreground font-normal ml-2">
-                            - Qty: {product.instances.length}
-                          </span>
-                        )}
+                        {item.productName}
+                        <span className="text-sm text-muted-foreground font-normal ml-2">
+                          ({item.measurement.depth 
+                            ? `${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cubic yards`
+                            : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')}`
+                          })
+                        </span>
                       </h3>
                       {onRemoveItem && (
                         <Button 
