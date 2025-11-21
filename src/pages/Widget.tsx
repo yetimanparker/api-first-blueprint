@@ -344,6 +344,7 @@ const Widget = () => {
   const addQuoteItem = (item: QuoteItem | QuoteItem[]) => {
     const items = Array.isArray(item) ? item : [item];
     console.log('🟢 Widget.addQuoteItem called with items:', items.length);
+    console.log('🆔 Items IDs:', items.map(i => ({ id: i.id, productName: i.productName, parentQuoteItemId: i.parentQuoteItemId })));
     
     // Finalize the measurement (make nodes non-editable) before adding to quote
     if ((window as any).__finalizeMeasurement) {

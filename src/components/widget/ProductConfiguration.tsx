@@ -459,6 +459,8 @@ const ProductConfiguration = ({
       const mainItemId = `main_${Date.now()}`;
       const mainItemWithId = { ...quoteItem, id: mainItemId };
       
+      console.log('🆔 Main item with ID:', { id: mainItemWithId.id, productName: mainItemWithId.productName });
+      
       // Then add pending addons with parent reference
       const addonsWithParent = pendingAddons.map(addon => ({
         ...addon,
@@ -466,11 +468,14 @@ const ProductConfiguration = ({
         id: `addon_${addon.id}_${Date.now()}`
       }));
       
+      console.log('🆔 Addons with parent:', addonsWithParent.map(a => ({ id: a.id, parentQuoteItemId: a.parentQuoteItemId })));
+      
       const allItems = [mainItemWithId, ...addonsWithParent];
       onAddToQuote(allItems);
     } else {
       // No pending addons, just add main item with ID
       const mainItemWithId = { ...quoteItem, id: `main_${Date.now()}` };
+      console.log('🆔 Main item (no addons) with ID:', { id: mainItemWithId.id, productName: mainItemWithId.productName });
       onAddToQuote([mainItemWithId]);
     }
     
