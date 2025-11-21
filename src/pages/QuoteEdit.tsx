@@ -17,7 +17,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { EditQuoteItemDialog } from "@/components/EditQuoteItemDialog";
 import { useGlobalSettings } from "@/hooks/useGlobalSettings";
 import { displayQuoteTotal, displayLineItemPrice, formatExactPrice, calculateAddonWithAreaData } from "@/lib/priceUtils";
-import { consolidateQuoteItems } from '@/lib/quoteConsolidation';
 import MeasurementMap from "@/components/quote/MeasurementMap";
 import MeasurementDetails from "@/components/quote/MeasurementDetails";
 import type { MeasurementData } from "@/types/widget";
@@ -424,18 +423,40 @@ export default function QuoteEdit() {
     }
   };
 
-  const getConsolidatedData = () => {
-    return consolidateQuoteItems(quoteItems.map(item => ({
-      id: item.id,
-      productId: item.product_id,
-      productName: item.product.name,
-      quantity: item.quantity,
-      unitPrice: item.unit_price,
-      lineTotal: item.line_total,
-      unitType: item.product.unit_type,
-      parentQuoteItemId: item.parent_quote_item_id,
-      measurement: item.measurement_data || {}
-    })));
+  const organizeItemsForDisplay = () => {
+    const parentItems = quoteItems.filter(item => !item.parent_quote_item_id);
+    const childItems = quoteItems.filter(item => item.parent_quote_item_id);
+    
+    const consolidatedChildrenByParent: Record<string, ConsolidatedChild[]> = {};
+    
+    childItems.forEach(child => {
+      if (!child.parent_quote_item_id) return;
+      
+      if (!consolidatedChildrenByParent[child.parent_quote_item_id]) {
+        consolidatedChildrenByParent[child.parent_quote_item_id] = [];
+      }
+      
+      const existing = consolidatedChildrenByParent[child.parent_quote_item_id]
+        .find(c => c.product_id === child.product_id);
+      
+      if (existing) {
+        existing.quantity += child.quantity;
+        existing.line_total += child.line_total;
+        existing.itemIds.push(child.id);
+      } else {
+        consolidatedChildrenByParent[child.parent_quote_item_id].push({
+          product_id: child.product_id,
+          product_name: child.product?.name || 'Unknown Product',
+          quantity: child.quantity,
+          unit_price: child.unit_price,
+          line_total: child.line_total,
+          itemIds: [child.id],
+          measurement_data: child.measurement_data
+        });
+      }
+    });
+    
+    return { parentItems, consolidatedChildrenByParent };
   };
 
   const startEditingAddon = (addonId: string, quantity: number, parentItemId: string) => {
