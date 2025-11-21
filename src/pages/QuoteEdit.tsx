@@ -1292,18 +1292,6 @@ export default function QuoteEdit() {
                               })}
                             </div>
                           )}
-                          
-                          {/* Item Total */}
-                          <div className="border-t-2 border-border pt-3">
-                            <div className="flex justify-end">
-                              <span className="text-lg font-bold text-green-600">
-                                Total: {formatExactPrice(item.line_total, {
-                                  currency_symbol: settings?.currency_symbol || '$',
-                                  decimal_precision: settings?.decimal_precision || 2
-                                })}
-                              </span>
-                            </div>
-                          </div>
                       </div>
                     </div>
                   );

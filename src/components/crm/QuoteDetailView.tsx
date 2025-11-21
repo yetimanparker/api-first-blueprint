@@ -453,18 +453,6 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                         })}
                       </div>
                     )}
-                    
-                    {/* Product Total */}
-                    <div className="border-t border-border pt-2.5 mt-3">
-                      <div className="flex justify-end">
-                        <span className="text-base font-semibold text-primary">
-                          Total: {formatExactPrice(product.totalLineTotal, {
-                            currency_symbol: settings.currency_symbol,
-                            decimal_precision: settings.decimal_precision
-                          })}
-                        </span>
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
