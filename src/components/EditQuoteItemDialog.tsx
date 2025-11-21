@@ -114,7 +114,7 @@ export function EditQuoteItemDialog({ open, onOpenChange, item, onSuccess }: Edi
         .select(`
           *,
           product_variations (*),
-          product_addons (*),
+          product_addons!product_addons_product_id_fkey (*),
           product_pricing_tiers (*)
         `)
         .eq("id", item.product_id)
