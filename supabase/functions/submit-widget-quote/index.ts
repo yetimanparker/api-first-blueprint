@@ -16,6 +16,7 @@ const customerInfoSchema = z.object({
 });
 
 const quoteItemSchema = z.object({
+  id: z.string().optional(),
   productId: z.string().uuid("Invalid product ID"),
   quantity: z.number().positive("Quantity must be positive"),
   unitPrice: z.number().nonnegative("Unit price must be non-negative"),
