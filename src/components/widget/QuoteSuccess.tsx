@@ -464,14 +464,20 @@ const QuoteSuccess = ({
                             {product.mapPlacedAddons.map((mapAddon) => {
                               const mapUnitAbbr = getUnitAbbreviation(mapAddon.unitType);
                               return (
-                                <div key={mapAddon.productId} className="text-sm text-muted-foreground pl-3">
-                                  <span className="font-medium text-foreground">{mapAddon.productName}</span>: {mapAddon.totalQuantity} × {formatExactPrice(mapAddon.unitPrice, {
-                                    currency_symbol: settings.currency_symbol,
-                                    decimal_precision: settings.decimal_precision
-                                  })}/{mapUnitAbbr} = <span className="font-semibold text-foreground">{formatExactPrice(mapAddon.totalLineTotal, {
-                                    currency_symbol: settings.currency_symbol,
-                                    decimal_precision: settings.decimal_precision
-                                  })}</span>
+                                <div key={mapAddon.productId} className="flex items-start gap-2 text-sm text-muted-foreground pl-3">
+                                  <div 
+                                    className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5" 
+                                    style={{ backgroundColor: mapAddon.mapColor }}
+                                  />
+                                  <div className="flex-1">
+                                    <span className="font-medium text-foreground">{mapAddon.productName}</span>: {mapAddon.totalQuantity} × {formatExactPrice(mapAddon.unitPrice, {
+                                      currency_symbol: settings.currency_symbol,
+                                      decimal_precision: settings.decimal_precision
+                                    })}/{mapUnitAbbr} = <span className="font-semibold text-foreground">{formatExactPrice(mapAddon.totalLineTotal, {
+                                      currency_symbol: settings.currency_symbol,
+                                      decimal_precision: settings.decimal_precision
+                                    })}</span>
+                                  </div>
                                 </div>
                               );
                             })}
