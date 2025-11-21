@@ -1048,12 +1048,16 @@ const ProductConfiguration = ({
                                 })}</span>
                               </div>
                             </div>
-                            {onRemovePendingAddon && group.items.length === 1 && (
+                            {onRemovePendingAddon && (
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => onRemovePendingAddon(group.items[0].id)}
+                                onClick={() => {
+                                  group.items.forEach(item => {
+                                    onRemovePendingAddon(item.id);
+                                  });
+                                }}
                                 className="h-8 w-8 p-0 ml-2 hover:bg-destructive/10 hover:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />
