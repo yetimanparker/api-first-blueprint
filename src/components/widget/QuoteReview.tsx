@@ -102,6 +102,24 @@ const QuoteReview = ({
     setItems(quoteItems);
   }, [quoteItems]);
 
+  // Group items by parent-child relationships for display
+  const organizeItemsForDisplay = () => {
+    const parentItems = items.filter(item => !item.parentQuoteItemId);
+    const childItems = items.filter(item => item.parentQuoteItemId);
+    
+    // Create a map of parent ID to its children
+    const childrenByParent = new Map<string, typeof items>();
+    childItems.forEach(child => {
+      const parentId = child.parentQuoteItemId!;
+      if (!childrenByParent.has(parentId)) {
+        childrenByParent.set(parentId, []);
+      }
+      childrenByParent.get(parentId)!.push(child);
+    });
+    
+    return { parentItems, childrenByParent };
+  };
+
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const markupAmount = 0;
   const taxableAmount = subtotal;
@@ -625,14 +643,20 @@ const QuoteReview = ({
         <CardContent className="space-y-4">
           {/* Detailed Quote Items */}
           <div className="space-y-4 mb-6">
-            {items.map((item, itemIndex) => {
-              const quantity = item.measurement.depth 
-                ? (item.measurement.value * item.measurement.depth) / 324 
-                : item.measurement.value;
-              const basePrice = quantity * item.unitPrice;
+            {(() => {
+              const { parentItems, childrenByParent } = organizeItemsForDisplay();
               
-              return (
-                <div key={item.id} className="bg-background rounded-lg p-4 border border-green-200 dark:border-green-800">
+              return parentItems.map((item, itemIndex) => {
+                const quantity = item.measurement.depth 
+                  ? (item.measurement.value * item.measurement.depth) / 324 
+                  : item.measurement.value;
+                const basePrice = quantity * item.unitPrice;
+                const childItems = childrenByParent.get(item.id) || [];
+                
+                return (
+                  <div key={item.id} className="space-y-2">
+                    {/* Parent Product */}
+                    <div className="bg-background rounded-lg p-4 border border-green-200 dark:border-green-800">
                   {/* Mobile-optimized layout: stack everything vertically on mobile */}
                   <div className="flex flex-col gap-3 mb-3">
                     {/* Row 1: Color badge + Product name with measurement inline */}
@@ -877,9 +901,67 @@ const QuoteReview = ({
                     )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+                
+                {/* Child Items (Map-Placed Add-ons) */}
+                {childItems.length > 0 && (
+                  <div className="ml-8 space-y-2">
+                    <div className="text-sm font-medium text-muted-foreground mb-2">Map-Placed Add-ons:</div>
+                    {childItems.map((childItem) => {
+                      const childQuantity = childItem.measurement.depth 
+                        ? (childItem.measurement.value * childItem.measurement.depth) / 324 
+                        : childItem.measurement.value;
+                      
+                      return (
+                        <div key={childItem.id} className="bg-muted/30 rounded-lg p-3 border border-border">
+                          <div className="flex items-start gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full flex-shrink-0 mt-1" 
+                              style={{ backgroundColor: childItem.measurement.mapColor || '#F59E0B' }}
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">
+                                {childItem.productName}
+                                <span className="text-xs text-muted-foreground ml-2">
+                                  ({childQuantity} {childItem.measurement.unit.replace('_', ' ')})
+                                </span>
+                              </div>
+                              
+                              {settings.pricing_visibility === 'before_submit' && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {childQuantity} × {formatExactPrice(childItem.unitPrice, {
+                                    currency_symbol: settings.currency_symbol,
+                                    decimal_precision: settings.decimal_precision
+                                  })} = <span className="font-semibold text-foreground">
+                                    {formatExactPrice(childItem.lineTotal, {
+                                      currency_symbol: settings.currency_symbol,
+                                      decimal_precision: settings.decimal_precision
+                                    })}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {onRemoveItem && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => onRemoveItem(childItem.id)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          });
+        })()}
+      </div>
 
           <Separator className="my-4 bg-green-300 dark:bg-green-700" />
 
