@@ -949,15 +949,32 @@ const ProductConfiguration = ({
 
                         return (
                           <div key={addonId} className="text-base">
-                            <div>{addon.name}:</div>
-                            <div className="text-sm text-muted-foreground">
-                              {displayQuantity} {displayUnit} × {formatExactPrice(addon.price_value, {
-                                currency_symbol: settings.currency_symbol,
-                                decimal_precision: settings.decimal_precision
-                              })}/{displayUnit} = <span className="font-bold">{formatExactPrice(addonTotal, {
-                                currency_symbol: settings.currency_symbol,
-                                decimal_precision: settings.decimal_precision
-                              })}</span>
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div>{addon.name}:</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {displayQuantity} {displayUnit} × {formatExactPrice(addon.price_value, {
+                                    currency_symbol: settings.currency_symbol,
+                                    decimal_precision: settings.decimal_precision
+                                  })}/{displayUnit} = <span className="font-bold">{formatExactPrice(addonTotal, {
+                                    currency_symbol: settings.currency_symbol,
+                                    decimal_precision: settings.decimal_precision
+                                  })}</span>
+                                </div>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newSelectedAddons = { ...selectedAddons };
+                                  delete newSelectedAddons[addonId];
+                                  setSelectedAddons(newSelectedAddons);
+                                }}
+                                className="h-8 w-8 p-0 ml-2 hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                         );
