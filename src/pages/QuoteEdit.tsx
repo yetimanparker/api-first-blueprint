@@ -1426,20 +1426,31 @@ export default function QuoteEdit() {
                     className="h-[500px]"
                   />
                   <div className="mt-4 flex flex-wrap gap-3">
-                    {quoteItems
-                      .filter(item => 
-                        item.measurement_data?.coordinates?.length || 
-                        item.measurement_data?.pointLocations?.length
-                      )
-                      .map((item) => (
-                        <div key={item.id} className="flex items-center gap-2">
+                    {(() => {
+                      // Get unique products for the legend (deduplicate by product_id)
+                      const uniqueProducts = quoteItems
+                        .filter(item => 
+                          item.measurement_data?.coordinates?.length || 
+                          item.measurement_data?.pointLocations?.length
+                        )
+                        .reduce((acc, item) => {
+                          // Only add if we haven't seen this product_id yet
+                          if (!acc.find(p => p.product_id === item.product_id)) {
+                            acc.push(item);
+                          }
+                          return acc;
+                        }, [] as typeof quoteItems);
+                      
+                      return uniqueProducts.map((item) => (
+                        <div key={item.product_id} className="flex items-center gap-2">
                           <div 
                             className="w-4 h-4 rounded" 
                             style={{ backgroundColor: item.measurement_data?.mapColor || '#3B82F6' }}
                           />
                           <span className="text-sm">{item.product.name}</span>
                         </div>
-                      ))}
+                      ));
+                    })()}
                   </div>
                 </>
               ) : (
