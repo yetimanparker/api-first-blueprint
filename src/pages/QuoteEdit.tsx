@@ -1200,18 +1200,25 @@ export default function QuoteEdit() {
                               {consolidatedChildren.map((child) => {
                                 const isEditing = editingAddonId === child.product_id && editingParentItemId === item.id;
                                 const childUnitAbbr = 'ea';
+                                const childColor = child.measurement_data?.mapColor || '#F59E0B';
                                 
                                 return (
                                   <div key={child.product_id} className="text-sm text-muted-foreground pl-3">
                                     <div className="flex items-center justify-between gap-2">
-                                      <div>
-                                        <span className="font-medium text-foreground">{child.product_name}</span>: {child.quantity > 1 && `${child.quantity} × `}{formatExactPrice(child.unit_price, {
-                                          currency_symbol: settings?.currency_symbol || '$',
-                                          decimal_precision: settings?.decimal_precision || 2
-                                        })}{child.quantity > 1 && `/${childUnitAbbr}`} = <span className="font-semibold text-foreground">{formatExactPrice(child.line_total, {
-                                          currency_symbol: settings?.currency_symbol || '$',
-                                          decimal_precision: settings?.decimal_precision || 2
-                                        })}</span>
+                                      <div className="flex items-start gap-2 flex-1">
+                                        <div 
+                                          className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5" 
+                                          style={{ backgroundColor: childColor }}
+                                        />
+                                        <div>
+                                          <span className="font-medium text-foreground">{child.product_name}</span>: {child.quantity > 1 && `${child.quantity} × `}{formatExactPrice(child.unit_price, {
+                                            currency_symbol: settings?.currency_symbol || '$',
+                                            decimal_precision: settings?.decimal_precision || 2
+                                          })}{child.quantity > 1 && `/${childUnitAbbr}`} = <span className="font-semibold text-foreground">{formatExactPrice(child.line_total, {
+                                            currency_symbol: settings?.currency_symbol || '$',
+                                            decimal_precision: settings?.decimal_precision || 2
+                                          })}</span>
+                                        </div>
                                       </div>
                                       <div className="flex gap-1">
                                         {isEditing ? (
