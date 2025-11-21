@@ -886,16 +886,99 @@ const QuoteReview = ({
                                 </div>
                               );
                             })}
+                            
+                            {/* Consolidated map-placed add-ons */}
+                            {consolidatedChildren.map((consolidated) => {
+                              const displayUnit = getDisplayUnit(consolidated.unitType);
+                              
+                              return (
+                                <div key={consolidated.productId} className="flex items-start justify-between gap-2 pl-3">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <div 
+                                        className="w-2 h-2 rounded-full flex-shrink-0" 
+                                        style={{ backgroundColor: consolidated.mapColor }}
+                                      />
+                                      <span className="font-medium text-sm text-foreground">
+                                        {consolidated.productName}:
+                                      </span>
+                                    </div>
+                                    <div className="text-sm text-muted-foreground ml-4">
+                                      {consolidated.quantity} × {formatExactPrice(consolidated.unitPrice, {
+                                        currency_symbol: settings.currency_symbol,
+                                        decimal_precision: settings.decimal_precision
+                                      })} = <span className="font-semibold text-foreground">
+                                        {formatExactPrice(consolidated.lineTotal, {
+                                          currency_symbol: settings.currency_symbol,
+                                          decimal_precision: settings.decimal_precision
+                                        })}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {onRemoveItem && consolidated.items.length === 1 && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                                      onClick={() => onRemoveItem(consolidated.items[0].id)}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
+                        )}
+                        
+                        {/* Subtotal breakdown for parent and add-ons */}
+                        {settings.pricing_visibility === 'before_submit' && (
+                          <>
+                            <Separator className="my-2" />
+                            <div className="space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Main Product:</span>
+                                <span className="font-medium">{formatExactPrice(item.lineTotal, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })}</span>
+                              </div>
+                              {consolidatedChildren.length > 0 && (
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    Add-ons ({consolidatedChildren.reduce((sum, c) => sum + c.quantity, 0)}):
+                                  </span>
+                                  <span className="font-medium">{formatExactPrice(
+                                    consolidatedChildren.reduce((sum, c) => sum + c.lineTotal, 0),
+                                    {
+                                      currency_symbol: settings.currency_symbol,
+                                      decimal_precision: settings.decimal_precision
+                                    }
+                                  )}</span>
+                                </div>
+                              )}
+                            </div>
+                            <Separator className="my-2" />
+                            <div className="flex justify-between font-semibold">
+                              <span>Total:</span>
+                              <span className="text-green-600">{formatExactPrice(
+                                item.lineTotal + consolidatedChildren.reduce((sum, c) => sum + c.lineTotal, 0),
+                                {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                }
+                              )}</span>
+                            </div>
+                          </>
                         )}
                       </div>
                     )}
 
                     {/* Variations for pricing hidden mode */}
-                    {settings.pricing_visibility !== 'before_submit' && item.measurement.addons && item.measurement.addons.length > 0 && (
+                    {settings.pricing_visibility !== 'before_submit' && ((item.measurement.addons && item.measurement.addons.length > 0) || consolidatedChildren.length > 0) && (
                       <div className="space-y-1">
                         <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
-                        {item.measurement.addons.map((addon) => {
+                        {item.measurement.addons?.map((addon) => {
                           const isEnabled = addon.quantity > 0;
                           
                           return (
@@ -916,6 +999,31 @@ const QuoteReview = ({
                             </div>
                           );
                         })}
+                        
+                        {/* Consolidated map-placed add-ons (no pricing) */}
+                        {consolidatedChildren.map((consolidated) => (
+                          <div key={consolidated.productId} className="flex items-center justify-between pl-3">
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-2 h-2 rounded-full flex-shrink-0" 
+                                style={{ backgroundColor: consolidated.mapColor }}
+                              />
+                              <span className="text-sm">
+                                {consolidated.productName} ({consolidated.quantity})
+                              </span>
+                            </div>
+                            {onRemoveItem && consolidated.items.length === 1 && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => onRemoveItem(consolidated.items[0].id)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     )}
                     
