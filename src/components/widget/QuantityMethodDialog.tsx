@@ -10,7 +10,9 @@ interface QuantityMethodDialogProps {
 
 const QuantityMethodDialog = ({ open, productName, onMethodSelect }: QuantityMethodDialogProps) => {
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) onMethodSelect('manual'); // Default to manual if closed via X
+    }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>How would you like to add quantities?</DialogTitle>
