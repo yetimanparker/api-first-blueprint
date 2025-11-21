@@ -487,7 +487,8 @@ const Widget = () => {
       'project-comments': 'quote-review',
       'contact-after': 'quote-review',
       'quote-review': 'confirmation',
-      'confirmation': 'confirmation'
+      'confirmation': 'confirmation',
+      'internal-quote-review': 'confirmation' // Internal builder review step
     };
 
     const nextStepValue = stepFlow[widgetState.currentStep];

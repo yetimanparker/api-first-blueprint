@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useContractorId } from "@/hooks/useContractorId";
@@ -11,9 +11,12 @@ import ProductSelector from "@/components/widget/ProductSelector";
 import MeasurementTools from "@/components/widget/MeasurementTools";
 import QuantityInput from "@/components/widget/QuantityInput";
 import QuantityMethodDialog from "@/components/widget/QuantityMethodDialog";
+import QuantityInputDialog from "@/components/widget/QuantityInputDialog";
 import { IncrementConfirmationDialog } from "@/components/widget/IncrementConfirmationDialog";
 import ProductConfiguration from "@/components/widget/ProductConfiguration";
-import type { MeasurementData, QuoteItem } from "@/types/widget";
+import { AddonPlacement } from "@/components/widget/AddonPlacement";
+import QuoteReview from "@/components/widget/QuoteReview";
+import type { MeasurementData, QuoteItem, WorkflowStep } from "@/types/widget";
 
 interface Quote {
   id: string;
@@ -44,8 +47,6 @@ interface ProductCategory {
   color_hex: string;
 }
 
-type WorkflowStep = 'product-selection' | 'measurement' | 'quantity-input' | 'product-configuration';
-
 export default function InternalQuoteBuilder() {
   const { quoteId } = useParams();
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ export default function InternalQuoteBuilder() {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentProductId, setCurrentProductId] = useState<string | undefined>();
   const [currentMeasurement, setCurrentMeasurement] = useState<MeasurementData | undefined>();
@@ -64,9 +66,24 @@ export default function InternalQuoteBuilder() {
   const stepRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [showMethodDialog, setShowMethodDialog] = useState(false);
+  const [showAddonMethodDialog, setShowAddonMethodDialog] = useState(false);
   const [showIncrementDialog, setShowIncrementDialog] = useState(false);
   const [pendingMeasurement, setPendingMeasurement] = useState<MeasurementData | null>(null);
   const [cachedProducts, setCachedProducts] = useState<any[]>([]);
+  
+  // New state for add-on workflow matching Widget.tsx
+  const [pendingAddons, setPendingAddons] = useState<QuoteItem[]>([]);
+  const [currentMainProductItem, setCurrentMainProductItem] = useState<QuoteItem | undefined>();
+  const [pendingAddon, setPendingAddon] = useState<{
+    addonId: string;
+    addonName: string;
+    priceValue: number;
+    calculationType: string;
+    selectedOptionId?: string;
+    selectedOptionName?: string;
+    selectedVariations?: any[];
+    linkedProductId?: string;
+  } | undefined>();
 
   useEffect(() => {
     if (!contractorLoading && !contractorId) {
@@ -81,7 +98,7 @@ export default function InternalQuoteBuilder() {
 
     if (quoteId && contractorId) {
       fetchQuoteData();
-      fetchCategories();
+      fetchCategoriesAndSubcategories();
       fetchAndCacheProducts();
     }
   }, [quoteId, contractorId, contractorLoading]);
@@ -107,21 +124,27 @@ export default function InternalQuoteBuilder() {
     }
   };
 
-  const fetchCategories = async () => {
+  const fetchCategoriesAndSubcategories = async () => {
     if (!contractorId) return;
     
     try {
-      const { data, error } = await supabase
-        .from('product_categories')
-        .select('*')
-        .eq('contractor_id', contractorId)
-        .eq('is_active', true)
-        .order('display_order');
+      const { data, error } = await supabase.functions.invoke('get-widget-products', {
+        body: { contractor_id: contractorId }
+      });
+      
+      if (error || !data?.success) {
+        console.error('Failed to load categories');
+        return;
+      }
 
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
+      if (data.categories) {
+        setCategories(data.categories);
+      }
+      if (data.subcategories) {
+        setSubcategories(data.subcategories);
+      }
+    } catch (err) {
+      console.error('Error fetching categories:', err);
     }
   };
 
@@ -168,6 +191,7 @@ export default function InternalQuoteBuilder() {
         quantity: Number(item.quantity),
         lineTotal: Number(item.line_total),
         notes: item.notes,
+        parentQuoteItemId: item.parent_quote_item_id,
       }));
 
       setQuoteItems(items);
@@ -221,7 +245,7 @@ export default function InternalQuoteBuilder() {
         const manualInputUnits = ['ton', 'pound', 'pallet', 'hour'];
         const requiresManualInput = manualInputUnits.includes(productData.unit_type);
         
-        const nextStep = requiresManualInput ? 'quantity-input' : 'measurement';
+        const nextStep: WorkflowStep = requiresManualInput ? 'quantity-input' : 'measurement';
         setCurrentStep(nextStep);
       }
     } catch (error) {
@@ -236,7 +260,13 @@ export default function InternalQuoteBuilder() {
 
   const handleMethodSelect = (method: 'manual' | 'map') => {
     setShowMethodDialog(false);
-    const nextStep = method === 'manual' ? 'quantity-input' : 'measurement';
+    const nextStep: WorkflowStep = method === 'manual' ? 'quantity-input' : 'measurement';
+    setCurrentStep(nextStep);
+  };
+
+  const handleAddonMethodSelect = (method: 'manual' | 'map') => {
+    setShowAddonMethodDialog(false);
+    const nextStep: WorkflowStep = method === 'manual' ? 'addon-quantity-input' : 'addon-placement';
     setCurrentStep(nextStep);
   };
 
@@ -275,52 +305,74 @@ export default function InternalQuoteBuilder() {
     setCurrentStep('product-configuration');
   };
 
-  const handleAddToQuote = async (item: QuoteItem) => {
+  const handleConfigurationComplete = (item: QuoteItem | QuoteItem[]) => {
+    const items = Array.isArray(item) ? item : [item];
+    console.log('🟢 Configuration complete, items:', items.length);
+    
+    // Finalize measurement
+    if ((window as any).__finalizeMeasurement) {
+      (window as any).__finalizeMeasurement();
+    }
+    
+    // Store items temporarily and go to review
+    setQuoteItems(prev => [...prev, ...items]);
+    setPendingAddons([]);
+    setCurrentMainProductItem(undefined);
+    setCurrentStep('internal-quote-review');
+  };
+
+  const handleFinalSaveToDatabase = async () => {
     if (!quoteId) return;
 
     try {
       setSaving(true);
 
-      // Save to database
-      const { data, error } = await supabase
-        .from('quote_items')
-        .insert({
-          quote_id: quoteId,
-          product_id: item.productId,
-          quantity: item.quantity,
-          unit_price: item.unitPrice,
-          line_total: item.lineTotal,
-          measurement_data: item.measurement as any,
-          notes: item.notes,
-        })
-        .select()
-        .single();
+      // Get items that need to be saved (have temporary IDs)
+      const itemsToSave = quoteItems.filter(item => item.id.startsWith('addon-') || !item.id.includes('-'));
 
-      if (error) throw error;
+      // Save all items to database
+      const savedItems: QuoteItem[] = [];
+      
+      for (const item of itemsToSave) {
+        const { data, error } = await supabase
+          .from('quote_items')
+          .insert({
+            quote_id: quoteId,
+            product_id: item.productId,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            line_total: item.lineTotal,
+            measurement_data: item.measurement as any,
+            notes: item.notes,
+            parent_quote_item_id: item.parentQuoteItemId,
+          })
+          .select()
+          .single();
 
-      // Add to local state
-      setQuoteItems(prev => [...prev, { ...item, id: data.id }]);
+        if (error) throw error;
+        savedItems.push({ ...item, id: data.id });
+      }
 
       // Recalculate quote total
-      const newTotal = [...quoteItems, item].reduce((sum, i) => sum + i.lineTotal, 0);
+      const newTotal = quoteItems.reduce((sum, i) => sum + i.lineTotal, 0);
       await supabase
         .from('quotes')
         .update({ total_amount: newTotal })
         .eq('id', quoteId);
 
       toast({
-        title: "Item Added",
-        description: "Quote item has been added successfully",
+        title: "Items Added",
+        description: `${savedItems.length} item(s) added successfully`,
       });
 
       // Navigate back to quote edit page
       navigate(`/quote/edit/${quoteId}`);
 
     } catch (error) {
-      console.error('Error adding quote item:', error);
+      console.error('Error saving quote items:', error);
       toast({
         title: "Error",
-        description: "Failed to add item to quote",
+        description: "Failed to add items to quote",
         variant: "destructive",
       });
     } finally {
@@ -342,6 +394,8 @@ export default function InternalQuoteBuilder() {
         setCurrentStep('measurement');
       }
       setCurrentMeasurement(undefined);
+    } else if (currentStep === 'internal-quote-review') {
+      setCurrentStep('product-configuration');
     }
   };
 
@@ -359,42 +413,18 @@ export default function InternalQuoteBuilder() {
     setSelectedProduct(null);
     setCurrentProductId(undefined);
     setCurrentMeasurement(undefined);
+    setPendingAddons([]);
+    setCurrentMainProductItem(undefined);
+    setPendingAddon(undefined);
     setCurrentStep('product-selection');
   };
 
-  const handleRemoveItem = async (itemId: string) => {
-    if (!quoteId) return;
-
-    try {
-      const { error } = await supabase
-        .from('quote_items')
-        .delete()
-        .eq('id', itemId);
-
-      if (error) throw error;
-
-      // Update local state
-      const updatedItems = quoteItems.filter(item => item.id !== itemId);
-      setQuoteItems(updatedItems);
-
-      // Recalculate quote total
-      const newTotal = updatedItems.reduce((sum, i) => sum + i.lineTotal, 0);
-      await supabase
-        .from('quotes')
-        .update({ total_amount: newTotal })
-        .eq('id', quoteId);
-
-      toast({
-        title: "Item Removed",
-        description: "Quote item has been removed successfully",
-      });
-    } catch (error) {
-      console.error('Error removing quote item:', error);
-      toast({
-        title: "Error",
-        description: "Failed to remove item",
-        variant: "destructive",
-      });
+  const handleRemoveItemFromReview = (itemId: string) => {
+    const remainingItems = quoteItems.filter(item => item.id !== itemId);
+    setQuoteItems(remainingItems);
+    
+    if (remainingItems.length === 0) {
+      goToProductSelection();
     }
   };
 
@@ -414,6 +444,27 @@ export default function InternalQuoteBuilder() {
     return undefined;
   };
 
+  // Helper to check if a step should be visible
+  const isStepVisible = (step: WorkflowStep): boolean => {
+    const stepOrder: WorkflowStep[] = [
+      'product-selection',
+      'quantity-input',
+      'measurement',
+      'product-configuration',
+      'addon-placement',
+      'addon-quantity-input',
+      'internal-quote-review',
+    ];
+    const currentIndex = stepOrder.indexOf(currentStep);
+    const stepIndex = stepOrder.indexOf(step);
+    
+    if (step === 'product-selection' && currentIndex >= stepOrder.indexOf('product-selection')) {
+      return true;
+    }
+    
+    return stepIndex <= currentIndex;
+  };
+
   if (contractorLoading || loading || settingsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -425,6 +476,14 @@ export default function InternalQuoteBuilder() {
   if (!settings) {
     return null;
   }
+
+  // Force pricing to always be visible for internal use
+  const internalSettings = {
+    ...settings,
+    hide_pricing: false,
+    use_price_ranges: false,
+    pricing_visibility: 'before_submit' as const,
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -448,82 +507,56 @@ export default function InternalQuoteBuilder() {
                 </div>
               )}
             </div>
-            <Button onClick={handleFinish} variant="outline">
-              Finish & Review Quote
-            </Button>
+            {currentStep !== 'internal-quote-review' && (
+              <Button onClick={handleFinish} variant="outline">
+                Cancel & Return
+              </Button>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Progress Indicator */}
-        <Card className="mb-6 hidden md:block">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className={`flex items-center gap-2 ${currentStep === 'product-selection' ? 'text-primary' : 'text-muted-foreground'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep === 'product-selection' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted'}`}>
-                  1
-                </div>
-                <span className="font-medium">Product</span>
-              </div>
-              <div className="flex-1 h-px bg-border mx-4" />
-              <div className={`flex items-center gap-2 ${['measurement', 'quantity-input'].includes(currentStep) ? 'text-primary' : 'text-muted-foreground'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${['measurement', 'quantity-input'].includes(currentStep) ? 'border-primary bg-primary text-primary-foreground' : 'border-muted'}`}>
-                  2
-                </div>
-                <span className="font-medium">Measure</span>
-              </div>
-              <div className="flex-1 h-px bg-border mx-4" />
-              <div className={`flex items-center gap-2 ${currentStep === 'product-configuration' ? 'text-primary' : 'text-muted-foreground'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep === 'product-configuration' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted'}`}>
-                  3
-                </div>
-                <span className="font-medium">Configure</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Added Items Summary */}
-        {quoteItems.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Quote Items ({quoteItems.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {quoteItems.map((item, index) => (
-                  <div key={item.id} className="flex items-start justify-between gap-4 p-3 rounded-lg bg-muted/50">
-                    <div className="flex-1">
-                      <div className="font-medium">{index + 1}. {item.productName}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {item.measurement.value} {item.measurement.unit} × ${item.unitPrice.toFixed(2)} = ${item.lineTotal.toFixed(2)}
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveItem(item.id)}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      Remove
-                    </Button>
+        {/* Progress Indicator - Hide during review */}
+        {currentStep !== 'internal-quote-review' && (
+          <Card className="mb-6 hidden md:block">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className={`flex items-center gap-2 ${currentStep === 'product-selection' ? 'text-primary' : 'text-muted-foreground'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${currentStep === 'product-selection' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted'}`}>
+                    1
                   </div>
-                ))}
+                  <span className="font-medium">Product</span>
+                </div>
+                <div className="flex-1 h-px bg-border mx-4" />
+                <div className={`flex items-center gap-2 ${['measurement', 'quantity-input'].includes(currentStep) ? 'text-primary' : 'text-muted-foreground'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${['measurement', 'quantity-input'].includes(currentStep) ? 'border-primary bg-primary text-primary-foreground' : 'border-muted'}`}>
+                    2
+                  </div>
+                  <span className="font-medium">Measure</span>
+                </div>
+                <div className="flex-1 h-px bg-border mx-4" />
+                <div className={`flex items-center gap-2 ${['product-configuration', 'addon-placement', 'addon-quantity-input'].includes(currentStep) ? 'text-primary' : 'text-muted-foreground'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${['product-configuration', 'addon-placement', 'addon-quantity-input'].includes(currentStep) ? 'border-primary bg-primary text-primary-foreground' : 'border-muted'}`}>
+                    3
+                  </div>
+                  <span className="font-medium">Configure</span>
+                </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Workflow Steps */}
-        {currentStep === 'product-selection' && contractorId && (
-          <div ref={el => stepRefs.current['product-selection'] = el}>
+        {/* Product Selection Section */}
+        {isStepVisible('product-selection') && !currentProductId && currentStep !== 'internal-quote-review' && (
+          <div id="step-product-selection" className="w-full">
             <ProductSelector
-              contractorId={contractorId}
               categories={categories}
-              settings={settings}
+              subcategories={subcategories}
               onProductSelect={handleProductSelect}
+              settings={internalSettings}
+              contractorId={contractorId!}
             />
           </div>
         )}
@@ -547,124 +580,245 @@ export default function InternalQuoteBuilder() {
             incrementLabel={selectedProduct.increment_unit_label || 'unit'}
             incrementDescription={selectedProduct.increment_description}
             allowPartial={selectedProduct.allow_partial_increments || false}
-            onConfirm={(roundedQuantity, unitsNeeded) => {
-              if (pendingMeasurement) {
-                const updatedMeasurement = {
-                  ...pendingMeasurement,
-                  value: roundedQuantity,
-                  wasRoundedForIncrements: true,
-                  originalMeasurement: pendingMeasurement.value,
-                  incrementsApplied: {
-                    unitsNeeded,
-                    incrementSize: selectedProduct.sold_in_increments_of,
-                    incrementLabel: selectedProduct.increment_unit_label || 'unit'
-                  }
-                };
-                setCurrentMeasurement(updatedMeasurement);
-                setCurrentStep('product-configuration');
-              }
-              setShowIncrementDialog(false);
-              setPendingMeasurement(null);
+            onConfirm={handleIncrementConfirm}
+            onRemeasure={handleIncrementCancel}
+          />
+        )}
+
+        {/* Quantity Input Dialog - For 'each' type products */}
+        {isStepVisible('quantity-input') && currentStep === 'quantity-input' && selectedProduct && (
+          <QuantityInputDialog
+            open={true}
+            productId={currentProductId!}
+            productName={selectedProduct.name}
+            productImage={selectedProduct.photo_url}
+            unitType={selectedProduct.unit_type}
+            minQuantity={selectedProduct.min_order_quantity || 1}
+            onQuantitySet={(quantity, measurement) => {
+              setCurrentMeasurement(measurement);
+              setCurrentStep('product-configuration');
             }}
-            onRemeasure={() => {
-              setShowIncrementDialog(false);
-              setPendingMeasurement(null);
+            onCancel={goToProductSelection}
+          />
+        )}
+
+        {/* Measurement / Add-on Placement Section - shared map area */}
+        {isStepVisible('measurement') && currentProductId && currentStep !== 'internal-quote-review' && (
+          <div id="step-measurement" className="w-full mb-2">
+            {currentStep === 'addon-placement' && pendingAddon && currentMainProductItem ? (
+              <AddonPlacement
+                addonName={pendingAddon.addonName}
+                linkedProductId={pendingAddon.linkedProductId}
+                mainProductMeasurement={currentMainProductItem.measurement}
+                customerAddress={getCustomerAddress()}
+                existingAddonLocations={pendingAddons
+                  .map((item) => {
+                    const m = item.measurement;
+                    const center = m.centerPoint || m.pointLocations?.[0];
+                    if (!center) return null;
+                    return {
+                      lat: center.lat,
+                      lng: center.lng,
+                      color: m.mapColor,
+                    };
+                  })
+                  .filter(
+                    (loc): loc is { lat: number; lng: number; color: string } =>
+                      loc !== null,
+                  )}
+                onComplete={(locations, productColor) => {
+                  const addonProductId = pendingAddon.linkedProductId || currentMainProductItem.productId;
+                  const addonProductName = pendingAddon.linkedProductId
+                    ? pendingAddon.addonName
+                    : `${currentMainProductItem.productName} - ${pendingAddon.addonName}`;
+
+                  const newAddonItems = locations.map((location, index) => ({
+                    id: `addon-${Date.now()}-${index}`,
+                    productId: addonProductId,
+                    productName: addonProductName,
+                    unitType: 'each' as const,
+                    measurement: {
+                      type: 'point' as const,
+                      value: 1,
+                      unit: 'each',
+                      pointLocations: [location],
+                      centerPoint: location,
+                      mapColor: productColor,
+                    },
+                    unitPrice: pendingAddon.priceValue,
+                    quantity: 1,
+                    lineTotal: pendingAddon.priceValue,
+                    parentQuoteItemId: currentMainProductItem.id,
+                    addonId: pendingAddon.addonId,
+                    isAddonItem: true,
+                    variations: pendingAddon.selectedVariations,
+                  }));
+
+                  setPendingAddons(prev => [...prev, ...newAddonItems]);
+                  setPendingAddon(undefined);
+                  setCurrentStep('product-configuration');
+                }}
+                onCancel={() => {
+                  setPendingAddon(undefined);
+                  setCurrentStep('product-configuration');
+                }}
+              />
+            ) : (
+              <MeasurementTools
+                contractorId={contractorId!}
+                productId={currentProductId}
+                onMeasurementComplete={handleMeasurementComplete}
+                onNext={() => setCurrentStep('product-configuration')}
+                customerAddress={getCustomerAddress()}
+                selectedProduct={selectedProduct}
+                onChangeProduct={goToProductSelection}
+                isConfigurationMode={currentStep === 'product-configuration'}
+                currentStep={currentStep}
+                existingQuoteItems={[
+                  ...quoteItems,
+                  ...(currentMainProductItem ? [currentMainProductItem] : []),
+                  ...pendingAddons
+                ]}
+                onResetToMeasurement={resetToMeasurement}
+                isManualEntry={currentMeasurement?.manualEntry === true}
+                onFinalizeMeasurement={() => {}}
+                onAddressSelect={(address) => {}}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Product Configuration Section */}
+        {isStepVisible('product-configuration') && currentStep !== 'internal-quote-review' && currentMeasurement && cachedProducts.length > 0 && (
+          <div id="step-product-configuration" className="px-4 py-0 bg-background">
+            <ProductConfiguration
+              contractorId={contractorId!}
+              productId={currentProductId!}
+              measurement={currentMeasurement}
+              onAddToQuote={handleConfigurationComplete}
+              settings={internalSettings}
+              onRemove={goToProductSelection}
+              cachedProducts={cachedProducts}
+              pendingAddons={pendingAddons}
+              onAddonPlacementStart={(addon, mainItem) => {
+                setPendingAddon({
+                  ...addon,
+                  calculationType: 'total'
+                });
+                setCurrentMainProductItem(mainItem);
+                setShowAddonMethodDialog(true);
+              }}
+              onRemovePendingAddon={(addonItemId) => {
+                setPendingAddons(prev => prev.filter(item => item.id !== addonItemId));
+              }}
+            />
+          </div>
+        )}
+
+        {/* Addon Quantity Input Dialog - For manual quantity entry */}
+        {currentStep === 'addon-quantity-input' && pendingAddon && currentMainProductItem && (
+          <QuantityInputDialog
+            open={true}
+            productId={pendingAddon.linkedProductId || ''}
+            productName={pendingAddon.addonName}
+            productImage={undefined}
+            unitType="each"
+            minQuantity={1}
+            onQuantitySet={(quantity, measurement) => {
+              const addonProductId = pendingAddon.linkedProductId || currentMainProductItem.productId;
+              const addonProductName = pendingAddon.linkedProductId 
+                ? pendingAddon.addonName 
+                : `${currentMainProductItem.productName} - ${pendingAddon.addonName}`;
+              
+              const newAddonItems = Array.from({ length: quantity }, (_, index) => ({
+                id: `addon-${Date.now()}-${index}`,
+                productId: addonProductId,
+                productName: addonProductName,
+                unitType: 'each' as const,
+                measurement: {
+                  type: 'point' as const,
+                  value: 1,
+                  unit: 'each',
+                  pointLocations: [],
+                  centerPoint: undefined,
+                  mapColor: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
+                },
+                unitPrice: pendingAddon.priceValue,
+                quantity: 1,
+                lineTotal: pendingAddon.priceValue,
+                parentQuoteItemId: currentMainProductItem.id,
+                addonId: pendingAddon.addonId,
+                isAddonItem: true,
+                variations: pendingAddon.selectedVariations
+              }));
+
+              setPendingAddons(prev => [...prev, ...newAddonItems]);
+              setPendingAddon(undefined);
+              setCurrentStep('product-configuration');
+            }}
+            onCancel={() => {
+              setPendingAddon(undefined);
+              setCurrentStep('product-configuration');
             }}
           />
         )}
 
-        {currentStep === 'quantity-input' && currentProductId && selectedProduct && settings && (
-          <div ref={el => stepRefs.current['quantity-input'] = el}>
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Enter Quantity</CardTitle>
-                  <Button variant="outline" onClick={handleBack}>
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Change Product
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <QuantityInput
-                  productId={currentProductId}
-                  productName={selectedProduct.name}
-                  productImage={selectedProduct.photo_url}
-                  unitType={selectedProduct.unit_type}
-                  minQuantity={selectedProduct.min_order_quantity || 1}
-                  onQuantitySet={(quantity, measurement) => {
-                    setCurrentMeasurement(measurement);
-                    setCurrentStep('product-configuration');
-                  }}
-                  settings={settings}
-                />
-              </CardContent>
-            </Card>
-          </div>
+        {/* Method Selection Dialog for add-ons */}
+        {pendingAddon && (
+          <QuantityMethodDialog
+            open={showAddonMethodDialog}
+            productName={pendingAddon.addonName}
+            onMethodSelect={handleAddonMethodSelect}
+            onCancel={() => setShowAddonMethodDialog(false)}
+          />
         )}
 
-        {currentStep === 'measurement' && currentProductId && (
-          <div ref={el => stepRefs.current['measurement'] = el}>
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Measure Area or Distance</CardTitle>
-                  <Button variant="outline" onClick={goToProductSelection}>
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Change Product
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <MeasurementTools
-                  contractorId={contractorId!}
-                  productId={currentProductId}
-                  onMeasurementComplete={handleMeasurementComplete}
-                  onNext={() => setCurrentStep('product-configuration')}
-                  currentStep={currentStep}
-                  customerAddress={getCustomerAddress()}
-                  existingQuoteItems={quoteItems.map(item => ({
-                    id: item.id,
-                    productName: item.productName,
-                    customName: item.notes,
-                    measurement: item.measurement,
-                  }))}
-                  onResetToMeasurement={resetToMeasurement}
-                  onChangeProduct={goToProductSelection}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {currentStep === 'product-configuration' && currentProductId && currentMeasurement && (
-          <div ref={el => stepRefs.current['product-configuration'] = el}>
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                  <CardTitle>Configure Product</CardTitle>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={resetToMeasurement}>
-                      Re-measure
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={goToProductSelection}>
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Change Product
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ProductConfiguration
-                  contractorId={contractorId!}
-                  productId={currentProductId}
-                  measurement={currentMeasurement}
-                  settings={settings}
-                  onAddToQuote={handleAddToQuote}
-                  onRemove={goToProductSelection}
-                />
-              </CardContent>
-            </Card>
+        {/* Internal Quote Review Section */}
+        {currentStep === 'internal-quote-review' && (
+          <div id="step-internal-quote-review" className="px-4 py-4 mt-2">
+            <QuoteReview
+              quoteItems={quoteItems}
+              customerInfo={{
+                firstName: customer?.first_name || '',
+                lastName: customer?.last_name || '',
+                email: customer?.email || '',
+                address: getCustomerAddress(),
+              }}
+              contractorId={contractorId!}
+              settings={internalSettings}
+              currentStep={'quote-review' as WorkflowStep}
+              onNext={() => {}}
+              onUpdateComments={() => {}}
+              onUpdateCustomerInfo={() => {}}
+              onAddAnother={goToProductSelection}
+              onRemoveItem={handleRemoveItemFromReview}
+              onQuoteSubmitted={() => {}}
+              clarifyingQuestionsEnabled={false}
+              clarifyingQuestions={[]}
+            />
+            
+            {/* Custom footer for internal builder */}
+            <div className="mt-6 flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={goToProductSelection}
+              >
+                Add Another Product
+              </Button>
+              <Button
+                onClick={handleFinalSaveToDatabase}
+                disabled={saving || quoteItems.length === 0}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Add to Quote & Finish'
+                )}
+              </Button>
+            </div>
           </div>
         )}
       </main>
