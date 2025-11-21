@@ -469,8 +469,9 @@ const ProductConfiguration = ({
       const allItems = [mainItemWithId, ...addonsWithParent];
       onAddToQuote(allItems);
     } else {
-      // No pending addons, just add main item
-      onAddToQuote([quoteItem]);
+      // No pending addons, just add main item with ID
+      const mainItemWithId = { ...quoteItem, id: `main_${Date.now()}` };
+      onAddToQuote([mainItemWithId]);
     }
     
     console.log('✅ onAddToQuote completed, setting isAdded to true');
