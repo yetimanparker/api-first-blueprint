@@ -451,10 +451,27 @@ const ProductConfiguration = ({
       coordinates: quoteItem.measurement.coordinates?.length
     });
 
-    // Add main item + all pending addons to quote in a single call
-    console.log('🚀 Calling onAddToQuote with main item and pending addons');
-    const allItems = [quoteItem, ...(pendingAddons || [])];
-    onAddToQuote(allItems);
+    // Add main item + all pending addons to quote with parent relationship
+    console.log('🚀 Adding main item and pending addons with parent relationship');
+    
+    if (pendingAddons && pendingAddons.length > 0) {
+      // First add main item
+      const mainItemId = `main_${Date.now()}`;
+      const mainItemWithId = { ...quoteItem, id: mainItemId };
+      
+      // Then add pending addons with parent reference
+      const addonsWithParent = pendingAddons.map(addon => ({
+        ...addon,
+        parentQuoteItemId: mainItemId,
+        id: `addon_${addon.id}_${Date.now()}`
+      }));
+      
+      const allItems = [mainItemWithId, ...addonsWithParent];
+      onAddToQuote(allItems);
+    } else {
+      // No pending addons, just add main item
+      onAddToQuote([quoteItem]);
+    }
     
     console.log('✅ onAddToQuote completed, setting isAdded to true');
     setIsAdded(true);

@@ -242,22 +242,66 @@ serve(async (req) => {
 
     if (quoteError) throw quoteError;
 
-    // Create quote items
-    const itemsToInsert = quoteItems.map((item: any) => ({
-      quote_id: quote.id,
-      product_id: item.productId,
-      quantity: item.quantity,
-      unit_price: item.unitPrice,
-      line_total: item.lineTotal,
-      measurement_data: item.measurementData,
-      notes: item.notes,
-    }));
+    // Insert quote items with parent-child relationship handling
+    // First, insert main items (no parent) and track their IDs
+    const mainItems = quoteItems.filter((item: any) => !item.parentQuoteItemId);
+    const addonItems = quoteItems.filter((item: any) => item.parentQuoteItemId);
 
-    const { error: itemsError } = await supabaseClient
-      .from('quote_items')
-      .insert(itemsToInsert);
+    // Map to track temporary IDs to real database IDs
+    const idMapping = new Map<string, string>();
 
-    if (itemsError) throw itemsError;
+    // Insert main items first
+    if (mainItems.length > 0) {
+      const mainItemsToInsert = mainItems.map((item: any) => ({
+        quote_id: quote.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        line_total: item.lineTotal,
+        measurement_data: item.measurementData,
+        notes: item.notes,
+      }));
+
+      const { data: insertedMainItems, error: mainItemsError } = await supabaseClient
+        .from('quote_items')
+        .insert(mainItemsToInsert)
+        .select('id');
+
+      if (mainItemsError) {
+        console.error('Error inserting main quote items:', mainItemsError);
+        throw mainItemsError;
+      }
+
+      // Build ID mapping (assumes items maintain order)
+      mainItems.forEach((item: any, index: number) => {
+        if (insertedMainItems && insertedMainItems[index]) {
+          idMapping.set(item.id, insertedMainItems[index].id);
+        }
+      });
+    }
+
+    // Insert addon items with resolved parent IDs
+    if (addonItems.length > 0) {
+      const addonItemsToInsert = addonItems.map((item: any) => ({
+        quote_id: quote.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        line_total: item.lineTotal,
+        measurement_data: item.measurementData,
+        notes: item.notes,
+        parent_quote_item_id: idMapping.get(item.parentQuoteItemId) || null,
+      }));
+
+      const { error: addonItemsError } = await supabaseClient
+        .from('quote_items')
+        .insert(addonItemsToInsert);
+
+      if (addonItemsError) {
+        console.error('Error inserting addon quote items:', addonItemsError);
+        throw addonItemsError;
+      }
+    }
 
     return new Response(
       JSON.stringify({ 
