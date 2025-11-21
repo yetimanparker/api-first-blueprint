@@ -41,6 +41,7 @@ interface Quote {
   version_number: number;
   parent_quote_id?: string;
   customer_id: string;
+  contractor_id: string;
 }
 
 interface Customer {
@@ -231,19 +232,13 @@ export default function QuoteEdit() {
       setSaving(true);
       setChangeOrderDialogOpen(false);
 
-      // Generate new access token for the change order
-      const { data: tokenData, error: tokenError } = await supabase.rpc('generate_quote_access_token');
-      if (tokenError) {
-        console.error('Token generation error:', tokenError);
-        throw new Error('Failed to generate access token');
-      }
+      // Generate new access token for the change order (generate directly instead of RPC call)
+      const tokenData = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
       
-      // Get contractor ID
-      const { data: contractorId, error: contractorError } = await supabase.rpc('get_current_contractor_id');
-      if (contractorError) {
-        console.error('Contractor ID error:', contractorError);
-        throw new Error('Failed to get contractor ID');
-      }
+      // Get contractor ID from quote data (already available)
+      const contractorId = quote.contractor_id;
       
       // Create new quote as change order
       const newQuoteNumber = `${quote.quote_number}-CO${quote.version_number + 1}`;
