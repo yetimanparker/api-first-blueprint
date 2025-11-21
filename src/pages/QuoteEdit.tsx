@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin, Ruler, Plus, ChevronDown, User, ExternalLink, ListTodo } from "lucide-react";
+import { ArrowLeft, Copy, Save, History, Edit, Trash2, Check, X, Phone, Mail, MapPin, Ruler, Plus, ChevronDown, User, ExternalLink, ListTodo, Pencil, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { EditQuoteItemDialog } from "@/components/EditQuoteItemDialog";
@@ -62,6 +62,7 @@ interface QuoteItem {
   unit_price: number;
   line_total: number;
   notes?: string;
+  parent_quote_item_id?: string | null;
   measurement_data?: {
     variations?: Array<{
       id: string;
@@ -97,6 +98,16 @@ interface QuoteItem {
   };
 }
 
+interface ConsolidatedChild {
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  itemIds: string[];
+  measurement_data?: any;
+}
+
 export default function QuoteEdit() {
   const { quoteId, accessToken } = useParams();
   const navigate = useNavigate();
@@ -120,6 +131,9 @@ export default function QuoteEdit() {
     project_zip_code: "",
     notes: ""
   });
+  const [editingAddonId, setEditingAddonId] = useState<string | null>(null);
+  const [editingAddonQuantity, setEditingAddonQuantity] = useState<number>(1);
+  const [editingParentItemId, setEditingParentItemId] = useState<string | null>(null);
 
   useEffect(() => {
     if (quoteId) {
@@ -169,7 +183,8 @@ export default function QuoteEdit() {
         .from('quote_items')
         .select(`
           *,
-          product:products(name, unit_type)
+          product:products(name, unit_type),
+          parent_quote_item_id
         `)
         .eq('quote_id', quoteId)
         .order('created_at');
@@ -402,6 +417,262 @@ export default function QuoteEdit() {
         title: "Error",
         description: "Failed to update quote status",
         variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const organizeItemsForDisplay = () => {
+    const parentItems = quoteItems.filter(item => !item.parent_quote_item_id);
+    const childItems = quoteItems.filter(item => item.parent_quote_item_id);
+    
+    const consolidatedChildrenByParent: Record<string, ConsolidatedChild[]> = {};
+    
+    childItems.forEach(child => {
+      if (!child.parent_quote_item_id) return;
+      
+      if (!consolidatedChildrenByParent[child.parent_quote_item_id]) {
+        consolidatedChildrenByParent[child.parent_quote_item_id] = [];
+      }
+      
+      const existing = consolidatedChildrenByParent[child.parent_quote_item_id]
+        .find(c => c.product_id === child.product_id);
+      
+      if (existing) {
+        existing.quantity += child.quantity;
+        existing.line_total += child.line_total;
+        existing.itemIds.push(child.id);
+      } else {
+        consolidatedChildrenByParent[child.parent_quote_item_id].push({
+          product_id: child.product_id,
+          product_name: child.product?.name || 'Unknown Product',
+          quantity: child.quantity,
+          unit_price: child.unit_price,
+          line_total: child.line_total,
+          itemIds: [child.id],
+          measurement_data: child.measurement_data
+        });
+      }
+    });
+    
+    return { parentItems, consolidatedChildrenByParent };
+  };
+
+  const startEditingAddon = (addonId: string, quantity: number, parentItemId: string) => {
+    setEditingAddonId(addonId);
+    setEditingAddonQuantity(quantity);
+    setEditingParentItemId(parentItemId);
+  };
+
+  const cancelAddonEdit = () => {
+    setEditingAddonId(null);
+    setEditingParentItemId(null);
+  };
+
+  const saveAddonQuantity = async () => {
+    if (!editingParentItemId || !editingAddonId) return;
+    
+    try {
+      setSaving(true);
+      
+      const item = quoteItems.find(qi => qi.id === editingParentItemId);
+      if (!item) return;
+      
+      const updatedAddons = item.measurement_data?.addons?.map(addon => {
+        const addonId = addon.id || addon.addon_id;
+        if (addonId === editingAddonId) {
+          return { ...addon, quantity: editingAddonQuantity };
+        }
+        return addon;
+      });
+      
+      // Recalculate line total
+      let newLineTotal = item.unit_price * item.quantity;
+      updatedAddons?.forEach(addon => {
+        if (addon.quantity > 0) {
+          const addonPrice = addon.priceValue || addon.addon_price || 0;
+          const addonQty = addon.quantity || 1;
+          const calcType = addon.calculationType || addon.calculation_type || 'total';
+          
+          if (calcType === 'per_unit') {
+            newLineTotal += addonPrice * item.quantity * addonQty;
+          } else if (calcType === 'area_calculation') {
+            const variations = item.measurement_data?.variations || [];
+            const variationData = variations[0];
+            const squareFeet = variationData?.affects_area_calculation && variationData.height_value
+              ? item.quantity * variationData.height_value
+              : item.quantity;
+            newLineTotal += addonPrice * squareFeet * addonQty;
+          } else {
+            newLineTotal += addonPrice * addonQty;
+          }
+        }
+      });
+      
+      const { error } = await supabase
+        .from('quote_items')
+        .update({
+          measurement_data: {
+            ...item.measurement_data,
+            addons: updatedAddons
+          },
+          line_total: newLineTotal
+        })
+        .eq('id', editingParentItemId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Quantity Updated",
+        description: "Add-on quantity has been updated"
+      });
+      
+      setEditingAddonId(null);
+      setEditingParentItemId(null);
+      fetchQuoteData();
+      
+    } catch (error) {
+      console.error('Error updating addon quantity:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update add-on quantity",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteTraditionalAddon = async (itemId: string, addonId: string) => {
+    try {
+      setSaving(true);
+      const item = quoteItems.find(qi => qi.id === itemId);
+      if (!item) return;
+      
+      const updatedAddons = item.measurement_data?.addons?.filter(addon => {
+        const currentAddonId = addon.id || addon.addon_id;
+        return currentAddonId !== addonId;
+      });
+      
+      // Recalculate line total
+      let newLineTotal = item.unit_price * item.quantity;
+      updatedAddons?.forEach(addon => {
+        if (addon.quantity > 0) {
+          const addonPrice = addon.priceValue || addon.addon_price || 0;
+          const addonQty = addon.quantity || 1;
+          const calcType = addon.calculationType || addon.calculation_type || 'total';
+          
+          if (calcType === 'per_unit') {
+            newLineTotal += addonPrice * item.quantity * addonQty;
+          } else if (calcType === 'area_calculation') {
+            const variations = item.measurement_data?.variations || [];
+            const variationData = variations[0];
+            const squareFeet = variationData?.affects_area_calculation && variationData.height_value
+              ? item.quantity * variationData.height_value
+              : item.quantity;
+            newLineTotal += addonPrice * squareFeet * addonQty;
+          } else {
+            newLineTotal += addonPrice * addonQty;
+          }
+        }
+      });
+      
+      const { error } = await supabase
+        .from('quote_items')
+        .update({
+          measurement_data: {
+            ...item.measurement_data,
+            addons: updatedAddons
+          },
+          line_total: newLineTotal
+        })
+        .eq('id', itemId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Add-on Removed",
+        description: "Add-on has been removed from the quote"
+      });
+      
+      fetchQuoteData();
+    } catch (error) {
+      console.error('Error removing addon:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove add-on",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveMapPlacedAddonQuantity = async (itemIds: string[], newQuantity: number) => {
+    try {
+      setSaving(true);
+      
+      // Update each item's quantity
+      for (const itemId of itemIds) {
+        const item = quoteItems.find(qi => qi.id === itemId);
+        if (!item) continue;
+        
+        const newLineTotal = item.unit_price * newQuantity;
+        
+        await supabase
+          .from('quote_items')
+          .update({
+            quantity: newQuantity,
+            line_total: newLineTotal
+          })
+          .eq('id', itemId);
+      }
+      
+      toast({
+        title: "Quantity Updated",
+        description: "Add-on quantity has been updated"
+      });
+      
+      setEditingAddonId(null);
+      setEditingParentItemId(null);
+      fetchQuoteData();
+      
+    } catch (error) {
+      console.error('Error updating addon quantity:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update add-on quantity",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteMapPlacedAddon = async (itemIds: string[]) => {
+    try {
+      setSaving(true);
+      
+      const { error } = await supabase
+        .from('quote_items')
+        .delete()
+        .in('id', itemIds);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Add-on Removed",
+        description: "Add-on has been removed from the quote"
+      });
+      
+      fetchQuoteData();
+    } catch (error) {
+      console.error('Error removing addon:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove add-on",
+        variant: "destructive"
       });
     } finally {
       setSaving(false);
@@ -703,7 +974,10 @@ export default function QuoteEdit() {
             {/* Detailed Quote Items */}
             {quoteItems.length > 0 && (
               <div className="space-y-4 mb-6">
-                {quoteItems.map((item) => {
+                {(() => {
+                  const { parentItems, consolidatedChildrenByParent } = organizeItemsForDisplay();
+                  return parentItems.map((item) => {
+                    const consolidatedChildren = consolidatedChildrenByParent[item.id] || [];
                   const variations = item.measurement_data?.variations || [];
                   const addons = item.measurement_data?.addons || [];
                   
@@ -794,14 +1068,12 @@ export default function QuoteEdit() {
                             <div className="space-y-1">
                               <div className="text-sm text-muted-foreground mt-2">Add-ons:</div>
                               {addons.filter((a) => a.quantity > 0).map((addon) => {
-                                // Handle both old and new field name formats
                                 const addonName = addon.name || addon.addon_name;
                                 const addonPriceValue = addon.priceValue || addon.addon_price || 0;
                                 const addonCalcType = addon.calculationType || addon.calculation_type || 'total';
                                 const addonId = addon.id || addon.addon_id;
                                 const addonQty = addon.quantity || 1;
                                 
-                                // Calculate proper addon display
                                 let addonCalc = '';
                                 let addonPrice = 0;
                                 
@@ -818,7 +1090,6 @@ export default function QuoteEdit() {
                                     decimal_precision: settings?.decimal_precision || 2
                                   })}/${unitAbbr}${addonQty > 1 ? ` × ${addonQty}` : ''}`;
                                 } else if (addonCalcType === 'area_calculation') {
-                                  // Calculate area with height
                                   const squareFeet = variationData?.affects_area_calculation && variationData.height
                                     ? item.quantity * variationData.height
                                     : item.quantity;
@@ -828,7 +1099,6 @@ export default function QuoteEdit() {
                                     decimal_precision: settings?.decimal_precision || 2
                                   })}/SF${addonQty > 1 ? ` × ${addonQty}` : ''}`;
                                 } else {
-                                  // Total calculation
                                   addonPrice = addonPriceValue * addonQty;
                                   addonCalc = `${addonQty} × ${formatExactPrice(addonPriceValue, {
                                     currency_symbol: settings?.currency_symbol || '$',
@@ -836,13 +1106,180 @@ export default function QuoteEdit() {
                                   })}`;
                                 }
                                 
+                                const isEditing = editingAddonId === addonId && editingParentItemId === item.id;
+                                
                                 return (
                                   <div key={addonId} className="text-sm text-muted-foreground pl-3">
-                                    <span className="font-medium text-foreground">{addonName}</span>
-                                    {addon.selectedOptionName && `(${addon.selectedOptionName})`}: {addonCalc} = <span className="font-semibold text-foreground">{formatExactPrice(addonPrice, {
-                                      currency_symbol: settings?.currency_symbol || '$',
-                                      decimal_precision: settings?.decimal_precision || 2
-                                    })}</span>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div>
+                                        <span className="font-medium text-foreground">{addonName}</span>
+                                        {addon.selectedOptionName && `(${addon.selectedOptionName})`}: {addonCalc} = <span className="font-semibold text-foreground">{formatExactPrice(addonPrice, {
+                                          currency_symbol: settings?.currency_symbol || '$',
+                                          decimal_precision: settings?.decimal_precision || 2
+                                        })}</span>
+                                      </div>
+                                      <div className="flex gap-1">
+                                        {isEditing ? (
+                                          <div className="flex items-center gap-1">
+                                            <Button 
+                                              size="icon" 
+                                              variant="outline" 
+                                              className="h-7 w-7" 
+                                              onClick={() => setEditingAddonQuantity(Math.max(1, editingAddonQuantity - 1))}
+                                            >
+                                              <Minus className="h-3 w-3" />
+                                            </Button>
+                                            <Input 
+                                              type="number" 
+                                              value={editingAddonQuantity}
+                                              onChange={(e) => setEditingAddonQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                              className="w-16 h-7 text-center"
+                                              min="1"
+                                            />
+                                            <Button 
+                                              size="icon" 
+                                              variant="outline" 
+                                              className="h-7 w-7" 
+                                              onClick={() => setEditingAddonQuantity(editingAddonQuantity + 1)}
+                                            >
+                                              <Plus className="h-3 w-3" />
+                                            </Button>
+                                            <Button 
+                                              size="icon" 
+                                              variant="ghost" 
+                                              className="h-7 w-7" 
+                                              onClick={saveAddonQuantity}
+                                              disabled={saving}
+                                            >
+                                              <Check className="h-4 w-4" />
+                                            </Button>
+                                            <Button 
+                                              size="icon" 
+                                              variant="ghost" 
+                                              className="h-7 w-7" 
+                                              onClick={cancelAddonEdit}
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <Button 
+                                              variant="ghost" 
+                                              size="icon"
+                                              className="h-7 w-7"
+                                              onClick={() => startEditingAddon(addonId, addonQty, item.id)}
+                                            >
+                                              <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button 
+                                              variant="ghost" 
+                                              size="icon"
+                                              className="h-7 w-7"
+                                              onClick={() => deleteTraditionalAddon(item.id, addonId)}
+                                              disabled={saving}
+                                            >
+                                               <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          
+                          {/* Map-Placed Add-ons (Child Quote Items) */}
+                          {consolidatedChildren.length > 0 && (
+                            <div className="space-y-1">
+                              {addons.filter((a) => a.quantity > 0).length === 0 && (
+                                <div className="text-sm text-muted-foreground mt-2">Add-ons:</div>
+                              )}
+                              {consolidatedChildren.map((child) => {
+                                const isEditing = editingAddonId === child.product_id && editingParentItemId === item.id;
+                                const childUnitAbbr = 'ea';
+                                
+                                return (
+                                  <div key={child.product_id} className="text-sm text-muted-foreground pl-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div>
+                                        <span className="font-medium text-foreground">{child.product_name}</span>: {child.quantity > 1 && `${child.quantity} × `}{formatExactPrice(child.unit_price, {
+                                          currency_symbol: settings?.currency_symbol || '$',
+                                          decimal_precision: settings?.decimal_precision || 2
+                                        })}{child.quantity > 1 && `/${childUnitAbbr}`} = <span className="font-semibold text-foreground">{formatExactPrice(child.line_total, {
+                                          currency_symbol: settings?.currency_symbol || '$',
+                                          decimal_precision: settings?.decimal_precision || 2
+                                        })}</span>
+                                      </div>
+                                      <div className="flex gap-1">
+                                        {isEditing ? (
+                                          <div className="flex items-center gap-1">
+                                            <Button 
+                                              size="icon" 
+                                              variant="outline" 
+                                              className="h-7 w-7" 
+                                              onClick={() => setEditingAddonQuantity(Math.max(1, editingAddonQuantity - 1))}
+                                            >
+                                              <Minus className="h-3 w-3" />
+                                            </Button>
+                                            <Input 
+                                              type="number" 
+                                              value={editingAddonQuantity}
+                                              onChange={(e) => setEditingAddonQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                                              className="w-16 h-7 text-center"
+                                              min="1"
+                                            />
+                                            <Button 
+                                              size="icon" 
+                                              variant="outline" 
+                                              className="h-7 w-7" 
+                                              onClick={() => setEditingAddonQuantity(editingAddonQuantity + 1)}
+                                            >
+                                              <Plus className="h-3 w-3" />
+                                            </Button>
+                                            <Button 
+                                              size="icon" 
+                                              variant="ghost" 
+                                              className="h-7 w-7" 
+                                              onClick={() => saveMapPlacedAddonQuantity(child.itemIds, editingAddonQuantity)}
+                                              disabled={saving}
+                                            >
+                                              <Check className="h-4 w-4" />
+                                            </Button>
+                                            <Button 
+                                              size="icon" 
+                                              variant="ghost" 
+                                              className="h-7 w-7" 
+                                              onClick={cancelAddonEdit}
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <Button 
+                                              variant="ghost" 
+                                              size="icon"
+                                              className="h-7 w-7"
+                                              onClick={() => startEditingAddon(child.product_id, child.quantity, item.id)}
+                                            >
+                                              <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button 
+                                              variant="ghost" 
+                                              size="icon"
+                                              className="h-7 w-7"
+                                              onClick={() => deleteMapPlacedAddon(child.itemIds)}
+                                              disabled={saving}
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
                                 );
                               })}
@@ -860,10 +1297,11 @@ export default function QuoteEdit() {
                               </span>
                             </div>
                           </div>
-                        </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  );
+                  });
+                })()}
               </div>
             )}
 
