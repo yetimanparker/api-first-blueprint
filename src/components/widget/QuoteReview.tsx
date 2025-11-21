@@ -102,22 +102,53 @@ const QuoteReview = ({
     setItems(quoteItems);
   }, [quoteItems]);
 
-  // Group items by parent-child relationships for display
+  // Group items by parent-child relationships and consolidate duplicate add-ons
   const organizeItemsForDisplay = () => {
     const parentItems = items.filter(item => !item.parentQuoteItemId);
     const childItems = items.filter(item => item.parentQuoteItemId);
     
-    // Create a map of parent ID to its children
-    const childrenByParent = new Map<string, typeof items>();
+    // Create a map of parent ID to consolidated children
+    const consolidatedChildrenByParent = new Map<string, Array<{
+      productId: string;
+      productName: string;
+      unitPrice: number;
+      unitType: string;
+      quantity: number;
+      lineTotal: number;
+      mapColor: string;
+      items: QuoteItem[];
+    }>>();
+    
     childItems.forEach(child => {
       const parentId = child.parentQuoteItemId!;
-      if (!childrenByParent.has(parentId)) {
-        childrenByParent.set(parentId, []);
+      if (!consolidatedChildrenByParent.has(parentId)) {
+        consolidatedChildrenByParent.set(parentId, []);
       }
-      childrenByParent.get(parentId)!.push(child);
+      
+      const siblings = consolidatedChildrenByParent.get(parentId)!;
+      const existing = siblings.find(s => s.productId === child.productId);
+      
+      if (existing) {
+        // Consolidate duplicate products
+        existing.quantity += child.quantity;
+        existing.lineTotal += child.lineTotal;
+        existing.items.push(child);
+      } else {
+        // New product type
+        siblings.push({
+          productId: child.productId,
+          productName: child.productName,
+          unitPrice: child.unitPrice,
+          unitType: child.unitType,
+          quantity: child.quantity,
+          lineTotal: child.lineTotal,
+          mapColor: child.measurement.mapColor || '#F59E0B',
+          items: [child]
+        });
+      }
     });
     
-    return { parentItems, childrenByParent };
+    return { parentItems, consolidatedChildrenByParent };
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
@@ -644,14 +675,14 @@ const QuoteReview = ({
           {/* Detailed Quote Items */}
           <div className="space-y-4 mb-6">
             {(() => {
-              const { parentItems, childrenByParent } = organizeItemsForDisplay();
+              const { parentItems, consolidatedChildrenByParent } = organizeItemsForDisplay();
               
               return parentItems.map((item, itemIndex) => {
                 const quantity = item.measurement.depth 
                   ? (item.measurement.value * item.measurement.depth) / 324 
                   : item.measurement.value;
                 const basePrice = quantity * item.unitPrice;
-                const childItems = childrenByParent.get(item.id) || [];
+                const consolidatedChildren = consolidatedChildrenByParent.get(item.id) || [];
                 
                 return (
                   <div key={item.id} className="space-y-2">
@@ -754,11 +785,13 @@ const QuoteReview = ({
                           </div>
                         )}
                         
-                        {/* Add-ons Pricing Details with Toggles */}
-                        {item.measurement.addons && item.measurement.addons.length > 0 && (
+                        {/* Add-ons Section: Traditional measurement add-ons + map-placed add-ons */}
+                        {((item.measurement.addons && item.measurement.addons.length > 0) || consolidatedChildren.length > 0) && (
                           <div className="space-y-1">
                             <div className="text-sm text-muted-foreground mt-2">Add-ons:</div>
-                            {item.measurement.addons.map((addon) => {
+                            
+                            {/* Traditional measurement add-ons with toggles */}
+                            {item.measurement.addons?.map((addon) => {
                               // Calculate addon price properly including area calculations
                               let addonPrice = 0;
                               
@@ -901,62 +934,6 @@ const QuoteReview = ({
                     )}
                   </div>
                 </div>
-                
-                {/* Child Items (Map-Placed Add-ons) */}
-                {childItems.length > 0 && (
-                  <div className="ml-8 space-y-2">
-                    <div className="text-sm font-medium text-muted-foreground mb-2">Map-Placed Add-ons:</div>
-                    {childItems.map((childItem) => {
-                      const childQuantity = childItem.measurement.depth 
-                        ? (childItem.measurement.value * childItem.measurement.depth) / 324 
-                        : childItem.measurement.value;
-                      
-                      return (
-                        <div key={childItem.id} className="bg-muted/30 rounded-lg p-3 border border-border">
-                          <div className="flex items-start gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full flex-shrink-0 mt-1" 
-                              style={{ backgroundColor: childItem.measurement.mapColor || '#F59E0B' }}
-                            />
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">
-                                {childItem.productName}
-                                <span className="text-xs text-muted-foreground ml-2">
-                                  ({childQuantity} {childItem.measurement.unit.replace('_', ' ')})
-                                </span>
-                              </div>
-                              
-                              {settings.pricing_visibility === 'before_submit' && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  {childQuantity} × {formatExactPrice(childItem.unitPrice, {
-                                    currency_symbol: settings.currency_symbol,
-                                    decimal_precision: settings.decimal_precision
-                                  })} = <span className="font-semibold text-foreground">
-                                    {formatExactPrice(childItem.lineTotal, {
-                                      currency_symbol: settings.currency_symbol,
-                                      decimal_precision: settings.decimal_precision
-                                    })}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {onRemoveItem && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => onRemoveItem(childItem.id)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             );
           });
