@@ -137,6 +137,7 @@ export default function QuoteEdit() {
   const [editingParentItemId, setEditingParentItemId] = useState<string | null>(null);
   const [changeOrderDialogOpen, setChangeOrderDialogOpen] = useState(false);
   const [includeMapInChangeOrder, setIncludeMapInChangeOrder] = useState(true);
+  const [addProductDialogOpen, setAddProductDialogOpen] = useState(false);
 
   useEffect(() => {
     if (quoteId) {
@@ -936,7 +937,7 @@ export default function QuoteEdit() {
         <div className="mb-6">
           <Button 
             variant="outline"
-            onClick={() => navigate(`/quote/builder/${quote.id}`)}
+            onClick={() => setAddProductDialogOpen(true)}
             className="w-full sm:w-auto text-base font-bold"
           >
             + Add Product to Quote
@@ -1621,6 +1622,52 @@ export default function QuoteEdit() {
               </Button>
               <Button onClick={createChangeOrder} disabled={saving}>
                 {saving ? 'Creating...' : 'Create Change Order'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Product Dialog */}
+        <Dialog open={addProductDialogOpen} onOpenChange={setAddProductDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Product to Quote</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                Would you like to create a change order or modify the original quote?
+              </p>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p><strong>Change Order:</strong> Creates a new version ({quote.quote_number}-CO{quote.version_number + 1}) with all current items.</p>
+                <p><strong>Modify Original:</strong> Adds products directly to this quote.</p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setAddProductDialogOpen(false)}
+                className="sm:order-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setAddProductDialogOpen(false);
+                  navigate(`/quote/builder/${quote.id}`);
+                }}
+                className="sm:order-2"
+              >
+                Modify Original
+              </Button>
+              <Button 
+                onClick={() => {
+                  setAddProductDialogOpen(false);
+                  setChangeOrderDialogOpen(true);
+                }}
+                className="sm:order-3"
+              >
+                Create Change Order
               </Button>
             </div>
           </DialogContent>
