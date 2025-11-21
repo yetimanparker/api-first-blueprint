@@ -5,12 +5,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ClarifyingQuestionsDialog } from '@/components/widget/ClarifyingQuestionsDialog';
 import { Input } from '@/components/ui/input';
-import { Loader2, FileText, DollarSign, Plus, MessageSquare, Calculator, Trash2, User } from 'lucide-react';
+import { Loader2, FileText, DollarSign, Plus, MessageSquare, Calculator, Trash2, User, Pencil } from 'lucide-react';
 import { QuoteItem, CustomerInfo, WorkflowStep } from '@/types/widget';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
 import { supabase } from '@/integrations/supabase/client';
@@ -159,17 +158,12 @@ const QuoteReview = ({
     : 0;
   const total = taxableAmount + taxAmount;
 
-  const toggleAddon = (itemId: string, addonId: string) => {
+  const removeAddon = (itemId: string, addonId: string) => {
     setItems(prevItems => prevItems.map(item => {
       if (item.id !== itemId) return item;
       
-      const updatedAddons = item.measurement.addons?.map(addon => {
-        if (addon.id === addonId) {
-          const newQuantity = addon.quantity > 0 ? 0 : 1;
-          return { ...addon, quantity: newQuantity };
-        }
-        return addon;
-      }) || [];
+      // Remove the addon from the measurement addons
+      const updatedAddons = item.measurement.addons?.filter(addon => addon.id !== addonId) || [];
 
       // Calculate quantity (use cubic yards if depth is provided)
       const quantity = item.measurement.depth 
@@ -190,7 +184,7 @@ const QuoteReview = ({
         });
       }
       
-      // Apply active addons
+      // Apply remaining active addons
       let addonsTotal = 0;
       updatedAddons.forEach(addon => {
         if (addon.quantity > 0) {
@@ -227,6 +221,7 @@ const QuoteReview = ({
           ...item.measurement,
           addons: updatedAddons
         },
+        addons: updatedAddons,
         lineTotal: newLineTotal
       };
     }));
@@ -790,7 +785,7 @@ const QuoteReview = ({
                           <div className="space-y-1">
                             <div className="text-sm text-muted-foreground mt-2">Add-ons:</div>
                             
-                            {/* Traditional measurement add-ons with toggles */}
+                            {/* Traditional measurement add-ons with edit/delete buttons */}
                             {item.measurement.addons?.map((addon) => {
                               // Calculate addon price properly including area calculations
                               let addonPrice = 0;
@@ -820,69 +815,87 @@ const QuoteReview = ({
                                 addonPrice = addon.priceValue;
                               }
                               
-                              const isEnabled = addon.quantity > 0;
-                              
                               return (
                                 <div key={addon.id} className="flex items-start justify-between gap-2 pl-3">
-                                  <div className="flex-1 text-sm text-muted-foreground">
-                                    <span className={`font-medium ${isEnabled ? 'text-foreground' : 'line-through text-muted-foreground'}`}>
+                                  <div className="flex-1 text-sm">
+                                    <span className="font-medium text-foreground">
                                       {addon.name}
                                       {addon.selectedOptionName && ` (${addon.selectedOptionName})`}
                                     </span>
-                                    : {(() => {
-                                      const variationData = item.measurement.variations && item.measurement.variations.length > 0
-                                        ? {
-                                            height: item.measurement.variations[0].height_value || null,
-                                            unit: item.measurement.variations[0].unit_of_measurement || 'ft',
-                                            affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
+                                    <span className="text-muted-foreground">
+                                      : {(() => {
+                                        const variationData = item.measurement.variations && item.measurement.variations.length > 0
+                                          ? {
+                                              height: item.measurement.variations[0].height_value || null,
+                                              unit: item.measurement.variations[0].unit_of_measurement || 'ft',
+                                              affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
+                                            }
+                                          : undefined;
+                                        
+                                        let displayQuantity = '';
+                                        let displayUnit = '';
+                                        let displayPrice = addon.priceValue;
+                                        
+                                        if (addon.calculationType === 'area_calculation') {
+                                          if (variationData?.height && variationData.affects_area_calculation) {
+                                            const linearFeet = item.measurement.value;
+                                            const heightFeet = variationData.height;
+                                            const squareFeet = linearFeet * heightFeet;
+                                            displayQuantity = squareFeet.toLocaleString();
+                                            displayUnit = 'SF';
+                                          } else {
+                                            const baseQuantity = item.measurement.depth
+                                              ? (item.measurement.value * item.measurement.depth) / 324
+                                              : item.measurement.value;
+                                            displayQuantity = baseQuantity.toLocaleString();
+                                            displayUnit = getDisplayUnit(item.unitType, !!item.measurement.depth);
                                           }
-                                        : undefined;
-                                      
-                                      let displayQuantity = '';
-                                      let displayUnit = '';
-                                      let displayPrice = addon.priceValue;
-                                      
-                                      if (addon.calculationType === 'area_calculation') {
-                                        if (variationData?.height && variationData.affects_area_calculation) {
-                                          const linearFeet = item.measurement.value;
-                                          const heightFeet = variationData.height;
-                                          const squareFeet = linearFeet * heightFeet;
-                                          displayQuantity = squareFeet.toLocaleString();
-                                          displayUnit = 'SF';
-                                        } else {
-                                          const baseQuantity = item.measurement.depth
-                                            ? (item.measurement.value * item.measurement.depth) / 324
-                                            : item.measurement.value;
-                                          displayQuantity = baseQuantity.toLocaleString();
+                                        } else if (addon.calculationType === 'per_unit') {
+                                          displayQuantity = quantity.toLocaleString();
                                           displayUnit = getDisplayUnit(item.unitType, !!item.measurement.depth);
+                                        } else {
+                                          displayQuantity = addon.quantity.toFixed(1);
+                                          displayUnit = 'ea';
                                         }
-                                      } else if (addon.calculationType === 'per_unit') {
-                                        displayQuantity = quantity.toLocaleString();
-                                        displayUnit = getDisplayUnit(item.unitType, !!item.measurement.depth);
-                                      } else {
-                                        displayQuantity = addon.quantity.toFixed(1);
-                                        displayUnit = 'ea';
-                                      }
-                                      
-                                      // Show quantity multiplier when > 1
-                                      const qtyMultiplier = addon.quantity > 1 ? ` × ${addon.quantity}` : '';
-                                      return ` ${displayQuantity} ${displayUnit} × ${formatExactPrice(displayPrice, {
-                                        currency_symbol: settings.currency_symbol,
-                                        decimal_precision: settings.decimal_precision
-                                      })}/${displayUnit}${qtyMultiplier} = `;
-                                    })()}
-                                    <span className={`font-semibold ${isEnabled ? 'text-foreground' : 'line-through'}`}>
+                                        
+                                        // Show quantity multiplier when > 1
+                                        const qtyMultiplier = addon.quantity > 1 ? ` × ${addon.quantity}` : '';
+                                        return ` ${displayQuantity} ${displayUnit} × ${formatExactPrice(displayPrice, {
+                                          currency_symbol: settings.currency_symbol,
+                                          decimal_precision: settings.decimal_precision
+                                        })}/${displayUnit}${qtyMultiplier} = `;
+                                      })()}
+                                    </span>
+                                    <span className="font-semibold text-foreground">
                                       {formatExactPrice(addonPrice * addon.quantity, {
                                         currency_symbol: settings.currency_symbol,
                                         decimal_precision: settings.decimal_precision
                                       })}
                                     </span>
                                   </div>
-                                  <Switch
-                                    checked={isEnabled}
-                                    onCheckedChange={() => toggleAddon(item.id, addon.id)}
-                                    className="scale-90 data-[state=checked]:bg-blue-600 flex-shrink-0"
-                                  />
+                                  <div className="flex items-center gap-1">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                                      onClick={() => {
+                                        toast({
+                                          title: "Edit Add-on",
+                                          description: "Edit functionality coming soon. For now, you can delete and re-add the add-on.",
+                                        });
+                                      }}
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                      onClick={() => removeAddon(item.id, addon.id)}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                 </div>
                               );
                             })}
@@ -915,16 +928,31 @@ const QuoteReview = ({
                                       </span>
                                     </div>
                                   </div>
-                                  {onRemoveItem && consolidated.items.length === 1 && (
+                                  <div className="flex items-center gap-1">
                                     <Button 
                                       variant="ghost" 
                                       size="icon" 
-                                      className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
-                                      onClick={() => onRemoveItem(consolidated.items[0].id)}
+                                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                                      onClick={() => {
+                                        toast({
+                                          title: "Edit Add-on",
+                                          description: "Edit functionality coming soon. For now, you can delete and re-add the add-on.",
+                                        });
+                                      }}
                                     >
-                                      <Trash2 className="h-3 w-3" />
+                                      <Pencil className="h-3 w-3" />
                                     </Button>
-                                  )}
+                                    {onRemoveItem && consolidated.items.length === 1 && (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => onRemoveItem(consolidated.items[0].id)}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
                               );
                             })}
@@ -979,23 +1007,39 @@ const QuoteReview = ({
                       <div className="space-y-1">
                         <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
                         {item.measurement.addons?.map((addon) => {
-                          const isEnabled = addon.quantity > 0;
-                          
                           return (
-                            <div key={addon.id} className="flex items-center justify-between">
-                              <div className={isEnabled ? '' : 'line-through text-muted-foreground'}>
-                                {addon.name}
+                            <div key={addon.id} className="flex items-center justify-between pl-3">
+                              <div className="flex-1">
+                                <span className="text-sm font-medium text-foreground">{addon.name}</span>
                                 {addon.selectedOptionName && (
                                   <span className="text-sm text-muted-foreground ml-1">
                                     ({addon.selectedOptionName})
                                   </span>
                                 )}
                               </div>
-                              <Switch
-                                checked={isEnabled}
-                                onCheckedChange={() => toggleAddon(item.id, addon.id)}
-                                className="scale-90 data-[state=checked]:bg-blue-600"
-                              />
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                                  onClick={() => {
+                                    toast({
+                                      title: "Edit Add-on",
+                                      description: "Edit functionality coming soon. For now, you can delete and re-add the add-on.",
+                                    });
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => removeAddon(item.id, addon.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
                           );
                         })}
@@ -1003,25 +1047,40 @@ const QuoteReview = ({
                         {/* Consolidated map-placed add-ons (no pricing) */}
                         {consolidatedChildren.map((consolidated) => (
                           <div key={consolidated.productId} className="flex items-center justify-between pl-3">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-1">
                               <div 
                                 className="w-2 h-2 rounded-full flex-shrink-0" 
                                 style={{ backgroundColor: consolidated.mapColor }}
                               />
-                              <span className="text-sm">
+                              <span className="text-sm font-medium text-foreground">
                                 {consolidated.productName} ({consolidated.quantity})
                               </span>
                             </div>
-                            {onRemoveItem && consolidated.items.length === 1 && (
+                            <div className="flex items-center gap-1">
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => onRemoveItem(consolidated.items[0].id)}
+                                className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                                onClick={() => {
+                                  toast({
+                                    title: "Edit Add-on",
+                                    description: "Edit functionality coming soon. For now, you can delete and re-add the add-on.",
+                                  });
+                                }}
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Pencil className="h-3 w-3" />
                               </Button>
-                            )}
+                              {onRemoveItem && consolidated.items.length === 1 && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => onRemoveItem(consolidated.items[0].id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
