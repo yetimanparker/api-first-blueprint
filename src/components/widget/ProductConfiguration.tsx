@@ -799,52 +799,6 @@ const ProductConfiguration = ({
         </CardContent>
       </Card>
 
-      {/* Pending Add-ons Section */}
-      {pendingAddons && pendingAddons.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-primary" />
-                <CardTitle>Add-ons Ready to Add</CardTitle>
-              </div>
-              <Badge variant="secondary">{pendingAddons.length} item{pendingAddons.length !== 1 ? 's' : ''}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {pendingAddons.map((addonItem) => (
-                <div key={addonItem.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{addonItem.productName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {addonItem.quantity} × {formatExactPrice(addonItem.unitPrice, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })} = {formatExactPrice(addonItem.lineTotal, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })}
-                    </p>
-                  </div>
-                  {onRemovePendingAddon && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRemovePendingAddon(addonItem.id)}
-                      className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Product Summary Card at Bottom */}
       <Card className="border-l-4 shadow-sm border-primary">
         <CardContent className="p-6">
@@ -936,10 +890,13 @@ const ProductConfiguration = ({
                   )}
                 </div>
 
-                {/* Add-ons Section */}
-                {Object.entries(selectedAddons).filter(([_, quantity]) => quantity > 0).length > 0 && (
+                {/* Add-ons Section - Combined traditional and pending add-ons */}
+                {(Object.entries(selectedAddons).filter(([_, quantity]) => quantity > 0).length > 0 || 
+                  (pendingAddons && pendingAddons.length > 0)) && (
                   <div className="space-y-1">
                     <div className="text-sm font-bold text-muted-foreground">Add-ons:</div>
+                    
+                    {/* Traditional add-ons */}
                     {Object.entries(selectedAddons)
                       .filter(([_, quantity]) => quantity > 0)
                       .map(([addonId, addonQuantity]) => {
@@ -1005,6 +962,37 @@ const ProductConfiguration = ({
                           </div>
                         );
                       })}
+                    
+                    {/* Pending map-placed add-ons */}
+                    {pendingAddons && pendingAddons.map((addonItem) => (
+                      <div key={addonItem.id} className="text-base">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div>{addonItem.productName}:</div>
+                            <div className="text-sm text-muted-foreground">
+                              {addonItem.quantity} × {formatExactPrice(addonItem.unitPrice, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })} = <span className="font-bold">{formatExactPrice(addonItem.lineTotal, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })}</span>
+                            </div>
+                          </div>
+                          {onRemovePendingAddon && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onRemovePendingAddon(addonItem.id)}
+                              className="h-8 w-8 p-0 ml-2 hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 
