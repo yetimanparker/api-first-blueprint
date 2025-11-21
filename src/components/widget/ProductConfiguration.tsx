@@ -953,10 +953,14 @@ const ProductConfiguration = ({
                               <div className="flex-1">
                                 <div>{addon.name}:</div>
                                 <div className="text-sm text-muted-foreground">
+                                  {addonQuantity > 1 && `${addonQuantity} × (`}
                                   {displayQuantity} {displayUnit} × {formatExactPrice(addon.price_value, {
                                     currency_symbol: settings.currency_symbol,
                                     decimal_precision: settings.decimal_precision
-                                  })}/{displayUnit} = <span className="font-bold">{formatExactPrice(addonTotal, {
+                                  })}/{displayUnit}
+                                  {addonQuantity > 1 && ')'}
+                                  {' = '}
+                                  <span className="font-bold">{formatExactPrice(addonTotal, {
                                     currency_symbol: settings.currency_symbol,
                                     decimal_precision: settings.decimal_precision
                                   })}</span>
@@ -980,36 +984,62 @@ const ProductConfiguration = ({
                         );
                       })}
                     
-                    {/* Pending map-placed add-ons */}
-                    {pendingAddons && pendingAddons.map((addonItem) => (
-                      <div key={addonItem.id} className="text-base">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div>{addonItem.productName}:</div>
-                            <div className="text-sm text-muted-foreground">
-                              {addonItem.quantity} × {formatExactPrice(addonItem.unitPrice, {
-                                currency_symbol: settings.currency_symbol,
-                                decimal_precision: settings.decimal_precision
-                              })} = <span className="font-bold">{formatExactPrice(addonItem.lineTotal, {
-                                currency_symbol: settings.currency_symbol,
-                                decimal_precision: settings.decimal_precision
-                              })}</span>
+                    {/* Pending map-placed add-ons - consolidated by product */}
+                    {pendingAddons && (() => {
+                      // Group pending add-ons by productName and unitPrice
+                      const grouped = pendingAddons.reduce((acc, addonItem) => {
+                        const key = `${addonItem.productName}_${addonItem.unitPrice}`;
+                        if (!acc[key]) {
+                          acc[key] = {
+                            productName: addonItem.productName,
+                            unitPrice: addonItem.unitPrice,
+                            totalQuantity: 0,
+                            totalPrice: 0,
+                            items: []
+                          };
+                        }
+                        acc[key].totalQuantity += addonItem.quantity;
+                        acc[key].totalPrice += addonItem.lineTotal;
+                        acc[key].items.push(addonItem);
+                        return acc;
+                      }, {} as Record<string, {
+                        productName: string;
+                        unitPrice: number;
+                        totalQuantity: number;
+                        totalPrice: number;
+                        items: typeof pendingAddons;
+                      }>);
+
+                      return Object.values(grouped).map((group) => (
+                        <div key={group.items[0].id} className="text-base">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div>{group.productName}:</div>
+                              <div className="text-sm text-muted-foreground">
+                                {group.totalQuantity} × {formatExactPrice(group.unitPrice, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })} = <span className="font-bold">{formatExactPrice(group.totalPrice, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })}</span>
+                              </div>
                             </div>
+                            {onRemovePendingAddon && group.items.length === 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onRemovePendingAddon(group.items[0].id)}
+                                className="h-8 w-8 p-0 ml-2 hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
-                          {onRemovePendingAddon && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => onRemovePendingAddon(addonItem.id)}
-                              className="h-8 w-8 p-0 ml-2 hover:bg-destructive/10 hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
                         </div>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 )}
 
