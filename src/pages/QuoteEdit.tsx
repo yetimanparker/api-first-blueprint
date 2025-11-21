@@ -134,6 +134,8 @@ export default function QuoteEdit() {
   const [editingAddonId, setEditingAddonId] = useState<string | null>(null);
   const [editingAddonQuantity, setEditingAddonQuantity] = useState<number>(1);
   const [editingParentItemId, setEditingParentItemId] = useState<string | null>(null);
+  const [changeOrderDialogOpen, setChangeOrderDialogOpen] = useState(false);
+  const [includeMapInChangeOrder, setIncludeMapInChangeOrder] = useState(true);
 
   useEffect(() => {
     if (quoteId) {
@@ -227,6 +229,7 @@ export default function QuoteEdit() {
 
     try {
       setSaving(true);
+      setChangeOrderDialogOpen(false);
 
       // Generate new access token for the change order
       const { data: tokenData } = await supabase.rpc('generate_quote_access_token');
@@ -259,22 +262,68 @@ export default function QuoteEdit() {
 
       if (quoteError) throw quoteError;
 
-      // Copy existing quote items to the new quote
+      // Copy existing quote items to the new quote with all measurement data
       if (quoteItems.length > 0) {
-        const newItems = quoteItems.map(item => ({
-          quote_id: newQuote.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          line_total: item.line_total,
-          notes: item.notes
-        }));
+        // Separate parent and child items
+        const parentItems = quoteItems.filter(item => !item.parent_quote_item_id);
+        const childItems = quoteItems.filter(item => item.parent_quote_item_id);
+        
+        // Create a map to store old parent item ID -> new parent item ID
+        const parentIdMap: Record<string, string> = {};
+        
+        // Copy parent items first
+        for (const item of parentItems) {
+          const measurementData = includeMapInChangeOrder 
+            ? item.measurement_data 
+            : {
+                // Keep variations and addons, but remove map-specific data
+                ...item.measurement_data,
+                coordinates: undefined,
+                pointLocations: undefined,
+                mapColor: undefined
+              };
+          
+          const { data: newItem, error: itemError } = await supabase
+            .from('quote_items')
+            .insert({
+              quote_id: newQuote.id,
+              product_id: item.product_id,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              line_total: item.line_total,
+              notes: item.notes,
+              measurement_data: measurementData
+            })
+            .select('id')
+            .single();
 
-        const { error: itemsError } = await supabase
-          .from('quote_items')
-          .insert(newItems);
-
-        if (itemsError) throw itemsError;
+          if (itemError) throw itemError;
+          if (newItem) {
+            parentIdMap[item.id] = newItem.id;
+          }
+        }
+        
+        // Copy child items (map-placed add-ons) if map is included
+        if (includeMapInChangeOrder && childItems.length > 0) {
+          for (const child of childItems) {
+            const newParentId = child.parent_quote_item_id ? parentIdMap[child.parent_quote_item_id] : null;
+            
+            if (newParentId) {
+              await supabase
+                .from('quote_items')
+                .insert({
+                  quote_id: newQuote.id,
+                  product_id: child.product_id,
+                  quantity: child.quantity,
+                  unit_price: child.unit_price,
+                  line_total: child.line_total,
+                  notes: child.notes,
+                  measurement_data: child.measurement_data,
+                  parent_quote_item_id: newParentId
+                });
+            }
+          }
+        }
 
         // Update total amount
         const totalAmount = quoteItems.reduce((sum, item) => sum + item.line_total, 0);
@@ -738,11 +787,9 @@ export default function QuoteEdit() {
                   Copy Link
                 </Button>
               )}
-              <Button size="sm" onClick={createChangeOrder} disabled={saving}>
+              <Button size="sm" onClick={() => setChangeOrderDialogOpen(true)} disabled={saving}>
                 <History className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">
-                  {saving ? 'Creating...' : 'Change Order'}
-                </span>
+                <span className="hidden sm:inline">Change Order</span>
               </Button>
             </div>
           </div>
@@ -1515,6 +1562,51 @@ export default function QuoteEdit() {
             }}
           />
         )}
+
+        {/* Change Order Confirmation Dialog */}
+        <Dialog open={changeOrderDialogOpen} onOpenChange={setChangeOrderDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Change Order</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                This will create a new quote ({quote.quote_number}-CO{quote.version_number + 1}) 
+                with all current items and pricing.
+              </p>
+              
+              {quoteItems.some(item => 
+                item.measurement_data?.coordinates?.length || 
+                item.measurement_data?.pointLocations?.length
+              ) && (
+                <div className="flex items-center space-x-2 pt-2">
+                  <input
+                    type="checkbox"
+                    id="includeMap"
+                    checked={includeMapInChangeOrder}
+                    onChange={(e) => setIncludeMapInChangeOrder(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="includeMap" className="text-sm font-normal cursor-pointer">
+                    Include map measurements and locations
+                  </Label>
+                </div>
+              )}
+              
+              <p className="text-xs text-muted-foreground">
+                You can modify the change order after creation.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setChangeOrderDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={createChangeOrder} disabled={saving}>
+                {saving ? 'Creating...' : 'Create Change Order'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
