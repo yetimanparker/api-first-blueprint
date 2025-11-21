@@ -1087,7 +1087,60 @@ const QuoteReview = ({
                       <div className="border-t-2 border-border pt-3 mt-4">
                         <div className="flex justify-end">
                           <span className="text-lg font-bold text-green-600">
-                            Total: {formatExactPrice(item.lineTotal, {
+                            Total: {formatExactPrice((() => {
+                              // Calculate total including only enabled items
+                              const baseQuantity = item.measurement.depth 
+                                ? (item.measurement.value * item.measurement.depth) / 324 
+                                : item.measurement.value;
+                              
+                              let basePrice = baseQuantity * item.unitPrice;
+                              
+                              // Apply variations
+                              if (item.measurement.variations && item.measurement.variations.length > 0) {
+                                item.measurement.variations.forEach(variation => {
+                                  if (variation.adjustmentType === 'percentage') {
+                                    basePrice += basePrice * (variation.priceAdjustment / 100);
+                                  } else {
+                                    basePrice += variation.priceAdjustment * baseQuantity;
+                                  }
+                                });
+                              }
+                              
+                              // Apply only enabled traditional add-ons
+                              let addonsTotal = 0;
+                              item.measurement.addons?.forEach(addon => {
+                                const addonKey = `${item.id}-${addon.id}`;
+                                const isEnabled = addonToggleStates[addonKey] !== false;
+                                
+                                if (isEnabled && addon.quantity > 0) {
+                                  const variationData = item.measurement.variations && item.measurement.variations.length > 0
+                                    ? {
+                                        height: item.measurement.variations[0].height_value || null,
+                                        unit: item.measurement.variations[0].unit_of_measurement || 'ft',
+                                        affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
+                                      }
+                                    : undefined;
+                                  
+                                  const addonPrice = calculateAddonWithAreaData(
+                                    addon.priceValue,
+                                    baseQuantity,
+                                    addon.calculationType,
+                                    variationData
+                                  );
+                                  
+                                  addonsTotal += addonPrice * addon.quantity;
+                                }
+                              });
+                              
+                              // Apply only enabled map-placed add-ons
+                              const mapAddonsTotal = consolidatedChildren.reduce((sum, c) => {
+                                const addonKey = `${item.id}-${c.items[0].id}`;
+                                const isEnabled = addonToggleStates[addonKey] !== false;
+                                return isEnabled ? sum + c.lineTotal : sum;
+                              }, 0);
+                              
+                              return basePrice + addonsTotal + mapAddonsTotal;
+                            })(), {
                               currency_symbol: settings.currency_symbol,
                               decimal_precision: settings.decimal_precision
                             })}
