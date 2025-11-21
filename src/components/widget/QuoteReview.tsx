@@ -335,6 +335,7 @@ const QuoteReview = ({
 
     try {
       const quoteItemsData = items.map(item => ({
+        id: item.id,
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
