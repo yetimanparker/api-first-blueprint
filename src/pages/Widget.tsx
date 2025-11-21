@@ -978,6 +978,7 @@ const Widget = () => {
           open={showMethodDialog}
           productName={selectedProduct.name}
           onMethodSelect={handleMethodSelect}
+          onCancel={() => setShowMethodDialog(false)}
         />
       )}
 
@@ -987,6 +988,7 @@ const Widget = () => {
           open={showAddonMethodDialog}
           productName={widgetState.pendingAddon.addonName}
           onMethodSelect={handleAddonMethodSelect}
+          onCancel={() => setShowAddonMethodDialog(false)}
         />
       )}
 

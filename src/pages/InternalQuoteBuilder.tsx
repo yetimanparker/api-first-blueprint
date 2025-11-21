@@ -533,6 +533,7 @@ export default function InternalQuoteBuilder() {
           open={showMethodDialog}
           productName={selectedProduct?.name || ''}
           onMethodSelect={handleMethodSelect}
+          onCancel={() => setShowMethodDialog(false)}
         />
 
         {/* Increment Confirmation Dialog */}
