@@ -6,12 +6,13 @@ interface QuantityMethodDialogProps {
   open: boolean;
   productName: string;
   onMethodSelect: (method: 'manual' | 'map') => void;
+  onCancel: () => void;
 }
 
-const QuantityMethodDialog = ({ open, productName, onMethodSelect }: QuantityMethodDialogProps) => {
+const QuantityMethodDialog = ({ open, productName, onMethodSelect, onCancel }: QuantityMethodDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) onMethodSelect('manual'); // Default to manual if closed via X
+      if (!isOpen) onCancel();
     }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
