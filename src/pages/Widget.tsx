@@ -262,6 +262,23 @@ const Widget = () => {
             });
           }
         }, 300);
+      } else if (widgetState.currentStep === 'addon-placement') {
+        // For addon-placement, scroll to the map area
+        setTimeout(() => {
+          const measurementSection = document.getElementById('step-measurement');
+          if (measurementSection) {
+            console.log('📍 Found measurement section for addon placement, scrolling into view');
+            const header = document.querySelector('.sticky.top-0');
+            const headerHeight = header?.getBoundingClientRect().height || 0;
+            const elementPosition = measurementSection.getBoundingClientRect().top + window.pageYOffset;
+            const offsetPosition = elementPosition - headerHeight - 10;
+            
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+            });
+          }
+        }, 300);
       } else if (widgetState.currentStep === 'quote-review') {
         // For quote-review, scroll to show the Total and buttons
         setTimeout(() => {
@@ -743,7 +760,13 @@ const Widget = () => {
                 onChangeProduct={goToProductSelection}
                 isConfigurationMode={widgetState.currentStep === 'product-configuration'}
                 currentStep={widgetState.currentStep}
-                existingQuoteItems={widgetState.quoteItems}
+                existingQuoteItems={[
+                  ...widgetState.quoteItems,
+                  // Include current main product item if it exists (during addon placement workflow)
+                  ...(widgetState.currentMainProductItem ? [widgetState.currentMainProductItem] : []),
+                  // Include pending addons
+                  ...(widgetState.pendingAddons || [])
+                ]}
                 onResetToMeasurement={resetToMeasurement}
                 isManualEntry={widgetState.currentMeasurement?.manualEntry === true}
                 onFinalizeMeasurement={() => {}}
