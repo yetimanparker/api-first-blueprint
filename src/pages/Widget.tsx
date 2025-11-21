@@ -625,8 +625,8 @@ const Widget = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30" style={brandStyle}>
-      {/* Business Header - Hide on confirmation step */}
-      {contractorInfo && widgetState.currentStep !== 'confirmation' && (
+      {/* Business Header - Hide during measurement, configuration, and confirmation steps */}
+      {contractorInfo && !['measurement', 'configuration', 'confirmation'].includes(widgetState.currentStep) && (
         <div 
           className="py-4 px-6 shadow-sm"
           style={{ 
