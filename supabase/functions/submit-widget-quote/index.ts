@@ -247,6 +247,14 @@ serve(async (req) => {
     const mainItems = quoteItems.filter((item: any) => !item.parentQuoteItemId);
     const addonItems = quoteItems.filter((item: any) => item.parentQuoteItemId);
 
+    console.log('Processing quote items:', {
+      totalItems: quoteItems.length,
+      mainItemsCount: mainItems.length,
+      addonItemsCount: addonItems.length,
+      mainItemsSample: mainItems.slice(0, 2),
+      addonItemsSample: addonItems.slice(0, 2)
+    });
+
     // Map to track temporary IDs to real database IDs
     const idMapping = new Map<string, string>();
 
@@ -276,22 +284,29 @@ serve(async (req) => {
       mainItems.forEach((item: any, index: number) => {
         if (insertedMainItems && insertedMainItems[index]) {
           idMapping.set(item.id, insertedMainItems[index].id);
+          console.log(`Mapped temp ID ${item.id} to DB ID ${insertedMainItems[index].id}`);
         }
       });
     }
 
     // Insert addon items with resolved parent IDs
     if (addonItems.length > 0) {
-      const addonItemsToInsert = addonItems.map((item: any) => ({
-        quote_id: quote.id,
-        product_id: item.productId,
-        quantity: item.quantity,
-        unit_price: item.unitPrice,
-        line_total: item.lineTotal,
-        measurement_data: item.measurementData,
-        notes: item.notes,
-        parent_quote_item_id: idMapping.get(item.parentQuoteItemId) || null,
-      }));
+      const addonItemsToInsert = addonItems.map((item: any) => {
+        const resolvedParentId = idMapping.get(item.parentQuoteItemId) || null;
+        console.log(`Resolving parent for addon item ${item.id}: ${item.parentQuoteItemId} -> ${resolvedParentId}`);
+        return {
+          quote_id: quote.id,
+          product_id: item.productId,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          line_total: item.lineTotal,
+          measurement_data: item.measurementData,
+          notes: item.notes,
+          parent_quote_item_id: resolvedParentId,
+        };
+      });
+
+      console.log('Inserting addon items:', addonItemsToInsert.slice(0, 2));
 
       const { error: addonItemsError } = await supabaseClient
         .from('quote_items')
