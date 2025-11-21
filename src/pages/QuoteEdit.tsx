@@ -232,10 +232,18 @@ export default function QuoteEdit() {
       setChangeOrderDialogOpen(false);
 
       // Generate new access token for the change order
-      const { data: tokenData } = await supabase.rpc('generate_quote_access_token');
+      const { data: tokenData, error: tokenError } = await supabase.rpc('generate_quote_access_token');
+      if (tokenError) {
+        console.error('Token generation error:', tokenError);
+        throw new Error('Failed to generate access token');
+      }
       
       // Get contractor ID
-      const { data: contractorId } = await supabase.rpc('get_current_contractor_id');
+      const { data: contractorId, error: contractorError } = await supabase.rpc('get_current_contractor_id');
+      if (contractorError) {
+        console.error('Contractor ID error:', contractorError);
+        throw new Error('Failed to get contractor ID');
+      }
       
       // Create new quote as change order
       const newQuoteNumber = `${quote.quote_number}-CO${quote.version_number + 1}`;
@@ -252,6 +260,7 @@ export default function QuoteEdit() {
           project_state: quote.project_state,
           project_zip_code: quote.project_zip_code,
           notes: quote.notes,
+          clarifying_answers: quote.clarifying_answers,
           access_token: tokenData,
           version_number: quote.version_number + 1,
           parent_quote_id: quote.parent_quote_id || quote.id,
@@ -260,10 +269,13 @@ export default function QuoteEdit() {
         .select()
         .single();
 
-      if (quoteError) throw quoteError;
+      if (quoteError) {
+        console.error('Quote creation error:', quoteError);
+        throw quoteError;
+      }
 
       // Copy existing quote items to the new quote with all measurement data
-      if (quoteItems.length > 0) {
+      if (quoteItems.length > 0 && newQuote) {
         // Separate parent and child items
         const parentItems = quoteItems.filter(item => !item.parent_quote_item_id);
         const childItems = quoteItems.filter(item => item.parent_quote_item_id);
@@ -277,10 +289,8 @@ export default function QuoteEdit() {
             ? item.measurement_data 
             : {
                 // Keep variations and addons, but remove map-specific data
-                ...item.measurement_data,
-                coordinates: undefined,
-                pointLocations: undefined,
-                mapColor: undefined
+                variations: item.measurement_data?.variations,
+                addons: item.measurement_data?.addons
               };
           
           const { data: newItem, error: itemError } = await supabase
@@ -292,12 +302,15 @@ export default function QuoteEdit() {
               unit_price: item.unit_price,
               line_total: item.line_total,
               notes: item.notes,
-              measurement_data: measurementData
+              measurement_data: measurementData || null
             })
             .select('id')
             .single();
 
-          if (itemError) throw itemError;
+          if (itemError) {
+            console.error('Parent item insertion error:', itemError);
+            throw itemError;
+          }
           if (newItem) {
             parentIdMap[item.id] = newItem.id;
           }
@@ -309,7 +322,7 @@ export default function QuoteEdit() {
             const newParentId = child.parent_quote_item_id ? parentIdMap[child.parent_quote_item_id] : null;
             
             if (newParentId) {
-              await supabase
+              const { error: childError } = await supabase
                 .from('quote_items')
                 .insert({
                   quote_id: newQuote.id,
@@ -318,19 +331,29 @@ export default function QuoteEdit() {
                   unit_price: child.unit_price,
                   line_total: child.line_total,
                   notes: child.notes,
-                  measurement_data: child.measurement_data,
+                  measurement_data: child.measurement_data || null,
                   parent_quote_item_id: newParentId
                 });
+              
+              if (childError) {
+                console.error('Child item insertion error:', childError);
+                throw childError;
+              }
             }
           }
         }
 
         // Update total amount
         const totalAmount = quoteItems.reduce((sum, item) => sum + item.line_total, 0);
-        await supabase
+        const { error: updateError } = await supabase
           .from('quotes')
           .update({ total_amount: totalAmount })
           .eq('id', newQuote.id);
+        
+        if (updateError) {
+          console.error('Total update error:', updateError);
+          throw updateError;
+        }
       }
 
       toast({
@@ -345,7 +368,7 @@ export default function QuoteEdit() {
       console.error('Error creating change order:', error);
       toast({
         title: "Error",
-        description: "Failed to create change order",
+        description: error instanceof Error ? error.message : "Failed to create change order",
         variant: "destructive",
       });
     } finally {
