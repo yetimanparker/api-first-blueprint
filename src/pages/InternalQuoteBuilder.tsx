@@ -611,7 +611,17 @@ export default function InternalQuoteBuilder() {
                 linkedProductId={pendingAddon.linkedProductId}
                 mainProductMeasurement={currentMainProductItem.measurement}
                 customerAddress={getCustomerAddress()}
-                existingAddonLocations={pendingAddons
+                existingAddonLocations={[
+                  // Include ALL pending add-ons for visual reference (all product types)
+                  ...pendingAddons,
+                  // Include ALL already-committed add-on items for visual reference
+                  ...quoteItems.filter(
+                    (item) =>
+                      item.parentQuoteItemId &&
+                      currentMainProductItem &&
+                      item.parentQuoteItemId === currentMainProductItem.id
+                  ),
+                ]
                   .map((item) => {
                     const m = item.measurement;
                     const center = m.centerPoint || m.pointLocations?.[0];
@@ -689,7 +699,7 @@ export default function InternalQuoteBuilder() {
         )}
 
         {/* Product Configuration Section */}
-        {isStepVisible('product-configuration') && currentStep !== 'internal-quote-review' && currentMeasurement && cachedProducts.length > 0 && (
+        {isStepVisible('product-configuration') && currentStep !== 'internal-quote-review' && currentStep !== 'addon-placement' && currentStep !== 'addon-quantity-input' && currentMeasurement && cachedProducts.length > 0 && (
           <div id="step-product-configuration" className="px-4 py-0 bg-background">
             <ProductConfiguration
               contractorId={contractorId!}
