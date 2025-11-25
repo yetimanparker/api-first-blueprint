@@ -612,7 +612,6 @@ export default function InternalQuoteBuilder() {
                 mainProductMeasurement={currentMainProductItem.measurement}
                 customerAddress={getCustomerAddress()}
                 existingAddonLocations={pendingAddons
-                  .filter((item) => item.addonId === pendingAddon.addonId)
                   .map((item) => {
                     const m = item.measurement;
                     const center = m.centerPoint || m.pointLocations?.[0];
