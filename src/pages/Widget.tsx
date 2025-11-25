@@ -813,7 +813,12 @@ const Widget = () => {
         )}
         
         {/* Product Configuration Section - Appears below map */}
-        {isStepVisible('product-configuration') && widgetState.currentStep !== 'confirmation' && widgetState.currentMeasurement && widgetProducts.length > 0 && (
+        {isStepVisible('product-configuration') && 
+         widgetState.currentStep !== 'confirmation' && 
+         widgetState.currentStep !== 'addon-placement' && 
+         widgetState.currentStep !== 'addon-quantity-input' && 
+         widgetState.currentMeasurement && 
+         widgetProducts.length > 0 && (
           <div id="step-product-configuration" className="px-4 py-0 bg-background">
             <ProductConfiguration
               contractorId={contractorId!}
