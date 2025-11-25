@@ -707,14 +707,19 @@ const Widget = () => {
                 mainProductMeasurement={widgetState.currentMainProductItem.measurement}
                 customerAddress={widgetState.customerInfo.address}
                 existingAddonLocations={[
-                  // Pending add-ons for this main product (not yet committed to quote)
-                  ...(widgetState.pendingAddons || []),
-                  // Any already-committed add-on items linked to this main product
+                  // Only include pending add-ons that match the SAME linked product ID
+                  // This prevents numbering from continuing across different addon types
+                  ...(widgetState.pendingAddons || []).filter(
+                    (item) =>
+                      item.productId === (widgetState.pendingAddon!.linkedProductId || widgetState.currentMainProductItem!.productId)
+                  ),
+                  // Any already-committed add-on items for this specific addon product
                   ...widgetState.quoteItems.filter(
                     (item) =>
                       item.parentQuoteItemId &&
                       widgetState.currentMainProductItem &&
-                      item.parentQuoteItemId === widgetState.currentMainProductItem.id,
+                      item.parentQuoteItemId === widgetState.currentMainProductItem.id &&
+                      item.productId === (widgetState.pendingAddon!.linkedProductId || widgetState.currentMainProductItem!.productId)
                   ),
                 ]
                   .map((item) => {

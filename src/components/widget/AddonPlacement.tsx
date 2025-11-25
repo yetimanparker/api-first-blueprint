@@ -36,10 +36,12 @@ export function AddonPlacement({
   const [mainProductShape, setMainProductShape] = useState<google.maps.Polygon | google.maps.Polyline | null>(null);
   const [placedMarkers, setPlacedMarkers] = useState<google.maps.Marker[]>([]);
   const [placedLocations, setPlacedLocations] = useState<Array<{lat: number, lng: number}>>([]);
+  const [existingMarkers, setExistingMarkers] = useState<google.maps.Marker[]>([]);
 
   const mapRef = useRef<google.maps.Map | null>(null);
   const placedMarkersRef = useRef<google.maps.Marker[]>([]);
   const placedLocationsRef = useRef<Array<{ lat: number; lng: number }>>([]);
+  const existingMarkersRef = useRef<google.maps.Marker[]>([]);
   const STORAGE_KEY = `map-state-${customerAddress || 'default'}`;
 
   useEffect(() => {
@@ -151,47 +153,33 @@ export function AddonPlacement({
       // Draw the main product measurement (read-only)
       drawMainProductShape(mapInstance);
 
-      // Render any existing addon markers so they stay visible across sessions
+      // Render existing addon markers (read-only, for visual reference only)
+      // These are NOT included in placedLocations when user clicks Done
       if (existingAddonLocations && existingAddonLocations.length > 0) {
-        existingAddonLocations.forEach((loc) => {
-          const markerNumber = placedMarkersRef.current.length + 1;
-          const markerColor =
-            loc.color || addonProductColor || mainProductMeasurement.mapColor || '#3B82F6';
+        const existingMarkersToAdd: google.maps.Marker[] = [];
+        existingAddonLocations.forEach((loc, index) => {
+          const markerColor = loc.color || '#9CA3AF'; // Gray for existing markers
 
           const marker = new google.maps.Marker({
             position: { lat: loc.lat, lng: loc.lng },
             map: mapInstance,
-            title: `${addonName} #${markerNumber}`,
-            label: {
-              text: `${markerNumber}`,
-              color: 'white',
-              fontSize: '12px',
-              fontWeight: 'bold',
-            },
+            title: `Existing placement`,
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
-              scale: 12,
+              scale: 10,
               fillColor: markerColor,
-              fillOpacity: 1,
+              fillOpacity: 0.6,
               strokeColor: 'white',
               strokeWeight: 2,
             },
-            draggable: true,
+            draggable: false, // Existing markers are not draggable
           });
 
-          marker.addListener('click', () => {
-            removeMarker(marker);
-          });
-
-          placedMarkersRef.current = [...placedMarkersRef.current, marker];
-          placedLocationsRef.current = [
-            ...placedLocationsRef.current,
-            { lat: loc.lat, lng: loc.lng },
-          ];
+          existingMarkersToAdd.push(marker);
         });
 
-        setPlacedMarkers(placedMarkersRef.current);
-        setPlacedLocations(placedLocationsRef.current);
+        existingMarkersRef.current = existingMarkersToAdd;
+        setExistingMarkers(existingMarkersToAdd);
       }
 
       // Add click listener for placing add-on markers
@@ -344,6 +332,7 @@ export function AddonPlacement({
   };
 
   const clearAllMarkers = () => {
+    // Only clear user-placed markers, not existing ones
     placedMarkers.forEach(marker => marker.setMap(null));
     placedMarkersRef.current = [];
     placedLocationsRef.current = [];
