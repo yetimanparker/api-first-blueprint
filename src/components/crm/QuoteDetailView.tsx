@@ -157,6 +157,9 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
       // Render all measurements
       const bounds = new google.maps.LatLngBounds();
       const colors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899'];
+      
+      // Track marker numbers by product ID for consistent numbering
+      const markerCounters: Record<string, number> = {};
 
       quoteItems.forEach((item, index) => {
         const hasCoordinates = item.measurement_data?.coordinates?.length > 0;
@@ -178,14 +181,23 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
         if (item.measurement_data.type === 'point' && hasPointLocations) {
           console.log(`Rendering ${hasPointLocations} point markers for:`, item.products.name);
           // Handle point measurements (each)
-          item.measurement_data.pointLocations.forEach((point: { lat: number; lng: number }, pointIndex: number) => {
+          
+          // Initialize counter for this product if not exists
+          if (!markerCounters[item.product_id]) {
+            markerCounters[item.product_id] = 0;
+          }
+          
+          item.measurement_data.pointLocations.forEach((point: { lat: number; lng: number }) => {
             bounds.extend(point);
+            
+            markerCounters[item.product_id]++;
+            const markerNumber = markerCounters[item.product_id];
             
             const marker = new google.maps.Marker({
               position: point,
               map: map,
               label: {
-                text: (pointIndex + 1).toString(),
+                text: markerNumber.toString(),
                 color: '#FFFFFF',
                 fontSize: `${Math.max(10, getZoomBasedFontSize(currentZoom) - 2)}px`,
                 fontWeight: 'bold',
@@ -201,7 +213,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             });
 
             const infoWindow = new google.maps.InfoWindow({
-              content: `<div style="color: ${color}; font-weight: bold;">${item.products.name} #${pointIndex + 1}</div>`,
+              content: `<div style="color: ${color}; font-weight: bold;">${item.products.name} #${markerNumber}</div>`,
             });
 
             marker.addListener('click', () => {
