@@ -88,6 +88,9 @@ export default function MeasurementMap({ measurements, center, className = "" }:
           }
         });
 
+        // Track marker numbers by product name for consistent numbering
+        const markerCounters: Record<string, number> = {};
+
         // Draw measurements
         measurements.forEach((measurement, index) => {
           // Skip if no location data
@@ -207,7 +210,15 @@ export default function MeasurementMap({ measurements, center, className = "" }:
             });
           } else if (measurement.type === 'point') {
             // Draw markers for point measurements (e.g., individual trees)
-            path.forEach((position, idx) => {
+            // Initialize counter for this product if not exists
+            if (!markerCounters[measurement.productName]) {
+              markerCounters[measurement.productName] = 0;
+            }
+            
+            path.forEach((position) => {
+              markerCounters[measurement.productName]++;
+              const markerNumber = markerCounters[measurement.productName];
+              
               const marker = new google.maps.Marker({
                 position: position,
                 map: map,
@@ -220,7 +231,7 @@ export default function MeasurementMap({ measurements, center, className = "" }:
                   strokeWeight: 2,
                 },
                 label: {
-                  text: `${idx + 1}`,
+                  text: `${markerNumber}`,
                   color: '#ffffff',
                   fontSize: '11px',
                   fontWeight: 'bold',
@@ -231,7 +242,7 @@ export default function MeasurementMap({ measurements, center, className = "" }:
                 content: `
                   <div style="padding: 8px;">
                     <strong>${measurement.productName}</strong><br/>
-                    Location ${idx + 1} of ${path.length}
+                    Location ${markerNumber}
                   </div>
                 `,
               });
