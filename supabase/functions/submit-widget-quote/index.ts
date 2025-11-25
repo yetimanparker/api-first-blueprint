@@ -23,7 +23,7 @@ const quoteItemSchema = z.object({
   lineTotal: z.number().nonnegative("Line total must be non-negative"),
   measurementData: z.any().optional(),
   notes: z.string().max(1000, "Notes too long").optional(),
-  parentQuoteItemId: z.string().optional(),
+  parentQuoteItemId: z.string().nullish(),
   addonId: z.string().optional(),
   isAddonItem: z.boolean().optional(),
 });
