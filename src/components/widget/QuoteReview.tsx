@@ -38,6 +38,8 @@ interface QuoteReviewProps {
   onQuoteSubmitted?: (quoteNumber: string) => void;
   clarifyingQuestionsEnabled?: boolean;
   clarifyingQuestions?: Array<{id: string; question: string; required: boolean}>;
+  onCustomSubmit?: () => Promise<void>;
+  submitButtonText?: string;
 }
 
 interface ClarifyingAnswer {
@@ -58,7 +60,9 @@ const QuoteReview = ({
   onRemoveItem,
   onQuoteSubmitted,
   clarifyingQuestionsEnabled = false,
-  clarifyingQuestions = []
+  clarifyingQuestions = [],
+  onCustomSubmit,
+  submitButtonText = "Submit Quote"
 }: QuoteReviewProps) => {
   console.log('🔄 QuoteReview v2.0 - Variations/Addons always visible with toggle - ' + new Date().toISOString());
   console.log('📦 Quote Items Data:', JSON.stringify(quoteItems, null, 2));
@@ -1217,7 +1221,7 @@ const QuoteReview = ({
               </Button>
             )}
             <Button 
-              onClick={handleSubmitQuote} 
+              onClick={onCustomSubmit || handleSubmitQuote} 
               disabled={isSubmitting}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white"
               size="lg"
@@ -1225,12 +1229,12 @@ const QuoteReview = ({
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Submitting...
+                  Saving...
                 </>
               ) : (
                 <>
                   <FileText className="h-4 w-4 mr-2" />
-                  Submit Quote
+                  {submitButtonText}
                 </>
               )}
             </Button>

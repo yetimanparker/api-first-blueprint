@@ -805,30 +805,9 @@ export default function InternalQuoteBuilder() {
               onQuoteSubmitted={() => {}}
               clarifyingQuestionsEnabled={false}
               clarifyingQuestions={[]}
+              onCustomSubmit={handleFinalSaveToDatabase}
+              submitButtonText="Save to Quote"
             />
-            
-            {/* Custom footer for internal builder */}
-            <div className="mt-6 flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={goToProductSelection}
-              >
-                Add Another Product
-              </Button>
-              <Button
-                onClick={handleFinalSaveToDatabase}
-                disabled={saving || quoteItems.length === 0}
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Add to Quote & Finish'
-                )}
-              </Button>
-            </div>
           </div>
         )}
       </main>
