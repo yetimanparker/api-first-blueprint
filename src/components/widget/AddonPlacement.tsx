@@ -345,10 +345,19 @@ export function AddonPlacement({
     <Card className="w-full">
       <CardContent className="p-0">
         {/* Map Container */}
-        <div 
-          id="addon-placement-map" 
-          className="w-full min-h-[500px] border-b"
-        />
+        <div className="relative">
+          <div 
+            id="addon-placement-map" 
+            className="w-full min-h-[500px] border-b"
+          />
+          
+          {/* Placement Instructions */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+            <div className="bg-white rounded-lg shadow-lg px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
+              Click to place add-ons on the map. Click marker to remove.
+            </div>
+          </div>
+        </div>
 
         {/* Instructions */}
         <div className="p-4 bg-muted/30">

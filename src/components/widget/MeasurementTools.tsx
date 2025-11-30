@@ -2203,6 +2203,15 @@ const MeasurementTools = ({
           className="w-full h-full absolute inset-0"
         />
         
+        {/* Measurement Instructions */}
+        {!mapLoading && !mapError && !showManualEntry && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+            <div className="bg-white rounded-lg shadow-lg px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
+              Click to draw points on the map. Double-click to complete.
+            </div>
+          </div>
+        )}
+        
         {mapLoading && (
           <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="text-center">
