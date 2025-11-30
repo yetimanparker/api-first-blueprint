@@ -2205,8 +2205,8 @@ const MeasurementTools = ({
         
         {/* Measurement Instructions */}
         {!mapLoading && !mapError && !showManualEntry && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-            <div className="bg-white rounded-lg shadow-lg px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none px-4 w-full sm:w-auto">
+            <div className="bg-white rounded-lg shadow-lg px-3 py-2 text-xs sm:text-sm text-gray-700 text-center">
               Click to draw points on the map. Double-click to complete.
             </div>
           </div>

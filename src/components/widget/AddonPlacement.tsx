@@ -352,8 +352,8 @@ export function AddonPlacement({
           />
           
           {/* Placement Instructions */}
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-            <div className="bg-white rounded-lg shadow-lg px-4 py-2 text-sm text-gray-700 whitespace-nowrap">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none px-4 w-full sm:w-auto">
+            <div className="bg-white rounded-lg shadow-lg px-3 py-2 text-xs sm:text-sm text-gray-700 text-center">
               Click to place add-ons on the map. Click marker to remove.
             </div>
           </div>
