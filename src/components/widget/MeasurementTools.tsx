@@ -1011,16 +1011,20 @@ const MeasurementTools = ({
       drawingMode: null,
       drawingControl: false,
       polygonOptions: {
+        // Use invisible options for the live drawing overlay; we render our own preview shape
         fillColor: nextColor,
-        fillOpacity: 0.3,
+        fillOpacity: 0,
         strokeColor: nextColor,
+        strokeOpacity: 0,
         strokeWeight: 2,
         clickable: true,
         editable: true, // Always editable when first drawn
         zIndex: 1,
       },
       polylineOptions: {
+        // Use invisible options for the live drawing overlay; we render our own preview shape
         strokeColor: nextColor,
+        strokeOpacity: 0,
         strokeWeight: 2,
         clickable: true,
         editable: true, // Always editable when first drawn
@@ -1200,19 +1204,37 @@ const MeasurementTools = ({
       
       setIsDrawing(false);
       
-      if (currentShapeRef.current) {
-        currentShapeRef.current.setMap(null);
-      }
-      
-      if (measurementLabelRef.current) {
-        measurementLabelRef.current.setMap(null);
-      }
-      
-      currentShapeRef.current = event.overlay;
+      // Make the drawing manager overlay invisible and replace it with our own
       drawingManager.setDrawingMode(null);
+      
+      const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
+      const mapColor = MAP_COLORS[colorIndex];
 
       if (event.type === google.maps.drawing.OverlayType.POLYGON) {
-        const polygon = event.overlay as google.maps.Polygon;
+        // Prefer our manually tracked path (supports undo) and fall back to the overlay path
+        const sourcePath: google.maps.LatLng[] =
+          currentPathRef.current.length > 0
+            ? [...currentPathRef.current]
+            : (event.overlay as google.maps.Polygon).getPath().getArray();
+
+        // Remove the invisible overlay
+        event.overlay.setMap(null);
+
+        // Create a visible editable polygon using the final path
+        const polygon = new google.maps.Polygon({
+          paths: sourcePath,
+          fillColor: mapColor,
+          fillOpacity: 0.3,
+          strokeColor: mapColor,
+          strokeWeight: 2,
+          clickable: true,
+          editable: true,
+          zIndex: 1,
+          map: mapRef.current!,
+        });
+
+        currentShapeRef.current = polygon;
+
         const path = polygon.getPath();
         const area = google.maps.geometry.spherical.computeArea(path);
         const sqFt = Math.ceil(area * 10.764);
@@ -1226,9 +1248,6 @@ const MeasurementTools = ({
         setMapMeasurement(sqFt);
         
         // Set initial measurement immediately after drawing
-        const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
-        const mapColor = MAP_COLORS[colorIndex];
-        
         setCurrentMeasurement({
           type: 'area',
           value: sqFt,
@@ -1260,9 +1279,6 @@ const MeasurementTools = ({
             newCoordinates.push([latLng.lat(), latLng.lng()]);
           });
           
-          const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
-          const mapColor = MAP_COLORS[colorIndex];
-          
           setCurrentMeasurement({
             type: 'area',
             value: newSqFt,
@@ -1292,7 +1308,27 @@ const MeasurementTools = ({
         google.maps.event.addListener(path, 'remove_at', updateMeasurement);
         
       } else if (event.type === google.maps.drawing.OverlayType.POLYLINE) {
-        const polyline = event.overlay as google.maps.Polyline;
+        // Prefer our manually tracked path (supports undo) and fall back to the overlay path
+        const sourcePath: google.maps.LatLng[] =
+          currentPathRef.current.length > 0
+            ? [...currentPathRef.current]
+            : (event.overlay as google.maps.Polyline).getPath().getArray();
+
+        // Remove the invisible overlay
+        event.overlay.setMap(null);
+
+        // Create a visible editable polyline using the final path
+        const polyline = new google.maps.Polyline({
+          path: sourcePath,
+          strokeColor: mapColor,
+          strokeWeight: 2,
+          clickable: true,
+          editable: true,
+          map: mapRef.current!,
+        });
+
+        currentShapeRef.current = polyline;
+
         const path = polyline.getPath();
         const length = google.maps.geometry.spherical.computeLength(path);
         const feet = Math.ceil(length * 3.28084);
@@ -1306,9 +1342,6 @@ const MeasurementTools = ({
         setMapMeasurement(feet);
         
         // Set initial measurement immediately after drawing
-        const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
-        const mapColor = MAP_COLORS[colorIndex];
-        
         setCurrentMeasurement({
           type: 'linear',
           value: feet,
@@ -1342,9 +1375,6 @@ const MeasurementTools = ({
           path.forEach((latLng) => {
             newCoordinates.push([latLng.lat(), latLng.lng()]);
           });
-          
-          const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
-          const mapColor = MAP_COLORS[colorIndex];
           
           setCurrentMeasurement({
             type: 'linear',
@@ -1897,6 +1927,29 @@ const MeasurementTools = ({
         startDrawing();
       }
     }, 100);
+  };
+
+  // Unified handler for the visible Undo button so it always has an effect
+  const handleUndoClick = () => {
+    if (measurementType === 'point' && pointMarkers.length > 0 && !currentMeasurement) {
+      console.log('🧮 Undo button clicked - removing last point marker');
+      removeLastPoint();
+      return;
+    }
+
+    if (isDrawingInProgress && currentPathRef.current.length > 0) {
+      console.log('🧮 Undo button clicked - undoing last segment point');
+      undoLastSegmentPoint();
+      return;
+    }
+
+    if (currentMeasurement) {
+      console.log('🧮 Undo button clicked - remeasuring current measurement');
+      handleUndo();
+      return;
+    }
+
+    console.log('🧮 Undo button clicked - nothing to undo');
   };
 
   const addPointMarker = (location: google.maps.LatLng) => {
@@ -2500,7 +2553,7 @@ const MeasurementTools = ({
                   <Button
                     variant="outline"
                     size="default"
-                    onClick={undoLastSegmentPoint}
+                    onClick={handleUndoClick}
                     className="flex-1 sm:flex-none sm:w-auto min-w-[140px] gap-2"
                   >
                     <Undo2 className="h-4 w-4" />
