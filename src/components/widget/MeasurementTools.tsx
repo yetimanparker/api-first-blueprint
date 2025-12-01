@@ -2496,7 +2496,7 @@ const MeasurementTools = ({
                     <ArrowLeft className="h-4 w-4" />
                     Switch Product
                   </Button>
-                  {isDrawingInProgress && currentPathLength > 0 && (
+                  {currentPathLength > 0 && (
                     <Button
                       variant="outline"
                       size="default"
