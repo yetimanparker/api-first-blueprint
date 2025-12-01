@@ -116,6 +116,7 @@ const MeasurementTools = ({
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const segmentLabelsRef = useRef<google.maps.Marker[]>([]); // Track individual segment distance labels
   const currentEdgeLabelsRef = useRef<google.maps.Marker[]>([]); // Track edge measurements for current shape
+  const tempDrawingShapeRef = useRef<google.maps.Polyline | google.maps.Polygon | null>(null); // Track temporary shape during drawing
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -432,10 +433,17 @@ const MeasurementTools = ({
           break;
           
         case 'backspace':
-          // Remove last point (only for point measurement mode)
+        case 'z':
+          // Remove last point/segment
           if (measurementType === 'point' && pointMarkers.length > 0 && !currentMeasurement) {
             console.log('⌨️ Keyboard: Removing last point');
             removeLastPoint();
+            event.preventDefault();
+          } else if ((measurementType === 'area' || measurementType === 'linear') && 
+                     currentPathRef.current.length > 0 && 
+                     isDrawingInProgress) {
+            console.log('⌨️ Keyboard: Undoing last segment point');
+            undoLastSegmentPoint();
             event.preventDefault();
           }
           break;
@@ -1095,6 +1103,33 @@ const MeasurementTools = ({
               );
               segmentLabelsRef.current.push(segmentLabel);
             }
+            
+            // Update temporary shape visualization
+            if (tempDrawingShapeRef.current) {
+              tempDrawingShapeRef.current.setMap(null);
+            }
+            
+            const nextColor = getNextMeasurementColor();
+            if (measurementTypeRef.current === 'area' && currentPathRef.current.length >= 2) {
+              tempDrawingShapeRef.current = new google.maps.Polygon({
+                paths: currentPathRef.current,
+                fillColor: nextColor,
+                fillOpacity: 0.3,
+                strokeColor: nextColor,
+                strokeWeight: 2,
+                map: map,
+                clickable: false,
+                zIndex: 1,
+              });
+            } else if (measurementTypeRef.current === 'linear' && currentPathRef.current.length >= 1) {
+              tempDrawingShapeRef.current = new google.maps.Polyline({
+                path: currentPathRef.current,
+                strokeColor: nextColor,
+                strokeWeight: 2,
+                map: map,
+                clickable: false,
+              });
+            }
           }
         });
       } else {
@@ -1105,6 +1140,12 @@ const MeasurementTools = ({
         // Clear segment labels when exiting drawing mode
         segmentLabelsRef.current.forEach(label => label.setMap(null));
         segmentLabelsRef.current = [];
+        
+        // Clear temporary drawing shape
+        if (tempDrawingShapeRef.current) {
+          tempDrawingShapeRef.current.setMap(null);
+          tempDrawingShapeRef.current = null;
+        }
         
         if (tempMeasurementOverlay) {
           tempMeasurementOverlay.setMap(null);
@@ -1131,6 +1172,12 @@ const MeasurementTools = ({
       // Clear segment labels when drawing completes
       segmentLabelsRef.current.forEach(label => label.setMap(null));
       segmentLabelsRef.current = [];
+      
+      // Clear temporary drawing shape
+      if (tempDrawingShapeRef.current) {
+        tempDrawingShapeRef.current.setMap(null);
+        tempDrawingShapeRef.current = null;
+      }
       
       setIsDrawingInProgress(false);
       currentPathRef.current = [];
@@ -1936,6 +1983,53 @@ const MeasurementTools = ({
     setIsDrawing(true);
   };
 
+  const undoLastSegmentPoint = () => {
+    if (currentPathRef.current.length === 0) return;
+    
+    // Remove last point from path
+    currentPathRef.current.pop();
+    
+    // Remove last segment label if exists
+    if (segmentLabelsRef.current.length > 0) {
+      const lastLabel = segmentLabelsRef.current.pop();
+      lastLabel?.setMap(null);
+    }
+    
+    // Redraw temporary shape with updated path
+    if (tempDrawingShapeRef.current) {
+      tempDrawingShapeRef.current.setMap(null);
+    }
+    
+    if (currentPathRef.current.length > 0 && mapRef.current) {
+      const nextColor = getNextMeasurementColor();
+      
+      if (measurementTypeRef.current === 'area') {
+        // Redraw polygon with updated path
+        tempDrawingShapeRef.current = new google.maps.Polygon({
+          paths: currentPathRef.current,
+          fillColor: nextColor,
+          fillOpacity: 0.3,
+          strokeColor: nextColor,
+          strokeWeight: 2,
+          map: mapRef.current,
+          clickable: false,
+          zIndex: 1,
+        });
+      } else if (measurementTypeRef.current === 'linear') {
+        // Redraw polyline with updated path
+        tempDrawingShapeRef.current = new google.maps.Polyline({
+          path: currentPathRef.current,
+          strokeColor: nextColor,
+          strokeWeight: 2,
+          map: mapRef.current,
+          clickable: false,
+        });
+      }
+    }
+    
+    console.log(`Undo: Removed last point, ${currentPathRef.current.length} points remaining`);
+  };
+
   const handleManualSubmit = () => {
     const value = parseFloat(manualValue);
     if (isNaN(value) || value <= 0) return;
@@ -2205,10 +2299,23 @@ const MeasurementTools = ({
         
         {/* Measurement Instructions */}
         {!mapLoading && !mapError && !showManualEntry && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none px-4 w-full sm:w-auto">
-            <div className="bg-white rounded-lg shadow-lg px-3 py-2 text-xs sm:text-sm text-gray-700 text-center">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-4 w-full sm:w-auto flex flex-col items-center gap-2">
+            <div className="bg-white rounded-lg shadow-lg px-3 py-2 text-xs sm:text-sm text-gray-700 text-center pointer-events-none">
               Click to draw points on the map. Double-click to complete.
             </div>
+            
+            {/* Undo button for polygon/polyline drawing */}
+            {isDrawingInProgress && currentPathRef.current.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={undoLastSegmentPoint}
+                className="pointer-events-auto bg-white shadow-lg"
+              >
+                <Undo2 className="mr-2 h-4 w-4" />
+                Undo Last Point ({currentPathRef.current.length})
+              </Button>
+            )}
           </div>
         )}
         
