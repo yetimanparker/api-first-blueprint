@@ -2306,23 +2306,25 @@ const MeasurementTools = ({
         
         {/* Measurement Instructions */}
         {!mapLoading && !mapError && !showManualEntry && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-4 w-full sm:w-auto flex flex-col items-center gap-2">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-4 w-full sm:w-auto">
             <div className="bg-white rounded-lg shadow-lg px-3 py-2 text-xs sm:text-sm text-gray-700 text-center pointer-events-none">
               Click to draw points on the map. Double-click to complete.
             </div>
-            
-            {/* Undo button for polygon/polyline drawing */}
-            {isDrawingInProgress && currentPathLength > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={undoLastSegmentPoint}
-                className="pointer-events-auto bg-white shadow-lg"
-              >
-                <Undo2 className="mr-2 h-4 w-4" />
-                Undo Last Point ({currentPathLength})
-              </Button>
-            )}
+          </div>
+        )}
+        
+        {/* Undo button for polygon/polyline drawing - positioned in top right */}
+        {!mapLoading && !mapError && !showManualEntry && isDrawingInProgress && currentPathLength > 0 && (
+          <div className="absolute top-20 right-4 z-10">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={undoLastSegmentPoint}
+              className="pointer-events-auto bg-white shadow-lg"
+            >
+              <Undo2 className="mr-2 h-4 w-4" />
+              Undo Last Point ({currentPathLength})
+            </Button>
           </div>
         )}
         
