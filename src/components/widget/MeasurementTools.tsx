@@ -97,6 +97,7 @@ const MeasurementTools = ({
   const [tempMeasurementValue, setTempMeasurementValue] = useState<string>('');
   const [tempMeasurementOverlay, setTempMeasurementOverlay] = useState<google.maps.Marker | null>(null);
   const [isDrawingInProgress, setIsDrawingInProgress] = useState(false);
+  const [currentPathLength, setCurrentPathLength] = useState(0);
   
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -1058,6 +1059,7 @@ const MeasurementTools = ({
           mode === google.maps.drawing.OverlayType.POLYLINE) {
         setIsDrawingInProgress(true);
         currentPathRef.current = [];
+        setCurrentPathLength(0);
         
         // Start tracking mouse movements
         if (mouseMoveListenerRef.current) {
@@ -1093,6 +1095,7 @@ const MeasurementTools = ({
           if (event.latLng && isDrawingInProgress) {
             const previousPoint = currentPathRef.current[currentPathRef.current.length - 1];
             currentPathRef.current.push(event.latLng);
+            setCurrentPathLength(currentPathRef.current.length);
             
             // If we have at least 2 points, create a segment label
             if (previousPoint) {
@@ -1136,6 +1139,7 @@ const MeasurementTools = ({
         // Clear when exiting drawing mode
         setIsDrawingInProgress(false);
         currentPathRef.current = [];
+        setCurrentPathLength(0);
         
         // Clear segment labels when exiting drawing mode
         segmentLabelsRef.current.forEach(label => label.setMap(null));
@@ -1181,6 +1185,7 @@ const MeasurementTools = ({
       
       setIsDrawingInProgress(false);
       currentPathRef.current = [];
+      setCurrentPathLength(0);
       
       // Clean up listeners
       if (mouseMoveListenerRef.current) {
@@ -1836,6 +1841,7 @@ const MeasurementTools = ({
     
     setIsDrawingInProgress(false);
     currentPathRef.current = [];
+    setCurrentPathLength(0);
     
     // Clean up listeners
     if (mouseMoveListenerRef.current) {
@@ -1988,6 +1994,7 @@ const MeasurementTools = ({
     
     // Remove last point from path
     currentPathRef.current.pop();
+    setCurrentPathLength(currentPathRef.current.length);
     
     // Remove last segment label if exists
     if (segmentLabelsRef.current.length > 0) {
@@ -2305,7 +2312,7 @@ const MeasurementTools = ({
             </div>
             
             {/* Undo button for polygon/polyline drawing */}
-            {isDrawingInProgress && currentPathRef.current.length > 0 && (
+            {isDrawingInProgress && currentPathLength > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -2313,7 +2320,7 @@ const MeasurementTools = ({
                 className="pointer-events-auto bg-white shadow-lg"
               >
                 <Undo2 className="mr-2 h-4 w-4" />
-                Undo Last Point ({currentPathRef.current.length})
+                Undo Last Point ({currentPathLength})
               </Button>
             )}
           </div>
