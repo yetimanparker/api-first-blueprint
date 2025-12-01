@@ -2497,17 +2497,15 @@ const MeasurementTools = ({
                     <ArrowLeft className="h-4 w-4" />
                     Switch Product
                   </Button>
-                  {currentPathLength > 0 && (
-                    <Button
-                      variant="outline"
-                      size="default"
-                      onClick={undoLastSegmentPoint}
-                      className="flex-1 sm:flex-none sm:w-auto min-w-[140px] gap-2"
-                    >
-                      <Undo2 className="h-4 w-4" />
-                      Undo Last Point
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={undoLastSegmentPoint}
+                    className="flex-1 sm:flex-none sm:w-auto min-w-[140px] gap-2"
+                  >
+                    <Undo2 className="h-4 w-4" />
+                    Undo Last Point
+                  </Button>
                   {measurementType !== 'dimensional' && (
                     <Button
                       variant="outline"
