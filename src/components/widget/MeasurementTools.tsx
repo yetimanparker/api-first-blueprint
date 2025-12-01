@@ -1092,7 +1092,8 @@ const MeasurementTools = ({
           google.maps.event.removeListener(clickListenerRef.current);
         }
         clickListenerRef.current = map.addListener('click', (event: google.maps.MapMouseEvent) => {
-          if (event.latLng && isDrawingInProgress) {
+          // Use ref-based drawing flag to avoid stale state closures
+          if (event.latLng && isDrawingRef.current) {
             const previousPoint = currentPathRef.current[currentPathRef.current.length - 1];
             currentPathRef.current.push(event.latLng);
             setCurrentPathLength(currentPathRef.current.length);
