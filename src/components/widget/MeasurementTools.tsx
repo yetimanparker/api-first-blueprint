@@ -2313,20 +2313,7 @@ const MeasurementTools = ({
           </div>
         )}
         
-        {/* Undo button for polygon/polyline drawing - positioned in top right */}
-        {!mapLoading && !mapError && !showManualEntry && isDrawingInProgress && currentPathLength > 0 && (
-          <div className="absolute top-20 right-4 z-10">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={undoLastSegmentPoint}
-              className="pointer-events-auto bg-white shadow-lg"
-            >
-              <Undo2 className="mr-2 h-4 w-4" />
-              Undo Last Point ({currentPathLength})
-            </Button>
-          </div>
-        )}
+        
         
         {mapLoading && (
           <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center z-50">
@@ -2509,6 +2496,17 @@ const MeasurementTools = ({
                     <ArrowLeft className="h-4 w-4" />
                     Switch Product
                   </Button>
+                  {isDrawingInProgress && currentPathLength > 0 && (
+                    <Button
+                      variant="outline"
+                      size="default"
+                      onClick={undoLastSegmentPoint}
+                      className="flex-1 sm:flex-none sm:w-auto min-w-[140px] gap-2"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                      Undo Last Point
+                    </Button>
+                  )}
                   {measurementType !== 'dimensional' && (
                     <Button
                       variant="outline"
