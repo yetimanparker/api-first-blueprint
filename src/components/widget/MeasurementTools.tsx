@@ -118,6 +118,7 @@ const MeasurementTools = ({
   const segmentLabelsRef = useRef<google.maps.Marker[]>([]); // Track individual segment distance labels
   const currentEdgeLabelsRef = useRef<google.maps.Marker[]>([]); // Track edge measurements for current shape
   const tempDrawingShapeRef = useRef<google.maps.Polyline | google.maps.Polygon | null>(null); // Track temporary shape during drawing
+  const drawingStartedRef = useRef(false); // Guard against multiple startDrawing calls
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -1790,6 +1791,12 @@ const MeasurementTools = ({
       console.log('Cannot start drawing: map not ready');
       return;
     }
+    
+    // Guard against duplicate calls - especially important for area/linear modes
+    if (drawingStartedRef.current && (measurementType === 'area' || measurementType === 'linear')) {
+      console.log('Drawing already started for', measurementType, '- ignoring duplicate call');
+      return;
+    }
 
     console.log('Starting drawing mode:', measurementType);
     setShowManualEntry(false);
@@ -1798,6 +1805,7 @@ const MeasurementTools = ({
     // Set drawing state AFTER clearing to avoid it being reset
     setIsDrawing(true);
     isDrawingRef.current = true; // Update ref immediately
+    drawingStartedRef.current = true; // Mark drawing as started
     
     const nextColor = getNextMeasurementColor();
     
@@ -1959,6 +1967,7 @@ const MeasurementTools = ({
     setIsDrawingInProgress(false);
     currentPathRef.current = [];
     setCurrentPathLength(0);
+    drawingStartedRef.current = false; // Reset guard to allow new drawing
     
     // Clean up listeners
     if (mouseMoveListenerRef.current) {
