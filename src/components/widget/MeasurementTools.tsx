@@ -1815,10 +1815,16 @@ const MeasurementTools = ({
       return;
     }
     
-    // For area/linear modes: Initialize path tracking for undo support
+    // For area/linear modes: Use CUSTOM drawing (NOT DrawingManager) for undo support
+    // DrawingManager intercepts clicks and doesn't expose individual points during drawing
     setIsDrawingInProgress(true);
     currentPathRef.current = [];
     setCurrentPathLength(0);
+    
+    // CRITICAL: Disable DrawingManager - we handle drawing ourselves
+    if (drawingManagerRef.current) {
+      drawingManagerRef.current.setDrawingMode(null);
+    }
     
     // Remove any existing custom listeners
     if (clickListenerRef.current) {
@@ -1830,12 +1836,11 @@ const MeasurementTools = ({
       mouseMoveListenerRef.current = null;
     }
     
-    // Set up parallel click listener to track points for undo functionality
-    // This fires ALONGSIDE DrawingManager, tracking every point added
+    // Set up click listener for custom drawing - this captures EVERY click
     clickListenerRef.current = mapRef.current.addListener('click', (event: google.maps.MapMouseEvent) => {
       if (!event.latLng || !isDrawingRef.current) return;
       
-      console.log('🖱️ Click tracked for undo, point:', currentPathRef.current.length + 1);
+      console.log('🖱️ Custom drawing: Adding point', currentPathRef.current.length + 1);
       
       const previousPoint = currentPathRef.current[currentPathRef.current.length - 1];
       currentPathRef.current.push(event.latLng);
@@ -1845,6 +1850,32 @@ const MeasurementTools = ({
       if (previousPoint) {
         const segmentLabel = createSegmentLabel(previousPoint, event.latLng, segmentLabelsRef.current.length);
         segmentLabelsRef.current.push(segmentLabel);
+      }
+      
+      // Update temporary shape visualization
+      if (tempDrawingShapeRef.current) {
+        tempDrawingShapeRef.current.setMap(null);
+      }
+      
+      if (measurementTypeRef.current === 'area' && currentPathRef.current.length >= 2) {
+        tempDrawingShapeRef.current = new google.maps.Polygon({
+          paths: currentPathRef.current,
+          fillColor: nextColor,
+          fillOpacity: 0.3,
+          strokeColor: nextColor,
+          strokeWeight: 2,
+          map: mapRef.current!,
+          clickable: false,
+          zIndex: 1,
+        });
+      } else if (measurementTypeRef.current === 'linear' && currentPathRef.current.length >= 1) {
+        tempDrawingShapeRef.current = new google.maps.Polyline({
+          path: currentPathRef.current,
+          strokeColor: nextColor,
+          strokeWeight: 2,
+          map: mapRef.current!,
+          clickable: false,
+        });
       }
     });
     
@@ -1863,31 +1894,37 @@ const MeasurementTools = ({
       }
     });
     
-    // Update drawing manager colors to match the next measurement color
-    drawingManagerRef.current?.setOptions({
-      polygonOptions: {
-        fillColor: nextColor,
-        fillOpacity: 0.3,
-        strokeColor: nextColor,
-        strokeWeight: 2,
-        clickable: true,
-        editable: true,
-        zIndex: 1,
-      },
-      polylineOptions: {
-        strokeColor: nextColor,
-        strokeWeight: 2,
-        clickable: true,
-        editable: true,
-      },
+    // Set up double-click listener to complete the shape
+    const dblClickListener = mapRef.current.addListener('dblclick', (event: google.maps.MapMouseEvent) => {
+      if (!isDrawingRef.current) return;
+      
+      // Remove the duplicate point added by click event that fires before dblclick
+      if (currentPathRef.current.length > 1) {
+        currentPathRef.current.pop();
+        setCurrentPathLength(currentPathRef.current.length);
+        if (segmentLabelsRef.current.length > 0) {
+          const lastLabel = segmentLabelsRef.current.pop();
+          lastLabel?.setMap(null);
+        }
+      }
+      
+      // Check minimum points
+      if (measurementTypeRef.current === 'area' && currentPathRef.current.length < 3) {
+        console.log('Need at least 3 points for area measurement');
+        return;
+      }
+      if (measurementTypeRef.current === 'linear' && currentPathRef.current.length < 2) {
+        console.log('Need at least 2 points for linear measurement');
+        return;
+      }
+      
+      console.log('🖱️ Double-click: Completing shape with', currentPathRef.current.length, 'points');
+      completeCustomDrawing(nextColor);
+      
+      google.maps.event.removeListener(dblClickListener);
     });
-
-    const mode = measurementType === 'area' 
-      ? google.maps.drawing.OverlayType.POLYGON 
-      : google.maps.drawing.OverlayType.POLYLINE;
     
-    drawingManagerRef.current?.setDrawingMode(mode);
-    console.log('Drawing mode activated:', mode);
+    console.log('Custom drawing mode activated for:', measurementType);
   };
 
   const clearMapDrawing = () => {
@@ -2096,15 +2133,12 @@ const MeasurementTools = ({
   };
 
   const undoLastSegmentPoint = () => {
-    if (currentPathRef.current.length === 0) return;
-    
-    console.log(`🔙 Undo: Removing point ${currentPathRef.current.length}, switching to custom drawing mode`);
-    
-    // CRITICAL: Cancel DrawingManager's active drawing - it has its own internal path
-    // that includes the point we're undoing, so we must take over drawing ourselves
-    if (drawingManagerRef.current) {
-      drawingManagerRef.current.setDrawingMode(null);
+    if (currentPathRef.current.length === 0) {
+      console.log('🔙 Undo: Nothing to undo, path is empty');
+      return;
     }
+    
+    console.log(`🔙 Undo: Removing point ${currentPathRef.current.length}`);
     
     // Remove last point from our tracked path
     currentPathRef.current.pop();
@@ -2116,7 +2150,7 @@ const MeasurementTools = ({
       lastLabel?.setMap(null);
     }
     
-    // Redraw temporary shape with updated path (this is now the ONLY visible shape)
+    // Redraw temporary shape with updated path
     if (tempDrawingShapeRef.current) {
       tempDrawingShapeRef.current.setMap(null);
       tempDrawingShapeRef.current = null;
@@ -2125,55 +2159,6 @@ const MeasurementTools = ({
     const nextColor = getNextMeasurementColor();
     
     if (currentPathRef.current.length > 0 && mapRef.current) {
-      if (measurementTypeRef.current === 'area') {
-        tempDrawingShapeRef.current = new google.maps.Polygon({
-          paths: currentPathRef.current,
-          fillColor: nextColor,
-          fillOpacity: 0.3,
-          strokeColor: nextColor,
-          strokeWeight: 2,
-          map: mapRef.current,
-          clickable: false,
-          zIndex: 1,
-        });
-      } else if (measurementTypeRef.current === 'linear') {
-        tempDrawingShapeRef.current = new google.maps.Polyline({
-          path: currentPathRef.current,
-          strokeColor: nextColor,
-          strokeWeight: 2,
-          map: mapRef.current,
-          clickable: false,
-        });
-      }
-    }
-    
-    // Set up custom drawing continuation - now WE control drawing, not DrawingManager
-    // Remove old listeners first
-    if (clickListenerRef.current) {
-      google.maps.event.removeListener(clickListenerRef.current);
-    }
-    
-    // Set up click listener that adds points AND updates the temp shape
-    clickListenerRef.current = mapRef.current!.addListener('click', (event: google.maps.MapMouseEvent) => {
-      if (!event.latLng || !isDrawingRef.current) return;
-      
-      console.log('🖱️ Custom draw: Adding point', currentPathRef.current.length + 1);
-      
-      const previousPoint = currentPathRef.current[currentPathRef.current.length - 1];
-      currentPathRef.current.push(event.latLng);
-      setCurrentPathLength(currentPathRef.current.length);
-      
-      // Create segment label
-      if (previousPoint) {
-        const segmentLabel = createSegmentLabel(previousPoint, event.latLng, segmentLabelsRef.current.length);
-        segmentLabelsRef.current.push(segmentLabel);
-      }
-      
-      // Update temporary shape visualization
-      if (tempDrawingShapeRef.current) {
-        tempDrawingShapeRef.current.setMap(null);
-      }
-      
       if (measurementTypeRef.current === 'area' && currentPathRef.current.length >= 2) {
         tempDrawingShapeRef.current = new google.maps.Polygon({
           paths: currentPathRef.current,
@@ -2181,7 +2166,7 @@ const MeasurementTools = ({
           fillOpacity: 0.3,
           strokeColor: nextColor,
           strokeWeight: 2,
-          map: mapRef.current!,
+          map: mapRef.current,
           clickable: false,
           zIndex: 1,
         });
@@ -2190,43 +2175,13 @@ const MeasurementTools = ({
           path: currentPathRef.current,
           strokeColor: nextColor,
           strokeWeight: 2,
-          map: mapRef.current!,
+          map: mapRef.current,
           clickable: false,
         });
       }
-    });
+    }
     
-    // Set up double-click listener to complete the shape
-    const dblClickListener = mapRef.current!.addListener('dblclick', (event: google.maps.MapMouseEvent) => {
-      if (!isDrawingRef.current) return;
-      
-      // Remove the duplicate point added by the click event that fires before dblclick
-      if (currentPathRef.current.length > 1) {
-        currentPathRef.current.pop();
-        setCurrentPathLength(currentPathRef.current.length);
-        if (segmentLabelsRef.current.length > 0) {
-          const lastLabel = segmentLabelsRef.current.pop();
-          lastLabel?.setMap(null);
-        }
-      }
-      
-      // Check minimum points
-      if (measurementTypeRef.current === 'area' && currentPathRef.current.length < 3) {
-        console.log('Need at least 3 points for area measurement');
-        return;
-      }
-      if (measurementTypeRef.current === 'linear' && currentPathRef.current.length < 2) {
-        console.log('Need at least 2 points for linear measurement');
-        return;
-      }
-      
-      console.log('🖱️ Double-click: Completing custom shape with', currentPathRef.current.length, 'points');
-      completeCustomDrawing(nextColor);
-      
-      google.maps.event.removeListener(dblClickListener);
-    });
-    
-    console.log(`Undo complete: ${currentPathRef.current.length} points remaining, now in custom drawing mode`);
+    console.log(`Undo complete: ${currentPathRef.current.length} points remaining`);
   };
   
   // Complete a custom-drawn shape (called when user double-clicks after undo)
