@@ -1799,31 +1799,28 @@ const MeasurementTools = ({
     setIsDrawing(true);
     isDrawingRef.current = true; // Update ref immediately
     
-    // Disable DrawingManager - we'll handle drawing ourselves for better undo support
-    if (drawingManagerRef.current) {
-      drawingManagerRef.current.setDrawingMode(null);
-    }
-
     const nextColor = getNextMeasurementColor();
     
     if (measurementType === 'dimensional') {
+      // For dimensional mode, just enable map clicking for placement
+      drawingManagerRef.current?.setDrawingMode(null);
       console.log('Dimensional placement mode activated - click to place product');
       return;
     }
     
     if (measurementType === 'point') {
+      // For point mode, just enable clicking (no drawing manager needed)
+      drawingManagerRef.current?.setDrawingMode(null);
       console.log('Point placement mode activated - click to place markers');
       return;
     }
     
-    // For area/linear modes: use custom click handling (NOT DrawingManager)
-    // This allows us to track points and support undo
-    console.log('Custom drawing mode activated for:', measurementType);
+    // For area/linear modes: Initialize path tracking for undo support
     setIsDrawingInProgress(true);
     currentPathRef.current = [];
     setCurrentPathLength(0);
     
-    // Remove any existing custom drawing listeners
+    // Remove any existing custom listeners
     if (clickListenerRef.current) {
       google.maps.event.removeListener(clickListenerRef.current);
       clickListenerRef.current = null;
@@ -1832,6 +1829,24 @@ const MeasurementTools = ({
       google.maps.event.removeListener(mouseMoveListenerRef.current);
       mouseMoveListenerRef.current = null;
     }
+    
+    // Set up parallel click listener to track points for undo functionality
+    // This fires ALONGSIDE DrawingManager, tracking every point added
+    clickListenerRef.current = mapRef.current.addListener('click', (event: google.maps.MapMouseEvent) => {
+      if (!event.latLng || !isDrawingRef.current) return;
+      
+      console.log('🖱️ Click tracked for undo, point:', currentPathRef.current.length + 1);
+      
+      const previousPoint = currentPathRef.current[currentPathRef.current.length - 1];
+      currentPathRef.current.push(event.latLng);
+      setCurrentPathLength(currentPathRef.current.length);
+      
+      // Create segment label if we have at least 2 points
+      if (previousPoint) {
+        const segmentLabel = createSegmentLabel(previousPoint, event.latLng, segmentLabelsRef.current.length);
+        segmentLabelsRef.current.push(segmentLabel);
+      }
+    });
     
     // Set up mouse move listener for real-time distance preview
     let lastUpdate = 0;
@@ -1848,236 +1863,31 @@ const MeasurementTools = ({
       }
     });
     
-    // Set up click listener for adding points
-    clickListenerRef.current = mapRef.current.addListener('click', (event: google.maps.MapMouseEvent) => {
-      if (!event.latLng || !isDrawingRef.current) return;
-      
-      console.log('🖱️ Custom click handler: Adding point', currentPathRef.current.length + 1);
-      
-      const previousPoint = currentPathRef.current[currentPathRef.current.length - 1];
-      currentPathRef.current.push(event.latLng);
-      setCurrentPathLength(currentPathRef.current.length);
-      
-      // Create segment label if we have at least 2 points
-      if (previousPoint) {
-        const segmentLabel = createSegmentLabel(previousPoint, event.latLng, segmentLabelsRef.current.length);
-        segmentLabelsRef.current.push(segmentLabel);
-      }
-      
-      // Update temporary shape visualization
-      if (tempDrawingShapeRef.current) {
-        tempDrawingShapeRef.current.setMap(null);
-      }
-      
-      if (currentPathRef.current.length >= 1 && mapRef.current) {
-        if (measurementTypeRef.current === 'area' && currentPathRef.current.length >= 2) {
-          tempDrawingShapeRef.current = new google.maps.Polygon({
-            paths: currentPathRef.current,
-            fillColor: nextColor,
-            fillOpacity: 0.3,
-            strokeColor: nextColor,
-            strokeWeight: 2,
-            map: mapRef.current,
-            clickable: false,
-            zIndex: 1,
-          });
-        } else if (measurementTypeRef.current === 'linear') {
-          tempDrawingShapeRef.current = new google.maps.Polyline({
-            path: currentPathRef.current,
-            strokeColor: nextColor,
-            strokeWeight: 2,
-            map: mapRef.current,
-            clickable: false,
-          });
-        }
-      }
-    });
-    
-    // Set up double-click listener to complete the shape
-    const dblClickListener = mapRef.current.addListener('dblclick', (event: google.maps.MapMouseEvent) => {
-      if (!isDrawingRef.current || currentPathRef.current.length < 2) return;
-      
-      // For area measurements, need at least 3 points
-      if (measurementTypeRef.current === 'area' && currentPathRef.current.length < 3) {
-        console.log('Need at least 3 points for area measurement');
-        return;
-      }
-      
-      console.log('🖱️ Double-click: Completing shape with', currentPathRef.current.length, 'points');
-      completeCustomDrawing();
-      
-      // Remove the double-click listener after completion
-      google.maps.event.removeListener(dblClickListener);
-    });
-  };
-  
-  // Complete a custom-drawn shape (called on double-click)
-  const completeCustomDrawing = () => {
-    if (!mapRef.current || currentPathRef.current.length < 2) return;
-    
-    const colorIndex = existingQuoteItems.length % MAP_COLORS.length;
-    const mapColor = MAP_COLORS[colorIndex];
-    
-    // Clean up temporary elements
-    if (tempMeasurementOverlay) {
-      tempMeasurementOverlay.setMap(null);
-      setTempMeasurementOverlay(null);
-    }
-    segmentLabelsRef.current.forEach(label => label.setMap(null));
-    segmentLabelsRef.current = [];
-    if (tempDrawingShapeRef.current) {
-      tempDrawingShapeRef.current.setMap(null);
-      tempDrawingShapeRef.current = null;
-    }
-    
-    // Clean up listeners
-    if (mouseMoveListenerRef.current) {
-      google.maps.event.removeListener(mouseMoveListenerRef.current);
-      mouseMoveListenerRef.current = null;
-    }
-    if (clickListenerRef.current) {
-      google.maps.event.removeListener(clickListenerRef.current);
-      clickListenerRef.current = null;
-    }
-    
-    setIsDrawingInProgress(false);
-    setIsDrawing(false);
-    isDrawingRef.current = false;
-    
-    // Store coordinates
-    const coordinates: number[][] = currentPathRef.current.map(latLng => [latLng.lat(), latLng.lng()]);
-    
-    if (measurementTypeRef.current === 'area') {
-      // Create final polygon
-      const polygon = new google.maps.Polygon({
-        paths: currentPathRef.current,
-        fillColor: mapColor,
+    // Update drawing manager colors to match the next measurement color
+    drawingManagerRef.current?.setOptions({
+      polygonOptions: {
+        fillColor: nextColor,
         fillOpacity: 0.3,
-        strokeColor: mapColor,
+        strokeColor: nextColor,
         strokeWeight: 2,
         clickable: true,
         editable: true,
         zIndex: 1,
-        map: mapRef.current,
-      });
-      currentShapeRef.current = polygon;
-      
-      const path = polygon.getPath();
-      const area = google.maps.geometry.spherical.computeArea(path);
-      const sqFt = Math.ceil(area * 10.764);
-      
-      setMapMeasurement(sqFt);
-      setCurrentMeasurement({
-        type: 'area',
-        value: sqFt,
-        unit: 'sq_ft',
-        coordinates: coordinates,
-        manualEntry: false,
-        mapColor: mapColor
-      });
-      
-      // Add edge measurements
-      const latLngs = coordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
-      currentEdgeLabelsRef.current = renderEdgeMeasurements(mapRef.current, latLngs, mapColor, currentZoom, true);
-      
-      updateMeasurementLabel(polygon, sqFt, 'sq ft');
-      
-      // Add edit listeners
-      const updateMeasurement = () => {
-        const newArea = google.maps.geometry.spherical.computeArea(path);
-        const newSqFt = Math.ceil(newArea * 10.764);
-        setMapMeasurement(newSqFt);
-        updateMeasurementLabel(polygon, newSqFt, 'sq ft');
-        
-        const newCoordinates: number[][] = [];
-        path.forEach((latLng) => newCoordinates.push([latLng.lat(), latLng.lng()]));
-        
-        setCurrentMeasurement({
-          type: 'area',
-          value: newSqFt,
-          unit: 'sq_ft',
-          coordinates: newCoordinates,
-          manualEntry: false,
-          mapColor: mapColor
-        });
-        
-        currentEdgeLabelsRef.current.forEach(label => label.setMap(null));
-        const updatedLatLngs = newCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
-        currentEdgeLabelsRef.current = renderEdgeMeasurements(mapRef.current!, updatedLatLngs, mapColor, currentZoom, true);
-      };
-      
-      google.maps.event.addListener(path, 'set_at', updateMeasurement);
-      google.maps.event.addListener(path, 'insert_at', updateMeasurement);
-      google.maps.event.addListener(path, 'remove_at', updateMeasurement);
-      
-    } else if (measurementTypeRef.current === 'linear') {
-      // Create final polyline
-      const polyline = new google.maps.Polyline({
-        path: currentPathRef.current,
-        strokeColor: mapColor,
+      },
+      polylineOptions: {
+        strokeColor: nextColor,
         strokeWeight: 2,
         clickable: true,
         editable: true,
-        map: mapRef.current,
-      });
-      currentShapeRef.current = polyline;
-      
-      const path = polyline.getPath();
-      const length = google.maps.geometry.spherical.computeLength(path);
-      const feet = Math.ceil(length * 3.28084);
-      
-      setMapMeasurement(feet);
-      setCurrentMeasurement({
-        type: 'linear',
-        value: feet,
-        unit: 'linear_ft',
-        coordinates: coordinates,
-        manualEntry: false,
-        mapColor: mapColor
-      });
-      
-      // Add edge measurements for multi-segment lines
-      const latLngs = coordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
-      if (latLngs.length > 2) {
-        currentEdgeLabelsRef.current = renderEdgeMeasurements(mapRef.current, latLngs, mapColor, currentZoom, false);
-      }
-      
-      updateMeasurementLabel(polyline, feet, 'ft');
-      
-      // Add edit listeners
-      const updateMeasurement = () => {
-        const newLength = google.maps.geometry.spherical.computeLength(path);
-        const newFeet = Math.ceil(newLength * 3.28084);
-        setMapMeasurement(newFeet);
-        updateMeasurementLabel(polyline, newFeet, 'ft');
-        
-        const newCoordinates: number[][] = [];
-        path.forEach((latLng) => newCoordinates.push([latLng.lat(), latLng.lng()]));
-        
-        setCurrentMeasurement({
-          type: 'linear',
-          value: newFeet,
-          unit: 'linear_ft',
-          coordinates: newCoordinates,
-          manualEntry: false,
-          mapColor: mapColor
-        });
-        
-        currentEdgeLabelsRef.current.forEach(label => label.setMap(null));
-        const updatedLatLngs = newCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
-        if (updatedLatLngs.length > 2) {
-          currentEdgeLabelsRef.current = renderEdgeMeasurements(mapRef.current!, updatedLatLngs, mapColor, currentZoom, false);
-        }
-      };
-      
-      google.maps.event.addListener(path, 'set_at', updateMeasurement);
-      google.maps.event.addListener(path, 'insert_at', updateMeasurement);
-      google.maps.event.addListener(path, 'remove_at', updateMeasurement);
-    }
+      },
+    });
+
+    const mode = measurementType === 'area' 
+      ? google.maps.drawing.OverlayType.POLYGON 
+      : google.maps.drawing.OverlayType.POLYLINE;
     
-    // Reset path ref (keep the data but mark as complete)
-    currentPathRef.current = [];
-    setCurrentPathLength(0);
+    drawingManagerRef.current?.setDrawingMode(mode);
+    console.log('Drawing mode activated:', mode);
   };
 
   const clearMapDrawing = () => {
@@ -2288,7 +2098,15 @@ const MeasurementTools = ({
   const undoLastSegmentPoint = () => {
     if (currentPathRef.current.length === 0) return;
     
-    // Remove last point from path
+    console.log(`🔙 Undo: Removing point ${currentPathRef.current.length}, switching to custom drawing mode`);
+    
+    // CRITICAL: Cancel DrawingManager's active drawing - it has its own internal path
+    // that includes the point we're undoing, so we must take over drawing ourselves
+    if (drawingManagerRef.current) {
+      drawingManagerRef.current.setDrawingMode(null);
+    }
+    
+    // Remove last point from our tracked path
     currentPathRef.current.pop();
     setCurrentPathLength(currentPathRef.current.length);
     
@@ -2298,16 +2116,16 @@ const MeasurementTools = ({
       lastLabel?.setMap(null);
     }
     
-    // Redraw temporary shape with updated path
+    // Redraw temporary shape with updated path (this is now the ONLY visible shape)
     if (tempDrawingShapeRef.current) {
       tempDrawingShapeRef.current.setMap(null);
+      tempDrawingShapeRef.current = null;
     }
     
+    const nextColor = getNextMeasurementColor();
+    
     if (currentPathRef.current.length > 0 && mapRef.current) {
-      const nextColor = getNextMeasurementColor();
-      
       if (measurementTypeRef.current === 'area') {
-        // Redraw polygon with updated path
         tempDrawingShapeRef.current = new google.maps.Polygon({
           paths: currentPathRef.current,
           fillColor: nextColor,
@@ -2319,7 +2137,6 @@ const MeasurementTools = ({
           zIndex: 1,
         });
       } else if (measurementTypeRef.current === 'linear') {
-        // Redraw polyline with updated path
         tempDrawingShapeRef.current = new google.maps.Polyline({
           path: currentPathRef.current,
           strokeColor: nextColor,
@@ -2330,7 +2147,280 @@ const MeasurementTools = ({
       }
     }
     
-    console.log(`Undo: Removed last point, ${currentPathRef.current.length} points remaining`);
+    // Set up custom drawing continuation - now WE control drawing, not DrawingManager
+    // Remove old listeners first
+    if (clickListenerRef.current) {
+      google.maps.event.removeListener(clickListenerRef.current);
+    }
+    
+    // Set up click listener that adds points AND updates the temp shape
+    clickListenerRef.current = mapRef.current!.addListener('click', (event: google.maps.MapMouseEvent) => {
+      if (!event.latLng || !isDrawingRef.current) return;
+      
+      console.log('🖱️ Custom draw: Adding point', currentPathRef.current.length + 1);
+      
+      const previousPoint = currentPathRef.current[currentPathRef.current.length - 1];
+      currentPathRef.current.push(event.latLng);
+      setCurrentPathLength(currentPathRef.current.length);
+      
+      // Create segment label
+      if (previousPoint) {
+        const segmentLabel = createSegmentLabel(previousPoint, event.latLng, segmentLabelsRef.current.length);
+        segmentLabelsRef.current.push(segmentLabel);
+      }
+      
+      // Update temporary shape visualization
+      if (tempDrawingShapeRef.current) {
+        tempDrawingShapeRef.current.setMap(null);
+      }
+      
+      if (measurementTypeRef.current === 'area' && currentPathRef.current.length >= 2) {
+        tempDrawingShapeRef.current = new google.maps.Polygon({
+          paths: currentPathRef.current,
+          fillColor: nextColor,
+          fillOpacity: 0.3,
+          strokeColor: nextColor,
+          strokeWeight: 2,
+          map: mapRef.current!,
+          clickable: false,
+          zIndex: 1,
+        });
+      } else if (measurementTypeRef.current === 'linear') {
+        tempDrawingShapeRef.current = new google.maps.Polyline({
+          path: currentPathRef.current,
+          strokeColor: nextColor,
+          strokeWeight: 2,
+          map: mapRef.current!,
+          clickable: false,
+        });
+      }
+    });
+    
+    // Set up double-click listener to complete the shape
+    const dblClickListener = mapRef.current!.addListener('dblclick', (event: google.maps.MapMouseEvent) => {
+      if (!isDrawingRef.current) return;
+      
+      // Remove the duplicate point added by the click event that fires before dblclick
+      if (currentPathRef.current.length > 1) {
+        currentPathRef.current.pop();
+        setCurrentPathLength(currentPathRef.current.length);
+        if (segmentLabelsRef.current.length > 0) {
+          const lastLabel = segmentLabelsRef.current.pop();
+          lastLabel?.setMap(null);
+        }
+      }
+      
+      // Check minimum points
+      if (measurementTypeRef.current === 'area' && currentPathRef.current.length < 3) {
+        console.log('Need at least 3 points for area measurement');
+        return;
+      }
+      if (measurementTypeRef.current === 'linear' && currentPathRef.current.length < 2) {
+        console.log('Need at least 2 points for linear measurement');
+        return;
+      }
+      
+      console.log('🖱️ Double-click: Completing custom shape with', currentPathRef.current.length, 'points');
+      completeCustomDrawing(nextColor);
+      
+      google.maps.event.removeListener(dblClickListener);
+    });
+    
+    console.log(`Undo complete: ${currentPathRef.current.length} points remaining, now in custom drawing mode`);
+  };
+  
+  // Complete a custom-drawn shape (called when user double-clicks after undo)
+  const completeCustomDrawing = (mapColor: string) => {
+    if (!mapRef.current || currentPathRef.current.length < 2) return;
+    
+    // Clean up temporary elements
+    if (tempMeasurementOverlay) {
+      tempMeasurementOverlay.setMap(null);
+      setTempMeasurementOverlay(null);
+    }
+    segmentLabelsRef.current.forEach(label => label.setMap(null));
+    segmentLabelsRef.current = [];
+    if (tempDrawingShapeRef.current) {
+      tempDrawingShapeRef.current.setMap(null);
+      tempDrawingShapeRef.current = null;
+    }
+    
+    // Clean up listeners
+    if (mouseMoveListenerRef.current) {
+      google.maps.event.removeListener(mouseMoveListenerRef.current);
+      mouseMoveListenerRef.current = null;
+    }
+    if (clickListenerRef.current) {
+      google.maps.event.removeListener(clickListenerRef.current);
+      clickListenerRef.current = null;
+    }
+    
+    setIsDrawingInProgress(false);
+    setIsDrawing(false);
+    isDrawingRef.current = false;
+    
+    // Store coordinates
+    const coordinates: number[][] = currentPathRef.current.map(latLng => [latLng.lat(), latLng.lng()]);
+    
+    if (measurementTypeRef.current === 'area') {
+      // Create final polygon
+      const polygon = new google.maps.Polygon({
+        paths: currentPathRef.current,
+        fillColor: mapColor,
+        fillOpacity: 0.3,
+        strokeColor: mapColor,
+        strokeWeight: 2,
+        clickable: true,
+        editable: true,
+        zIndex: 1,
+        map: mapRef.current,
+      });
+      currentShapeRef.current = polygon;
+      
+      const path = polygon.getPath();
+      const area = google.maps.geometry.spherical.computeArea(path);
+      const sqFt = Math.ceil(area * 10.764);
+      
+      setMapMeasurement(sqFt);
+      setCurrentMeasurement({
+        type: 'area',
+        value: sqFt,
+        unit: 'sq_ft',
+        coordinates: coordinates,
+        manualEntry: false,
+        mapColor: mapColor
+      });
+      
+      // Add edge measurements
+      const latLngs = coordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
+      currentEdgeLabelsRef.current = renderEdgeMeasurements(mapRef.current, latLngs, mapColor, currentZoom, true);
+      
+      updateMeasurementLabel(polygon, sqFt, 'sq ft');
+      
+      // Add edit listeners
+      const updateMeasurement = () => {
+        const newArea = google.maps.geometry.spherical.computeArea(path);
+        const newSqFt = Math.ceil(newArea * 10.764);
+        setMapMeasurement(newSqFt);
+        updateMeasurementLabel(polygon, newSqFt, 'sq ft');
+        
+        const newCoordinates: number[][] = [];
+        path.forEach((latLng) => newCoordinates.push([latLng.lat(), latLng.lng()]));
+        
+        setCurrentMeasurement({
+          type: 'area',
+          value: newSqFt,
+          unit: 'sq_ft',
+          coordinates: newCoordinates,
+          manualEntry: false,
+          mapColor: mapColor
+        });
+        
+        currentEdgeLabelsRef.current.forEach(label => label.setMap(null));
+        const updatedLatLngs = newCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
+        currentEdgeLabelsRef.current = renderEdgeMeasurements(mapRef.current!, updatedLatLngs, mapColor, currentZoom, true);
+      };
+      
+      google.maps.event.addListener(path, 'set_at', updateMeasurement);
+      google.maps.event.addListener(path, 'insert_at', updateMeasurement);
+      google.maps.event.addListener(path, 'remove_at', updateMeasurement);
+      
+      // Notify parent
+      onMeasurementComplete({
+        type: 'area',
+        value: sqFt,
+        unit: 'sq_ft',
+        coordinates: coordinates,
+        manualEntry: false,
+        mapColor: mapColor
+      });
+      
+    } else if (measurementTypeRef.current === 'linear') {
+      // Create final polyline
+      const polyline = new google.maps.Polyline({
+        path: currentPathRef.current,
+        strokeColor: mapColor,
+        strokeWeight: 2,
+        clickable: true,
+        editable: true,
+        map: mapRef.current,
+      });
+      currentShapeRef.current = polyline;
+      
+      const path = polyline.getPath();
+      const length = google.maps.geometry.spherical.computeLength(path);
+      const feet = Math.ceil(length * 3.28084);
+      
+      setMapMeasurement(feet);
+      setCurrentMeasurement({
+        type: 'linear',
+        value: feet,
+        unit: 'linear_ft',
+        coordinates: coordinates,
+        manualEntry: false,
+        mapColor: mapColor
+      });
+      
+      // Add edge measurements for multi-segment lines
+      const latLngs = coordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
+      if (latLngs.length > 2) {
+        currentEdgeLabelsRef.current = renderEdgeMeasurements(mapRef.current, latLngs, mapColor, currentZoom, false);
+      }
+      
+      updateMeasurementLabel(polyline, feet, 'ft');
+      
+      // Add edit listeners
+      const updateMeasurement = () => {
+        const newLength = google.maps.geometry.spherical.computeLength(path);
+        const newFeet = Math.ceil(newLength * 3.28084);
+        setMapMeasurement(newFeet);
+        updateMeasurementLabel(polyline, newFeet, 'ft');
+        
+        const newCoordinates: number[][] = [];
+        path.forEach((latLng) => newCoordinates.push([latLng.lat(), latLng.lng()]));
+        
+        setCurrentMeasurement({
+          type: 'linear',
+          value: newFeet,
+          unit: 'linear_ft',
+          coordinates: newCoordinates,
+          manualEntry: false,
+          mapColor: mapColor
+        });
+        
+        currentEdgeLabelsRef.current.forEach(label => label.setMap(null));
+        const updatedLatLngs = newCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
+        if (updatedLatLngs.length > 2) {
+          currentEdgeLabelsRef.current = renderEdgeMeasurements(mapRef.current!, updatedLatLngs, mapColor, currentZoom, false);
+        }
+      };
+      
+      google.maps.event.addListener(path, 'set_at', updateMeasurement);
+      google.maps.event.addListener(path, 'insert_at', updateMeasurement);
+      google.maps.event.addListener(path, 'remove_at', updateMeasurement);
+      
+      // Notify parent
+      onMeasurementComplete({
+        type: 'linear',
+        value: feet,
+        unit: 'linear_ft',
+        coordinates: coordinates,
+        manualEntry: false,
+        mapColor: mapColor
+      });
+    }
+    
+    // Reset path tracking
+    currentPathRef.current = [];
+    setCurrentPathLength(0);
+    
+    // Scroll to show action buttons
+    setTimeout(() => {
+      const actionButtonsRow = document.getElementById('action-buttons-row');
+      if (actionButtonsRow) {
+        actionButtonsRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 300);
   };
 
   const handleManualSubmit = () => {
