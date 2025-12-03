@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Trash2, Check, Undo2 } from 'lucide-react';
+import { MapPin, Trash2, Check } from 'lucide-react';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 import { toast } from 'sonner';
 
@@ -322,14 +322,6 @@ export function AddonPlacement({
     }
   };
 
-  const undoLastMarker = () => {
-    const currentMarkers = placedMarkersRef.current;
-    if (currentMarkers.length === 0) return;
-    
-    const lastMarker = currentMarkers[currentMarkers.length - 1];
-    removeMarker(lastMarker);
-  };
-
   const handleComplete = () => {
     if (placedLocations.length === 0) {
       toast.error('Please place at least one add-on on the map');
@@ -388,25 +380,14 @@ export function AddonPlacement({
             </Button>
             
             {placedLocations.length > 0 && (
-              <>
-                <Button
-                  onClick={undoLastMarker}
-                  variant="outline"
-                  size="default"
-                >
-                  <Undo2 className="mr-2 h-4 w-4" />
-                  Undo Last
-                </Button>
-                
-                <Button
-                  onClick={clearAllMarkers}
-                  variant="outline"
-                  size="default"
-                >
-                  <Trash2 className="mr-2" />
-                  Clear All
-                </Button>
-              </>
+              <Button
+                onClick={clearAllMarkers}
+                variant="outline"
+                size="default"
+              >
+                <Trash2 className="mr-2" />
+                Clear All
+              </Button>
             )}
             
             <Button
