@@ -1931,25 +1931,28 @@ const MeasurementTools = ({
 
   // Unified handler for the visible Undo button so it always has an effect
   const handleUndoClick = () => {
+    // Check for point mode with markers to undo
     if (measurementType === 'point' && pointMarkers.length > 0 && !currentMeasurement) {
       console.log('🧮 Undo button clicked - removing last point marker');
       removeLastPoint();
       return;
     }
 
-    if (isDrawingInProgress && currentPathRef.current.length > 0) {
-      console.log('🧮 Undo button clicked - undoing last segment point');
+    // Check if we have points in the current path to undo (use currentPathLength state which is reliably updated)
+    if (currentPathLength > 0 && currentPathRef.current.length > 0) {
+      console.log('🧮 Undo button clicked - undoing last segment point, path length:', currentPathRef.current.length);
       undoLastSegmentPoint();
       return;
     }
 
+    // If measurement is complete, allow remeasure
     if (currentMeasurement) {
       console.log('🧮 Undo button clicked - remeasuring current measurement');
       handleUndo();
       return;
     }
 
-    console.log('🧮 Undo button clicked - nothing to undo');
+    console.log('🧮 Undo button clicked - nothing to undo, currentPathLength:', currentPathLength, 'pathRef:', currentPathRef.current.length);
   };
 
   const addPointMarker = (location: google.maps.LatLng) => {
