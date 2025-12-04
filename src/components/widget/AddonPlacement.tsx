@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { MapPin, Trash2, Check } from 'lucide-react';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 import { toast } from 'sonner';
@@ -342,65 +340,63 @@ export function AddonPlacement({
   };
 
   return (
-    <Card className="w-full">
-      <CardContent className="p-0">
-        {/* Map Container */}
-        <div className="relative">
-          <div 
-            id="addon-placement-map" 
-            className="w-full min-h-[500px] border-b"
-          />
-          
-          {/* Placement Instructions */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none px-4 w-full sm:w-auto">
-            <div className="bg-white rounded-lg shadow-lg px-3 py-2 text-xs sm:text-sm text-gray-700 text-center">
-              Click to place add-ons on the map. Click marker to remove.
-            </div>
+    <div className="flex flex-col h-[calc(100vh-120px)]">
+      {/* Map Container */}
+      <div className="relative flex-1">
+        <div 
+          id="addon-placement-map" 
+          className="w-full h-full absolute inset-0"
+        />
+        
+        {/* Placement Instructions */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none px-4 w-full sm:w-auto">
+          <div className="bg-white rounded-lg shadow-lg px-3 py-2 text-xs sm:text-sm text-gray-700 text-center">
+            Click to place add-ons on the map. Click marker to remove.
           </div>
         </div>
+      </div>
 
-        {/* Instructions */}
-        <div className="p-4 bg-muted/30">
-          <p className="text-sm text-muted-foreground mb-3">
-            Tap on the map to place {addonName} at specific locations. 
-            Tap a marker to remove it.
-          </p>
+      {/* Instructions & Action Buttons */}
+      <div className="p-4 bg-muted/30 border-t">
+        <p className="text-sm text-muted-foreground mb-3">
+          Tap on the map to place {addonName} at specific locations. 
+          Tap a marker to remove it.
+        </p>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-2">
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="success"
+            size="default"
+            onClick={handleComplete}
+            disabled={placedLocations.length === 0}
+            className="flex-1 min-w-[140px]"
+          >
+            <Check className="mr-2" />
+            Done ({placedLocations.length})
+          </Button>
+          
+          {placedLocations.length > 0 && (
             <Button
-              variant="success"
-              size="default"
-              onClick={handleComplete}
-              disabled={placedLocations.length === 0}
-              className="flex-1 min-w-[140px]"
-            >
-              <Check className="mr-2" />
-              Done ({placedLocations.length})
-            </Button>
-            
-            {placedLocations.length > 0 && (
-              <Button
-                onClick={clearAllMarkers}
-                variant="outline"
-                size="default"
-              >
-                <Trash2 className="mr-2" />
-                Clear All
-              </Button>
-            )}
-            
-            <Button
-              onClick={onCancel}
+              onClick={clearAllMarkers}
               variant="outline"
               size="default"
-              className="flex-1 min-w-[100px]"
             >
-              Cancel
+              <Trash2 className="mr-2" />
+              Clear All
             </Button>
-          </div>
+          )}
+          
+          <Button
+            onClick={onCancel}
+            variant="outline"
+            size="default"
+            className="flex-1 min-w-[100px]"
+          >
+            Cancel
+          </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
