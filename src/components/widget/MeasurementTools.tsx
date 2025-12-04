@@ -2278,6 +2278,7 @@ const MeasurementTools = ({
               </div>
               
               <Button 
+                variant="success"
                 className="w-full" 
                 onClick={() => {
                   const INSTRUCTION_KEY = `measurement-instructions-seen-${contractorId}`;
