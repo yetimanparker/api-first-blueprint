@@ -730,8 +730,8 @@ const ProductConfiguration = ({
                                   );
                                 }}
                               >
-                                <MapPin className="h-3 w-3" />
-                                Place on Map
+                              <MapPin className="h-3 w-3" />
+                                Add Product
                               </Button>
                             );
                           }
