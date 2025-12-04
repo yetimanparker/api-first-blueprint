@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ParsedAddress } from '@/hooks/useGooglePlaces';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft } from 'lucide-react';
+import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft, MousePointer2, CheckCircle2 } from 'lucide-react';
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
@@ -92,6 +92,7 @@ const MeasurementTools = ({
   const [dragHandle, setDragHandle] = useState<google.maps.Marker | null>(null);
   const [isDimensionalPlaced, setIsDimensionalPlaced] = useState(false);
   const [assignedMeasurementColor, setAssignedMeasurementColor] = useState<string | null>(null);
+  const [showInstructionPopup, setShowInstructionPopup] = useState(false);
   
   // Real-time measurement tracking
   const [tempMeasurementValue, setTempMeasurementValue] = useState<string>('');
@@ -140,6 +141,13 @@ const MeasurementTools = ({
   useEffect(() => {
     fetchProduct();
     fetchApiKey();
+    
+    // Check if user has seen instructions before
+    const INSTRUCTION_KEY = `measurement-instructions-seen-${contractorId}`;
+    const hasSeenInstructions = localStorage.getItem(INSTRUCTION_KEY);
+    if (!hasSeenInstructions) {
+      setShowInstructionPopup(true);
+    }
     
     // Scroll to center the map view after a brief delay
     setTimeout(() => {
@@ -2203,11 +2211,63 @@ const MeasurementTools = ({
           className="w-full h-full absolute inset-0"
         />
         
-        {/* Measurement Instructions */}
-        {!mapLoading && !mapError && !showManualEntry && (
+        {/* Measurement Instructions - Small reminder at bottom */}
+        {!mapLoading && !mapError && !showManualEntry && !showInstructionPopup && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none px-4 w-full sm:w-auto">
             <div className="bg-white rounded-lg shadow-lg px-3 py-2 text-xs sm:text-sm text-gray-700 text-center">
               Click to draw points on the map. Double-click to complete.
+            </div>
+          </div>
+        )}
+        
+        {/* First-time Instruction Popup */}
+        {showInstructionPopup && !mapLoading && !mapError && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-background rounded-xl shadow-2xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+              <h3 className="text-lg font-semibold text-center mb-6">How to Measure</h3>
+              
+              <div className="space-y-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <MousePointer2 className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Click to start</p>
+                    <p className="text-xs text-muted-foreground">Click on the map to place your first point</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Ruler className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Continue clicking</p>
+                    <p className="text-xs text-muted-foreground">Add more points to outline your area or line</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Double-click to finish</p>
+                    <p className="text-xs text-muted-foreground">Double-click to complete your measurement</p>
+                  </div>
+                </div>
+              </div>
+              
+              <Button 
+                className="w-full" 
+                onClick={() => {
+                  const INSTRUCTION_KEY = `measurement-instructions-seen-${contractorId}`;
+                  localStorage.setItem(INSTRUCTION_KEY, 'true');
+                  setShowInstructionPopup(false);
+                }}
+              >
+                Start Measuring
+              </Button>
             </div>
           </div>
         )}
