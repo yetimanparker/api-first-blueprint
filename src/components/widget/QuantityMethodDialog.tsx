@@ -26,21 +26,21 @@ const QuantityMethodDialog = ({ open, productName, onMethodSelect, onCancel }: Q
           <Button
             size="lg"
             variant="default"
-            onClick={() => onMethodSelect('manual')}
-            className="w-full"
-          >
-            <Calculator className="mr-2" />
-            Enter Quantity Manually
-          </Button>
-          
-          <Button
-            size="lg"
-            variant="outline"
             onClick={() => onMethodSelect('map')}
             className="w-full"
           >
             <Map className="mr-2" />
             Use Map to Add Quantities
+          </Button>
+          
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => onMethodSelect('manual')}
+            className="w-full"
+          >
+            <Calculator className="mr-2" />
+            Enter Quantity Manually
           </Button>
         </div>
       </DialogContent>
