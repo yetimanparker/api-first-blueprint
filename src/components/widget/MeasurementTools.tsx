@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ParsedAddress } from '@/hooks/useGooglePlaces';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft, MousePointer2, CheckCircle2 } from 'lucide-react';
+import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft, MousePointer2, CheckCircle2, Move, HelpCircle } from 'lucide-react';
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
@@ -2211,11 +2211,20 @@ const MeasurementTools = ({
           className="w-full h-full absolute inset-0"
         />
         
-        {/* Measurement Instructions - Small reminder at bottom */}
+        {/* Measurement Instructions - Small reminder at bottom with help button */}
         {!mapLoading && !mapError && !showManualEntry && !showInstructionPopup && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none px-4 w-full sm:w-auto">
-            <div className="bg-white rounded-lg shadow-lg px-3 py-2 text-xs sm:text-sm text-gray-700 text-center">
-              Click to draw points on the map. Double-click to complete.
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-4 w-full sm:w-auto">
+            <div className="bg-white rounded-lg shadow-lg px-3 py-2 flex items-center justify-center gap-2">
+              <span className="text-xs sm:text-sm text-gray-700">
+                Click to draw points on the map. Double-click to complete.
+              </span>
+              <button 
+                onClick={() => setShowInstructionPopup(true)}
+                className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors"
+                aria-label="Show measurement instructions"
+              >
+                <HelpCircle className="h-4 w-4 text-primary" />
+              </button>
             </div>
           </div>
         )}
@@ -2254,6 +2263,16 @@ const MeasurementTools = ({
                   <div>
                     <p className="font-medium text-sm">Double-click to finish</p>
                     <p className="text-xs text-muted-foreground">Double-click to complete your measurement</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Move className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Adjust or redo</p>
+                    <p className="text-xs text-muted-foreground">Move nodes to adjust segments or select remeasure to start over</p>
                   </div>
                 </div>
               </div>
