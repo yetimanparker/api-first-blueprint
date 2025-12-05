@@ -91,22 +91,31 @@ const QuoteSuccess = ({
     quoteItems.forEach((item) => {
       const color = item.measurement.mapColor || '#3B82F6';
 
-      if (item.measurement.type === 'area' && item.measurement.coordinates) {
-        const latLngs = item.measurement.coordinates.map(coord => ({
-          lat: coord[0],
-          lng: coord[1]
-        }));
+      if (item.measurement.type === 'area') {
+        // Handle multiple segments if present
+        const segmentsToRender = item.measurement.segments || (item.measurement.coordinates ? [item.measurement.coordinates] : []);
+        
+        segmentsToRender.forEach((segmentCoords) => {
+          const latLngs = segmentCoords.map(coord => ({
+            lat: coord[0],
+            lng: coord[1]
+          }));
 
-        const edgeMarkers = renderEdgeMeasurements(
-          mapRef.current!,
-          latLngs,
-          color,
-          currentZoom,
-          true
-        );
-        edgeLabelsRef.current.push(...edgeMarkers);
+          const edgeMarkers = renderEdgeMeasurements(
+            mapRef.current!,
+            latLngs,
+            color,
+            currentZoom,
+            true
+          );
+          edgeLabelsRef.current.push(...edgeMarkers);
+        });
 
-        if (item.measurement.isDimensional && item.measurement.dimensions) {
+        if (item.measurement.isDimensional && item.measurement.dimensions && item.measurement.coordinates) {
+          const latLngs = item.measurement.coordinates.map(coord => ({
+            lat: coord[0],
+            lng: coord[1]
+          }));
           const dimensionMarkers = renderDimensionalProductLabels(
             mapRef.current!,
             latLngs,
@@ -117,20 +126,25 @@ const QuoteSuccess = ({
           );
           edgeLabelsRef.current.push(...dimensionMarkers);
         }
-      } else if (item.measurement.type === 'linear' && item.measurement.coordinates) {
-        const latLngs = item.measurement.coordinates.map(coord => ({
-          lat: coord[0],
-          lng: coord[1]
-        }));
+      } else if (item.measurement.type === 'linear') {
+        // Handle multiple segments if present
+        const segmentsToRender = item.measurement.segments || (item.measurement.coordinates ? [item.measurement.coordinates] : []);
+        
+        segmentsToRender.forEach((segmentCoords) => {
+          const latLngs = segmentCoords.map(coord => ({
+            lat: coord[0],
+            lng: coord[1]
+          }));
 
-        const edgeMarkers = renderEdgeMeasurements(
-          mapRef.current!,
-          latLngs,
-          color,
-          currentZoom,
-          false
-        );
-        edgeLabelsRef.current.push(...edgeMarkers);
+          const edgeMarkers = renderEdgeMeasurements(
+            mapRef.current!,
+            latLngs,
+            color,
+            currentZoom,
+            false
+          );
+          edgeLabelsRef.current.push(...edgeMarkers);
+        });
       }
     });
   }, [currentZoom, quoteItems]);
@@ -283,69 +297,88 @@ const QuoteSuccess = ({
           });
         }
 
-        else if (item.measurement.type === 'area' && item.measurement.coordinates) {
-          const latLngs = item.measurement.coordinates.map(coord => ({
-            lat: coord[0],
-            lng: coord[1]
-          }));
+        else if (item.measurement.type === 'area') {
+          // Handle multiple segments if present
+          const segmentsToRender = item.measurement.segments || (item.measurement.coordinates ? [item.measurement.coordinates] : []);
           
-          console.log(`  ➡️ Rendering area polygon with ${latLngs.length} points`);
+          segmentsToRender.forEach((segmentCoords, segmentIndex) => {
+            const latLngs = segmentCoords.map(coord => ({
+              lat: coord[0],
+              lng: coord[1]
+            }));
+            
+            console.log(`  ➡️ Rendering area polygon segment ${segmentIndex + 1} with ${latLngs.length} points`);
 
-          const polygon = new google.maps.Polygon({
-            paths: latLngs,
-            fillColor: color,
-            fillOpacity: 0.3,
-            strokeColor: color,
-            strokeWeight: 2,
+            const polygon = new google.maps.Polygon({
+              paths: latLngs,
+              fillColor: color,
+              fillOpacity: 0.3,
+              strokeColor: color,
+              strokeWeight: 2,
+            });
+            polygon.setMap(map);
           });
-          polygon.setMap(map);
 
-          const areaBounds = new google.maps.LatLngBounds();
-          latLngs.forEach(coord => areaBounds.extend(coord));
-          const areaCenter = areaBounds.getCenter();
+          // Single label for total value
+          if (segmentsToRender.length > 0) {
+            const firstSegment = segmentsToRender[0];
+            const areaBounds = new google.maps.LatLngBounds();
+            firstSegment.forEach(coord => areaBounds.extend({ lat: coord[0], lng: coord[1] }));
+            const areaCenter = areaBounds.getCenter();
+            
+            new google.maps.Marker({
+              position: areaCenter,
+              map: map,
+              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+              label: {
+                text: `${item.measurement.value.toLocaleString()} sq ft`,
+                color: color,
+                fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+                fontWeight: 'bold',
+              },
+            });
+          }
+
+          // Edge measurements are rendered in separate useEffect
+        } else if (item.measurement.type === 'linear') {
+          // Handle multiple segments if present
+          const segmentsToRender = item.measurement.segments || (item.measurement.coordinates ? [item.measurement.coordinates] : []);
           
-          new google.maps.Marker({
-            position: areaCenter,
-            map: map,
-            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-            label: {
-              text: `${item.measurement.value.toLocaleString()} sq ft`,
-              color: color,
-              fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
-              fontWeight: 'bold',
-            },
+          segmentsToRender.forEach((segmentCoords, segmentIndex) => {
+            const latLngs = segmentCoords.map(coord => ({
+              lat: coord[0],
+              lng: coord[1]
+            }));
+            
+            console.log(`  ➡️ Rendering linear path segment ${segmentIndex + 1} with ${latLngs.length} points`);
+
+            const polyline = new google.maps.Polyline({
+              path: latLngs,
+              strokeColor: color,
+              strokeWeight: 3,
+            });
+            polyline.setMap(map);
           });
 
           // Edge measurements are rendered in separate useEffect
-        } else if (item.measurement.type === 'linear' && item.measurement.coordinates) {
-          const latLngs = item.measurement.coordinates.map(coord => ({
-            lat: coord[0],
-            lng: coord[1]
-          }));
-          
-          console.log(`  ➡️ Rendering linear path with ${latLngs.length} points`);
 
-          const polyline = new google.maps.Polyline({
-            path: latLngs,
-            strokeColor: color,
-            strokeWeight: 3,
-          });
-          polyline.setMap(map);
-
-          // Edge measurements are rendered in separate useEffect
-
-          const midIndex = Math.floor(latLngs.length / 2);
-          new google.maps.Marker({
-            position: latLngs[midIndex],
-            map: map,
-            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-            label: {
-              text: `Total: ${item.measurement.value.toLocaleString()} ft`,
-              color: color,
-              fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
-              fontWeight: 'bold',
-            },
-          });
+          // Single label for total value
+          if (segmentsToRender.length > 0) {
+            const firstSegment = segmentsToRender[0];
+            const midIndex = Math.floor(firstSegment.length / 2);
+            const midPoint = { lat: firstSegment[midIndex][0], lng: firstSegment[midIndex][1] };
+            new google.maps.Marker({
+              position: midPoint,
+              map: map,
+              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+              label: {
+                text: `Total: ${item.measurement.value.toLocaleString()} ft`,
+                color: color,
+                fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+                fontWeight: 'bold',
+              },
+            });
+          }
         }
       });
 
