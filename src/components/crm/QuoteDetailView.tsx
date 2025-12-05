@@ -239,66 +239,93 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
             });
           });
         } else if (hasCoordinates) {
-          const latLngs = item.measurement_data.coordinates.map((coord: number[]) => ({
-            lat: coord[0],
-            lng: coord[1]
-          }));
-
-          latLngs.forEach((coord: google.maps.LatLngLiteral) => bounds.extend(coord));
+          // Check for segments array (multiple independent segments)
+          const hasSegments = item.measurement_data.segments && item.measurement_data.segments.length > 0;
+          const segmentsToRender = hasSegments 
+            ? item.measurement_data.segments 
+            : [item.measurement_data.coordinates];
 
           if (item.measurement_data.type === 'area') {
-            const polygon = new google.maps.Polygon({
-              paths: latLngs,
-              fillColor: color,
-              fillOpacity: 0.3,
-              strokeColor: color,
-              strokeWeight: 2,
-            });
-            polygon.setMap(map);
+            // Render each segment as a separate polygon
+            segmentsToRender.forEach((segmentCoords: number[][], segIdx: number) => {
+              const segmentLatLngs = segmentCoords.map((coord: number[]) => ({
+                lat: coord[0],
+                lng: coord[1]
+              }));
+              
+              segmentLatLngs.forEach((coord: google.maps.LatLngLiteral) => bounds.extend(coord));
 
-            const center = bounds.getCenter();
-            new google.maps.Marker({
-              position: center,
-              map: map,
-              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-              label: {
-                text: `${item.measurement_data.value.toLocaleString()} sq ft`,
-                color: color,
-                fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
-                fontWeight: 'bold',
-              },
-            });
+              const polygon = new google.maps.Polygon({
+                paths: segmentLatLngs,
+                fillColor: color,
+                fillOpacity: 0.3,
+                strokeColor: color,
+                strokeWeight: 2,
+              });
+              polygon.setMap(map);
 
-            // Add side dimension labels for dimensional products
-            if (item.measurement_data.isDimensional && item.measurement_data.dimensions) {
-              renderDimensionalProductLabels(
-                map,
-                latLngs,
-                item.measurement_data.dimensions.width,
-                item.measurement_data.dimensions.length,
-                color,
-                currentZoom
-              );
-            }
+              // Only add total label on first segment
+              if (segIdx === 0) {
+                const segmentBounds = new google.maps.LatLngBounds();
+                segmentLatLngs.forEach(coord => segmentBounds.extend(coord));
+                const center = segmentBounds.getCenter();
+                new google.maps.Marker({
+                  position: center,
+                  map: map,
+                  icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+                  label: {
+                    text: `${item.measurement_data.value.toLocaleString()} sq ft`,
+                    color: color,
+                    fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+                    fontWeight: 'bold',
+                  },
+                });
+              }
+
+              // Add side dimension labels for dimensional products (first segment only)
+              if (segIdx === 0 && item.measurement_data.isDimensional && item.measurement_data.dimensions) {
+                renderDimensionalProductLabels(
+                  map,
+                  segmentLatLngs,
+                  item.measurement_data.dimensions.width,
+                  item.measurement_data.dimensions.length,
+                  color,
+                  currentZoom
+                );
+              }
+            });
           } else if (item.measurement_data.type === 'linear') {
-            const polyline = new google.maps.Polyline({
-              path: latLngs,
-              strokeColor: color,
-              strokeWeight: 3,
-            });
-            polyline.setMap(map);
+            // Render each segment as a separate polyline
+            segmentsToRender.forEach((segmentCoords: number[][], segIdx: number) => {
+              const segmentLatLngs = segmentCoords.map((coord: number[]) => ({
+                lat: coord[0],
+                lng: coord[1]
+              }));
+              
+              segmentLatLngs.forEach((coord: google.maps.LatLngLiteral) => bounds.extend(coord));
 
-            const midIndex = Math.floor(latLngs.length / 2);
-            new google.maps.Marker({
-              position: latLngs[midIndex],
-              map: map,
-              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-              label: {
-                text: `${item.measurement_data.value.toLocaleString()} ft`,
-                color: color,
-                fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
-                fontWeight: 'bold',
-              },
+              const polyline = new google.maps.Polyline({
+                path: segmentLatLngs,
+                strokeColor: color,
+                strokeWeight: 3,
+              });
+              polyline.setMap(map);
+
+              // Only add total label on first segment
+              if (segIdx === 0) {
+                const midIndex = Math.floor(segmentLatLngs.length / 2);
+                new google.maps.Marker({
+                  position: segmentLatLngs[midIndex],
+                  map: map,
+                  icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+                  label: {
+                    text: `${item.measurement_data.value.toLocaleString()} ft`,
+                    color: color,
+                    fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+                    fontWeight: 'bold',
+                  },
+                });
+              }
             });
           }
         }

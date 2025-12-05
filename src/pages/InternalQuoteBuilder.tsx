@@ -84,6 +84,9 @@ export default function InternalQuoteBuilder() {
     selectedVariations?: any[];
     linkedProductId?: string;
   } | undefined>();
+  
+  // State for Add Another Segment workflow
+  const [accumulatedSegments, setAccumulatedSegments] = useState<MeasurementData[]>([]);
 
   useEffect(() => {
     if (!contractorLoading && !contractorId) {
@@ -276,14 +279,42 @@ export default function InternalQuoteBuilder() {
       (window as any).__finalizeMeasurement();
     }
     
+    // If we have accumulated segments, combine them with this measurement
+    let finalMeasurement = measurement;
+    if (accumulatedSegments.length > 0) {
+      const allSegments = [...accumulatedSegments, measurement];
+      const totalValue = allSegments.reduce((sum, seg) => sum + seg.value, 0);
+      
+      // Create segments array with all coordinate sets
+      const segments = allSegments
+        .map(seg => seg.coordinates)
+        .filter((coords): coords is number[][] => coords !== undefined && coords.length > 0);
+      
+      finalMeasurement = {
+        ...measurement,
+        value: totalValue,
+        segments: segments,
+        segmentCount: allSegments.length,
+      };
+      
+      // Clear accumulated segments
+      setAccumulatedSegments([]);
+    }
+    
     // Check if selected product requires increment confirmation
     if (selectedProduct?.sold_in_increments_of) {
-      setPendingMeasurement(measurement);
+      setPendingMeasurement(finalMeasurement);
       setShowIncrementDialog(true);
     } else {
-      setCurrentMeasurement(measurement);
+      setCurrentMeasurement(finalMeasurement);
       setCurrentStep('product-configuration');
     }
+  };
+  
+  // Handler for "Add Another Segment" workflow
+  const handleAddAnotherSegment = (measurement: MeasurementData) => {
+    console.log('🔄 Adding segment to accumulator:', measurement);
+    setAccumulatedSegments(prev => [...prev, measurement]);
   };
 
   const handleIncrementConfirm = () => {
@@ -416,6 +447,7 @@ export default function InternalQuoteBuilder() {
     setPendingAddons([]);
     setCurrentMainProductItem(undefined);
     setPendingAddon(undefined);
+    setAccumulatedSegments([]);
     setCurrentStep('product-selection');
   };
 
@@ -693,6 +725,8 @@ export default function InternalQuoteBuilder() {
                 isManualEntry={currentMeasurement?.manualEntry === true}
                 onFinalizeMeasurement={() => {}}
                 onAddressSelect={(address) => {}}
+                accumulatedSegments={accumulatedSegments}
+                onAddAnotherSegment={handleAddAnotherSegment}
               />
             )}
           </div>
