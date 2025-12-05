@@ -41,10 +41,31 @@ export function AddonPlacement({
   const placedMarkersRef = useRef<google.maps.Marker[]>([]);
   const placedLocationsRef = useRef<Array<{ lat: number; lng: number }>>([]);
   const existingMarkersRef = useRef<google.maps.Marker[]>([]);
+  const isInitializedRef = useRef(false);
   const STORAGE_KEY = `map-state-${customerAddress || 'default'}`;
 
   useEffect(() => {
+    // Guard against multiple initializations
+    if (isInitializedRef.current) {
+      console.log('🛑 AddonPlacement - Map already initialized, skipping');
+      return;
+    }
+    
+    console.log('🗺️ AddonPlacement - Initializing map');
     initializeMap();
+    
+    // Cleanup on unmount
+    return () => {
+      console.log('🧹 AddonPlacement - Cleaning up markers');
+      // Clear placed markers
+      placedMarkersRef.current.forEach(marker => marker.setMap(null));
+      placedMarkersRef.current = [];
+      // Clear existing markers
+      existingMarkersRef.current.forEach(marker => marker.setMap(null));
+      existingMarkersRef.current = [];
+      // Reset initialization flag
+      isInitializedRef.current = false;
+    };
   }, []);
 
   // Generate a distinct color for the addon that's different from main product and existing addons
@@ -169,6 +190,10 @@ export function AddonPlacement({
           placeAddonMarker(mapInstance, e.latLng);
         }
       });
+      
+      // Mark as initialized
+      isInitializedRef.current = true;
+      console.log('✅ AddonPlacement - Map initialized successfully');
 
     } catch (error) {
       console.error('Error initializing map:', error);
