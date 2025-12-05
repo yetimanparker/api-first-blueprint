@@ -406,14 +406,12 @@ export function AddonPlacement({
       <div className="p-4 bg-background border-t">
         <div className="flex flex-wrap gap-2">
           <Button
-            variant="success"
+            onClick={onCancel}
+            variant="outline"
             size="default"
-            onClick={handleComplete}
-            disabled={placedLocations.length === 0}
-            className="flex-1 min-w-[140px]"
+            className="flex-1 min-w-[100px]"
           >
-            <Check className="mr-2" />
-            Done ({placedLocations.length})
+            Cancel
           </Button>
           
           {placedLocations.length > 0 && (
@@ -428,12 +426,14 @@ export function AddonPlacement({
           )}
           
           <Button
-            onClick={onCancel}
-            variant="outline"
+            variant="success"
             size="default"
-            className="flex-1 min-w-[100px]"
+            onClick={handleComplete}
+            disabled={placedLocations.length === 0}
+            className="flex-1 min-w-[140px]"
           >
-            Cancel
+            <Check className="mr-2" />
+            Done ({placedLocations.length})
           </Button>
         </div>
       </div>
