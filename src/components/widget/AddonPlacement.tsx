@@ -4,6 +4,7 @@ import { MapPin, Trash2, Check } from 'lucide-react';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 import { toast } from 'sonner';
 import { getDistinctAddonColor } from '@/lib/colorUtils';
+import { getZoomBasedMarkerScale } from '@/lib/mapLabelUtils';
 
 interface AddonPlacementProps {
   addonName: string;
@@ -42,6 +43,7 @@ export function AddonPlacement({
   const placedLocationsRef = useRef<Array<{ lat: number; lng: number }>>([]);
   const existingMarkersRef = useRef<google.maps.Marker[]>([]);
   const isInitializedRef = useRef(false);
+  const [currentZoom, setCurrentZoom] = useState(20);
   const STORAGE_KEY = `map-state-${customerAddress || 'default'}`;
 
   useEffect(() => {
@@ -78,6 +80,33 @@ export function AddonPlacement({
     const distinctColor = getDistinctAddonColor(usedColors);
     setAddonProductColor(distinctColor);
   }, [mainProductMeasurement.mapColor, existingAddonLocations]);
+
+  // Update marker scales when zoom changes
+  useEffect(() => {
+    const newScale = getZoomBasedMarkerScale(currentZoom);
+    
+    // Update placed markers
+    placedMarkersRef.current.forEach(marker => {
+      const currentIcon = marker.getIcon() as google.maps.Symbol;
+      if (currentIcon) {
+        marker.setIcon({
+          ...currentIcon,
+          scale: newScale,
+        });
+      }
+    });
+    
+    // Update existing markers
+    existingMarkersRef.current.forEach(marker => {
+      const currentIcon = marker.getIcon() as google.maps.Symbol;
+      if (currentIcon) {
+        marker.setIcon({
+          ...currentIcon,
+          scale: newScale,
+        });
+      }
+    });
+  }, [currentZoom]);
 
   const initializeMap = async () => {
     try {
@@ -152,6 +181,14 @@ export function AddonPlacement({
       mapRef.current = mapInstance;
       setMap(mapInstance);
 
+      // Track zoom changes for dynamic marker sizing
+      mapInstance.addListener('zoom_changed', () => {
+        const newZoom = mapInstance.getZoom();
+        if (newZoom) {
+          setCurrentZoom(newZoom);
+        }
+      });
+
       // Draw the main product measurement (read-only)
       drawMainProductShape(mapInstance);
 
@@ -168,7 +205,7 @@ export function AddonPlacement({
             title: `Existing placement`,
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
-              scale: 10,
+              scale: getZoomBasedMarkerScale(zoom),
               fillColor: markerColor,
               fillOpacity: 0.6,
               strokeColor: 'white',
@@ -256,6 +293,7 @@ export function AddonPlacement({
     // Use the linked product's color if available, otherwise fall back to main product color
     const markerColor = addonProductColor || mainProductMeasurement.mapColor || '#3B82F6';
     
+    const currentMapZoom = mapRef.current?.getZoom() || 20;
     const marker = new google.maps.Marker({
       position: latLng,
       map: mapInstance,
@@ -268,7 +306,7 @@ export function AddonPlacement({
       },
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
-        scale: 12,
+        scale: getZoomBasedMarkerScale(currentMapZoom),
         fillColor: markerColor,
         fillOpacity: 1,
         strokeColor: 'white',

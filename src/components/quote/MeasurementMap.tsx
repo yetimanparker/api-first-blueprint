@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { loadGoogleMapsAPI } from "@/lib/googleMapsLoader";
-import { getZoomBasedFontSize, renderDimensionalProductLabels } from "@/lib/mapLabelUtils";
+import { getZoomBasedFontSize, getZoomBasedMarkerScale, renderDimensionalProductLabels } from "@/lib/mapLabelUtils";
 
 interface MeasurementMapProps {
   measurements: Array<{
@@ -25,6 +25,7 @@ interface MeasurementMapProps {
 export default function MeasurementMap({ measurements, center, className = "" }: MeasurementMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const pointMarkersRef = useRef<google.maps.Marker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentZoom, setCurrentZoom] = useState(18);
@@ -80,11 +81,22 @@ export default function MeasurementMap({ measurements, center, className = "" }:
 
         mapInstanceRef.current = map;
 
-        // Track zoom changes for dynamic font sizing
+        // Track zoom changes for dynamic font and marker sizing
         map.addListener('zoom_changed', () => {
           const newZoom = map.getZoom();
           if (newZoom) {
             setCurrentZoom(newZoom);
+            // Update point marker scales
+            const newScale = getZoomBasedMarkerScale(newZoom);
+            pointMarkersRef.current.forEach(marker => {
+              const currentIcon = marker.getIcon() as google.maps.Symbol;
+              if (currentIcon) {
+                marker.setIcon({
+                  ...currentIcon,
+                  scale: newScale,
+                });
+              }
+            });
           }
         });
 
@@ -224,7 +236,7 @@ export default function MeasurementMap({ measurements, center, className = "" }:
                 map: map,
                 icon: {
                   path: google.maps.SymbolPath.CIRCLE,
-                  scale: 8,
+                  scale: getZoomBasedMarkerScale(currentZoom),
                   fillColor: color,
                   fillOpacity: 1,
                   strokeColor: '#ffffff',
@@ -237,6 +249,7 @@ export default function MeasurementMap({ measurements, center, className = "" }:
                   fontWeight: 'normal',
                 },
               });
+              pointMarkersRef.current.push(marker);
 
               const infoWindow = new google.maps.InfoWindow({
                 content: `

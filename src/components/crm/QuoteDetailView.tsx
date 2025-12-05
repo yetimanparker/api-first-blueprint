@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader } from '@googlemaps/js-api-loader';
 import { formatExactPrice, calculatePriceRange, formatPriceRange, displayQuoteTotal, displayLineItemPrice } from '@/lib/priceUtils';
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
-import { getZoomBasedFontSize, renderDimensionalProductLabels } from '@/lib/mapLabelUtils';
+import { getZoomBasedFontSize, getZoomBasedMarkerScale, renderDimensionalProductLabels } from '@/lib/mapLabelUtils';
 import { consolidateQuoteItems, ConsolidatedMainProduct } from '@/lib/quoteConsolidation';
 
 interface QuoteItem {
@@ -49,6 +49,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
   const mapRef = useRef<google.maps.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [currentZoom, setCurrentZoom] = useState(19);
+  const pointMarkersRef = useRef<google.maps.Marker[]>([]);
 
   useEffect(() => {
     fetchQuoteItems();
@@ -60,6 +61,22 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
       initializeMap();
     }
   }, [apiKey, quoteItems]);
+
+  // Update point marker scales when zoom changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+    
+    const newScale = getZoomBasedMarkerScale(currentZoom);
+    pointMarkersRef.current.forEach(marker => {
+      const currentIcon = marker.getIcon() as google.maps.Symbol;
+      if (currentIcon) {
+        marker.setIcon({
+          ...currentIcon,
+          scale: newScale,
+        });
+      }
+    });
+  }, [currentZoom]);
 
   const fetchApiKey = async () => {
     try {
@@ -208,9 +225,10 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                 fillOpacity: 1,
                 strokeColor: '#FFFFFF',
                 strokeWeight: 2,
-                scale: 12,
+                scale: getZoomBasedMarkerScale(currentZoom),
               },
             });
+            pointMarkersRef.current.push(marker);
 
             const infoWindow = new google.maps.InfoWindow({
               content: `<div style="color: ${color}; font-weight: bold;">${item.products.name} #${markerNumber}</div>`,
