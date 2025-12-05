@@ -2659,7 +2659,18 @@ const MeasurementTools = ({
                   onClick={() => {
                     console.log('➕ Add Another Segment clicked, saving current measurement:', currentMeasurement);
                     if (currentMeasurement) {
+                      // Save to accumulated segments via callback
                       onAddAnotherSegment(currentMeasurement);
+                      
+                      // Clear internal state and restart drawing
+                      clearMapDrawing();
+                      setCurrentMeasurement(null);
+                      setMapMeasurement(null);
+                      
+                      // Restart drawing after a brief delay
+                      setTimeout(() => {
+                        startDrawing();
+                      }, 100);
                     }
                   }}
                   className="flex-1 sm:flex-none sm:w-auto min-w-[140px] px-4 sm:px-6 shadow-lg gap-2"
