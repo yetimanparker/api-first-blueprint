@@ -234,7 +234,7 @@ export default function MeasurementMap({ measurements, center, className = "" }:
                   text: `${markerNumber}`,
                   color: '#ffffff',
                   fontSize: '11px',
-                  fontWeight: '300',
+                  fontWeight: '500',
                 },
               });
 

@@ -238,14 +238,14 @@ export function AddonPlacement({
       label: {
         text: `${markerNumber}`,
         color: 'white',
-        fontSize: '14px',
-        fontWeight: '300'
+        fontSize: '12px',
+        fontWeight: '500'
       },
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
-        scale: 14,
+        scale: 12,
         fillColor: markerColor,
-        fillOpacity: 0.8,
+        fillOpacity: 1,
         strokeColor: 'white',
         strokeWeight: 2,
       },
@@ -294,8 +294,8 @@ export function AddonPlacement({
         m.setLabel({
           text: `${i + 1}`,
           color: 'white',
-          fontSize: '14px',
-          fontWeight: '300'
+          fontSize: '12px',
+          fontWeight: '500'
         });
       });
       

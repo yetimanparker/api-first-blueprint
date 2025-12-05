@@ -42,13 +42,13 @@ export function getZoomBasedMarkerScale(zoomLevel: number): number {
   // Lower zoom (zoomed out) = smaller marker
   // Higher zoom (zoomed in) = larger marker
   
-  if (zoomLevel <= 10) return 6;
-  if (zoomLevel <= 12) return 7;
-  if (zoomLevel <= 14) return 8;
-  if (zoomLevel <= 16) return 9;
-  if (zoomLevel <= 18) return 10;
-  if (zoomLevel <= 20) return 11;
-  return 12;
+  if (zoomLevel <= 10) return 3;
+  if (zoomLevel <= 12) return 4;
+  if (zoomLevel <= 14) return 5;
+  if (zoomLevel <= 16) return 6;
+  if (zoomLevel <= 18) return 7;
+  if (zoomLevel <= 20) return 8;
+  return 9;
 }
 
 /**

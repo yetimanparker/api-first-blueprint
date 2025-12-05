@@ -200,7 +200,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                 text: markerNumber.toString(),
                 color: '#FFFFFF',
                 fontSize: `${Math.max(10, getZoomBasedFontSize(currentZoom) - 2)}px`,
-                fontWeight: '300',
+                fontWeight: '500',
               },
               icon: {
                 path: google.maps.SymbolPath.CIRCLE,
