@@ -19,6 +19,7 @@ import QuoteSuccess from '@/components/widget/QuoteSuccess';
 import { AddonPlacement } from '@/components/widget/AddonPlacement';
 import { ClarifyingQuestionsDialog } from '@/components/widget/ClarifyingQuestionsDialog';
 import { WidgetState, WorkflowStep, CustomerInfo, QuoteItem, MeasurementData } from '@/types/widget';
+import { getDistinctAddonColor } from '@/lib/colorUtils';
 
 const Widget = () => {
   const { contractorId } = useParams<{ contractorId: string }>();
@@ -867,6 +868,16 @@ const Widget = () => {
                 ? widgetState.pendingAddon!.addonName 
                 : `${widgetState.currentMainProductItem!.productName} - ${widgetState.pendingAddon!.addonName}`;
               
+              // Collect all colors currently in use
+              const usedColors = [
+                widgetState.currentMainProductItem!.measurement.mapColor,
+                ...(widgetState.pendingAddons?.map(a => a.measurement.mapColor) || []),
+                ...widgetState.quoteItems.filter(i => i.isAddonItem).map(i => i.measurement.mapColor)
+              ].filter(Boolean) as string[];
+              
+              // Get a distinct color for this batch of addons
+              const distinctColor = getDistinctAddonColor(usedColors);
+
               const newAddonItems = Array.from({ length: quantity }, (_, index) => ({
                 id: `addon-${Date.now()}-${index}`,
                 productId: addonProductId,
@@ -878,7 +889,7 @@ const Widget = () => {
                   unit: 'each',
                   pointLocations: [],
                   centerPoint: undefined,
-                  mapColor: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
+                  mapColor: distinctColor
                 },
                 unitPrice: widgetState.pendingAddon!.priceValue,
                 quantity: 1,
