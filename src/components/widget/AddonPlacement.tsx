@@ -395,24 +395,24 @@ export function AddonPlacement({
         />
         
         {/* Placement Instructions - on map */}
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10 pointer-events-none px-4 w-full sm:w-auto">
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 pointer-events-none px-4 w-full sm:w-auto">
           <div className="bg-white rounded-lg shadow-lg px-3 py-2 text-xs sm:text-sm text-gray-700 text-center">
             Click to place add-ons. Click marker to remove.
           </div>
         </div>
       </div>
 
-      {/* Minimal Action Buttons Bar */}
-      <div className="absolute bottom-0 left-0 right-0 p-2 bg-background/95 backdrop-blur-sm border-t z-20">
-        <div className="flex gap-2">
+      {/* Action Buttons Bar */}
+      <div className="p-4 bg-background border-t">
+        <div className="flex flex-wrap gap-2">
           <Button
-            variant="default"
+            variant="success"
             size="default"
             onClick={handleComplete}
             disabled={placedLocations.length === 0}
-            className="flex-1"
+            className="flex-1 min-w-[140px]"
           >
-            <Check className="mr-2 size-4" />
+            <Check className="mr-2" />
             Done ({placedLocations.length})
           </Button>
           
@@ -420,16 +420,18 @@ export function AddonPlacement({
             <Button
               onClick={clearAllMarkers}
               variant="outline"
-              size="sm"
+              size="default"
             >
-              <Trash2 className="size-4" />
+              <Trash2 className="mr-2" />
+              Clear All
             </Button>
           )}
           
           <Button
             onClick={onCancel}
-            variant="ghost"
+            variant="outline"
             size="default"
+            className="flex-1 min-w-[100px]"
           >
             Cancel
           </Button>
