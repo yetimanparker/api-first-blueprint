@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,24 @@ const Widget = () => {
   const [widgetProducts, setWidgetProducts] = useState<any[]>([]);
   const [clarifyingQuestions, setClarifyingQuestions] = useState<Array<{id: string; question: string; required: boolean}>>([]);
   const [clarifyingQuestionsEnabled, setClarifyingQuestionsEnabled] = useState(false);
+
+  // Memoize and deduplicate existingQuoteItems to prevent duplicate marker rendering
+  const existingQuoteItemsForMap = useMemo(() => {
+    const itemMap = new Map<string, QuoteItem>();
+    
+    // Add items in order, using Map to deduplicate by ID
+    widgetState.quoteItems.forEach(item => itemMap.set(item.id, item));
+    if (widgetState.currentMainProductItem) {
+      itemMap.set(widgetState.currentMainProductItem.id, widgetState.currentMainProductItem);
+    }
+    (widgetState.pendingAddons || []).forEach(item => itemMap.set(item.id, item));
+    
+    const deduped = Array.from(itemMap.values());
+    console.log('📦 existingQuoteItemsForMap memoized:', deduped.length, 'items (deduped from', 
+      widgetState.quoteItems.length + (widgetState.currentMainProductItem ? 1 : 0) + (widgetState.pendingAddons?.length || 0), ')');
+    
+    return deduped;
+  }, [widgetState.quoteItems, widgetState.currentMainProductItem, widgetState.pendingAddons]);
 
   // Use debounced service area validation
   const { isServiceAreaValid, isValidating, manualValidate } = useDebouncedServiceArea({
@@ -788,13 +806,7 @@ const Widget = () => {
                 onChangeProduct={goToProductSelection}
                 isConfigurationMode={widgetState.currentStep === 'product-configuration'}
                 currentStep={widgetState.currentStep}
-                existingQuoteItems={[
-                  ...widgetState.quoteItems,
-                  // Include current main product item if it exists (during addon placement workflow)
-                  ...(widgetState.currentMainProductItem ? [widgetState.currentMainProductItem] : []),
-                  // Include pending addons
-                  ...(widgetState.pendingAddons || [])
-                ]}
+                existingQuoteItems={existingQuoteItemsForMap}
                 onResetToMeasurement={resetToMeasurement}
                 isManualEntry={widgetState.currentMeasurement?.manualEntry === true}
                 onFinalizeMeasurement={() => {}}
