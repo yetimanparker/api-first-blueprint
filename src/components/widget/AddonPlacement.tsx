@@ -239,7 +239,7 @@ export function AddonPlacement({
         text: `${markerNumber}`,
         color: 'white',
         fontSize: '12px',
-        fontWeight: 'bold'
+        fontWeight: '500'
       },
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
@@ -295,7 +295,7 @@ export function AddonPlacement({
           text: `${i + 1}`,
           color: 'white',
           fontSize: '12px',
-          fontWeight: 'bold'
+          fontWeight: '500'
         });
       });
       
