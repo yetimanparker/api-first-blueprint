@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { MapPin, Trash2, Check } from 'lucide-react';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 import { toast } from 'sonner';
+import { getDistinctAddonColor } from '@/lib/colorUtils';
 
 interface AddonPlacementProps {
   addonName: string;
@@ -46,34 +47,16 @@ export function AddonPlacement({
     initializeMap();
   }, []);
 
-  // Generate a random distinct color for the addon
+  // Generate a distinct color for the addon that's different from main product and existing addons
   useEffect(() => {
-    const generateDistinctColor = () => {
-      const mainColor = mainProductMeasurement.mapColor || '#3B82F6';
-      
-      // Predefined distinct colors that work well on maps
-      const distinctColors = [
-        '#10B981', // green
-        '#F59E0B', // amber
-        '#EF4444', // red
-        '#8B5CF6', // purple
-        '#EC4899', // pink
-        '#14B8A6', // teal
-        '#F97316', // orange
-        '#06B6D4', // cyan
-      ];
-      
-      // Filter out colors too similar to the main product color
-      const availableColors = distinctColors.filter(color => color !== mainColor);
-      
-      // Pick a random color from available colors
-      const randomColor = availableColors[Math.floor(Math.random() * availableColors.length)];
-      
-      setAddonProductColor(randomColor);
-    };
+    const usedColors = [
+      mainProductMeasurement.mapColor || '#3B82F6',
+      ...(existingAddonLocations?.map(loc => loc.color).filter(Boolean) || [])
+    ];
     
-    generateDistinctColor();
-  }, [mainProductMeasurement.mapColor]);
+    const distinctColor = getDistinctAddonColor(usedColors);
+    setAddonProductColor(distinctColor);
+  }, [mainProductMeasurement.mapColor, existingAddonLocations]);
 
   const initializeMap = async () => {
     try {
