@@ -41,15 +41,14 @@ export function getZoomBasedMarkerScale(zoomLevel: number): number {
   // Scale marker size based on zoom level to maintain relative size on map
   // Lower zoom (zoomed out) = smaller marker
   // Higher zoom (zoomed in) = larger marker
-  // Scale values sized to accommodate 14px font labels clearly
   
-  if (zoomLevel <= 10) return 10;
-  if (zoomLevel <= 12) return 11;
-  if (zoomLevel <= 14) return 12;
-  if (zoomLevel <= 16) return 13;
-  if (zoomLevel <= 18) return 14;
-  if (zoomLevel <= 20) return 15;
-  return 16;
+  if (zoomLevel <= 10) return 6;
+  if (zoomLevel <= 12) return 7;
+  if (zoomLevel <= 14) return 8;
+  if (zoomLevel <= 16) return 9;
+  if (zoomLevel <= 18) return 10;
+  if (zoomLevel <= 20) return 11;
+  return 12;
 }
 
 /**

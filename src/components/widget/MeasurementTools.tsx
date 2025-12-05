@@ -1875,8 +1875,8 @@ const MeasurementTools = ({
       label: {
         text: `${markerNumber}`,
         color: 'white',
-        fontSize: '14px',
-        fontWeight: '300'
+        fontSize: '11px',
+        fontWeight: 'normal'
       },
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
