@@ -258,7 +258,7 @@ const QuoteSuccess = ({
                 text: `${markerNumber}`,
                 color: '#ffffff',
                 fontSize: `${Math.max(10, getZoomBasedFontSize(currentZoom) - 2)}px`,
-                fontWeight: 'normal',
+                fontWeight: '300',
               },
               title: `${item.productName} - Location ${markerNumber}`,
             });
