@@ -63,7 +63,6 @@ export default function InternalQuoteBuilder() {
   const [currentMeasurement, setCurrentMeasurement] = useState<MeasurementData | undefined>();
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
   const [saving, setSaving] = useState(false);
-  const stepRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [showMethodDialog, setShowMethodDialog] = useState(false);
   const [showAddonMethodDialog, setShowAddonMethodDialog] = useState(false);
@@ -152,11 +151,13 @@ export default function InternalQuoteBuilder() {
   };
 
   useEffect(() => {
-    const currentStepRef = stepRefs.current[currentStep];
-    if (currentStepRef) {
+    // Scroll to current step section
+    const stepId = `step-${currentStep}`;
+    const stepElement = document.getElementById(stepId);
+    if (stepElement) {
       setTimeout(() => {
-        currentStepRef.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+        stepElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 150);
     }
   }, [currentStep]);
 
