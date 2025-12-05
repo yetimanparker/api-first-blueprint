@@ -38,6 +38,7 @@ export interface MeasurementData {
     incrementLabel: string;
     unitsNeeded: number;
   };
+  segmentCount?: number; // Number of segments when using "Add Another Segment" workflow
 }
 
 export interface QuoteItem {
@@ -107,24 +108,24 @@ export type WorkflowStep =
   | 'internal-quote-review'; // Internal contractor quote review (no customer contact capture)
 
 export interface WidgetState {
-  contractorId: string;
   currentStep: WorkflowStep;
-  customerInfo: Partial<CustomerInfo>;
+  customerInfo: CustomerInfo;
+  quoteItems: QuoteItem[];
   currentProductId?: string;
   currentMeasurement?: MeasurementData;
-  quoteItems: QuoteItem[];
   quoteSummary?: QuoteSummary;
-  isServiceAreaValid?: boolean;
-  pendingAddon?: {
-    addonId: string;
-    addonName: string;
-    priceValue: number;
-    calculationType: string;
-    selectedOptionId?: string;
-    selectedOptionName?: string;
-    selectedVariations?: ProductVariation[];
-    linkedProductId?: string;
+  pendingProduct?: {
+    productId: string;
+    measurement: MeasurementData;
+    variations?: ProductVariation[];
+    addons?: ProductAddon[];
   };
-  currentMainProductItem?: QuoteItem; // Track the main product for addon placement context
-  pendingAddons?: QuoteItem[]; // Track add-ons that have been configured but not yet added to quote
+  // Array of add-ons currently being configured/placed before adding to quote
+  pendingAddons?: QuoteItem[];
+  // Reference to the main product item for add-on configuration
+  currentMainProductItem?: QuoteItem;
+  // Single pending add-on currently being placed
+  pendingAddon?: QuoteItem;
+  // Accumulated segments for "Add Another Segment" workflow
+  accumulatedSegments?: MeasurementData[];
 }

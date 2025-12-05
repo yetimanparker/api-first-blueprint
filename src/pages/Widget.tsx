@@ -490,9 +490,9 @@ const Widget = () => {
     }));
   };
 
-  // Handler for "Add Another Segment" - keeps same product, resets measurement
-  const handleAddAnotherSegment = () => {
-    console.log('🔄 Add Another Segment - keeping same product, resetting to measurement');
+  // Handler for "Add Another Segment" from MeasurementTools - saves current segment, resets for new one
+  const handleAddAnotherSegmentFromMeasurement = (segment: MeasurementData) => {
+    console.log('➕ Adding segment to accumulated list:', segment);
     
     // Clear any drawing manager state to allow fresh measurement
     if ((window as any).__clearDrawingManager) {
@@ -501,12 +501,9 @@ const Widget = () => {
     
     setWidgetState(prev => ({
       ...prev,
-      currentStep: 'measurement',
+      accumulatedSegments: [...(prev.accumulatedSegments || []), segment],
       currentMeasurement: undefined,
-      // Keep currentProductId unchanged - this is the key difference from resetToMeasurement
-      pendingAddons: [],
-      currentMainProductItem: undefined,
-      pendingAddon: undefined
+      // Keep currentProductId unchanged - stay on measurement step
     }));
   };
 
@@ -819,7 +816,12 @@ const Widget = () => {
                 productId={widgetState.currentProductId}
                 onMeasurementComplete={updateCurrentMeasurement}
                 onNext={() => {
-                  setWidgetState(prev => ({ ...prev, currentStep: 'product-configuration' }));
+                  // Clear accumulated segments when moving to configuration
+                  setWidgetState(prev => ({ 
+                    ...prev, 
+                    currentStep: 'product-configuration',
+                    accumulatedSegments: [] // Reset for next product
+                  }));
                 }}
                 customerAddress={widgetState.customerInfo.address}
                 selectedProduct={selectedProduct}
@@ -830,6 +832,8 @@ const Widget = () => {
                 onResetToMeasurement={resetToMeasurement}
                 isManualEntry={widgetState.currentMeasurement?.manualEntry === true}
                 onFinalizeMeasurement={() => {}}
+                accumulatedSegments={widgetState.accumulatedSegments}
+                onAddAnotherSegment={handleAddAnotherSegmentFromMeasurement}
                 onAddressSelect={(address) => {
                   updateCustomerInfo({
                     address: `${address.streetAddress}, ${address.city}, ${address.state} ${address.zipCode}`,
@@ -880,7 +884,6 @@ const Widget = () => {
                   pendingAddons: prev.pendingAddons?.filter(item => item.id !== addonItemId) || []
                 }));
               }}
-              onAddAnotherSegment={handleAddAnotherSegment}
             />
           </div>
         )}
