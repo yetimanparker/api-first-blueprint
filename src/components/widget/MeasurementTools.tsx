@@ -726,11 +726,16 @@ const MeasurementTools = ({
     
     // Track rendered item IDs to prevent duplicate markers
     const renderedItemIds = new Set<string>();
+    let duplicatesSkipped = 0;
+    
+    console.log('🔍 Starting render - checking', existingQuoteItems.length, 'items for duplicates');
+    console.log('🆔 Item IDs:', existingQuoteItems.map(i => i.id));
 
     existingQuoteItems.forEach((item, index) => {
       // Skip if already rendered (prevents duplicate markers from array reference changes)
       if (renderedItemIds.has(item.id)) {
-        console.log('⚠️ Skipping duplicate item:', item.id, item.productName);
+        duplicatesSkipped++;
+        console.warn('🚫 DUPLICATE DETECTED - Skipping item:', item.id, item.productName, '(already rendered)');
         return;
       }
       renderedItemIds.add(item.id);
@@ -1003,7 +1008,8 @@ const MeasurementTools = ({
       }
     });
     
-    console.log('✅ MeasurementTools - Rendering complete. Shapes:', previousShapesRef.current.length, 'Labels:', previousLabelsRef.current.length);
+    console.log('✅ MeasurementTools - Rendering complete. Shapes:', previousShapesRef.current.length, 'Labels:', previousLabelsRef.current.length, 
+      duplicatesSkipped > 0 ? `⚠️ Duplicates skipped: ${duplicatesSkipped}` : '✓ No duplicates');
     isRenderingRef.current = false;
   };
 
