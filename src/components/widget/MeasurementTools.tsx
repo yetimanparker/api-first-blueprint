@@ -726,6 +726,8 @@ const MeasurementTools = ({
     
     // Track rendered item IDs to prevent duplicate markers
     const renderedItemIds = new Set<string>();
+    // Track rendered point coordinates globally to prevent any duplicate markers at same location
+    const renderedPointCoords = new Set<string>();
     let duplicatesSkipped = 0;
     
     console.log('🔍 Starting render - checking', existingQuoteItems.length, 'items for duplicates');
@@ -972,7 +974,19 @@ const MeasurementTools = ({
       } else if (item.measurement.type === 'point' && item.measurement.pointLocations) {
         // Render point measurements
         console.log(`  ➡️ Rendering ${item.measurement.pointLocations.length} point markers with color ${color}`);
+        
         item.measurement.pointLocations.forEach((point, idx) => {
+          // Create a unique key for this point position
+          const pointKey = `${point.lat.toFixed(8)},${point.lng.toFixed(8)}`;
+          
+          // Skip if we've already rendered a marker at this exact position (globally across all items)
+          if (renderedPointCoords.has(pointKey)) {
+            duplicatesSkipped++;
+            console.warn(`    🚫 DUPLICATE POINT - Skipping marker at ${pointKey} (already rendered)`);
+            return;
+          }
+          renderedPointCoords.add(pointKey);
+          
           // Get or initialize counter for this product name
           const currentCount = productPointCounters.get(item.productName) || 0;
           const markerNumber = currentCount + 1;
