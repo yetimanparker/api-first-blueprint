@@ -723,8 +723,17 @@ const MeasurementTools = ({
 
     // Track sequential numbering for point markers by product ID
     const productPointCounters = new Map<string, number>();
+    
+    // Track rendered item IDs to prevent duplicate markers
+    const renderedItemIds = new Set<string>();
 
     existingQuoteItems.forEach((item, index) => {
+      // Skip if already rendered (prevents duplicate markers from array reference changes)
+      if (renderedItemIds.has(item.id)) {
+        console.log('⚠️ Skipping duplicate item:', item.id, item.productName);
+        return;
+      }
+      renderedItemIds.add(item.id);
       console.log(`📍 Rendering item ${index} (${item.productName}):`, {
         type: item.measurement.type,
         hasCoordinates: !!item.measurement.coordinates,
