@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ParsedAddress } from '@/hooks/useGooglePlaces';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft, MousePointer2, CheckCircle2, Move, HelpCircle } from 'lucide-react';
+import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft, MousePointer2, CheckCircle2, Move, HelpCircle, Plus } from 'lucide-react';
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
@@ -39,6 +39,9 @@ interface MeasurementToolsProps {
   onResetToMeasurement?: () => void;
   isManualEntry?: boolean;
   onFinalizeMeasurement?: () => void;
+  // Accumulated segments for "Add Another Segment" workflow
+  accumulatedSegments?: MeasurementData[];
+  onAddAnotherSegment?: (segment: MeasurementData) => void;
 }
 
 interface Product {
@@ -66,7 +69,9 @@ const MeasurementTools = ({
   onAddressSelect,
   onResetToMeasurement,
   isManualEntry = false,
-  onFinalizeMeasurement
+  onFinalizeMeasurement,
+  accumulatedSegments = [],
+  onAddAnotherSegment
 }: MeasurementToolsProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,6 +123,8 @@ const MeasurementTools = ({
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const segmentLabelsRef = useRef<google.maps.Marker[]>([]); // Track individual segment distance labels
   const currentEdgeLabelsRef = useRef<google.maps.Marker[]>([]); // Track edge measurements for current shape
+  const accumulatedSegmentsRef = useRef<Array<google.maps.Polygon | google.maps.Polyline>>([]); // Track accumulated segment shapes
+  const accumulatedSegmentLabelsRef = useRef<google.maps.Marker[]>([]); // Track accumulated segment labels
   
   // Color palette for different measurements on the map
   const MAP_COLORS = [
@@ -421,6 +428,96 @@ const MeasurementTools = ({
       renderExistingMeasurements(mapRef.current);
     }
   }, [existingQuoteItems, debouncedZoom]);
+
+  // Render accumulated segments on map (same color as current measurement)
+  useEffect(() => {
+    if (!mapRef.current || accumulatedSegments.length === 0) return;
+    
+    const map = mapRef.current;
+    const color = assignedMeasurementColor || MAP_COLORS[0];
+    
+    // Clear previous accumulated segment shapes
+    accumulatedSegmentsRef.current.forEach(shape => {
+      try { shape.setMap(null); } catch (e) {}
+    });
+    accumulatedSegmentsRef.current = [];
+    accumulatedSegmentLabelsRef.current.forEach(label => {
+      try { label.setMap(null); } catch (e) {}
+    });
+    accumulatedSegmentLabelsRef.current = [];
+    
+    console.log('📍 Rendering', accumulatedSegments.length, 'accumulated segments');
+    
+    accumulatedSegments.forEach((segment, index) => {
+      if (!segment.coordinates || segment.coordinates.length === 0) return;
+      
+      const latLngs = segment.coordinates.map(coord => ({
+        lat: coord[0],
+        lng: coord[1]
+      }));
+      
+      if (segment.type === 'linear') {
+        const polyline = new google.maps.Polyline({
+          path: latLngs,
+          strokeColor: color,
+          strokeWeight: 3,
+          strokeOpacity: 0.7,
+          clickable: false,
+          editable: false,
+        });
+        polyline.setMap(map);
+        accumulatedSegmentsRef.current.push(polyline);
+        
+        // Add label at midpoint
+        if (latLngs.length >= 2) {
+          const midIdx = Math.floor(latLngs.length / 2);
+          const labelMarker = new google.maps.Marker({
+            position: latLngs[midIdx],
+            map: map,
+            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+            label: {
+              text: `${segment.value.toLocaleString()} ft`,
+              color: color,
+              fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+              fontWeight: '300',
+            },
+          });
+          accumulatedSegmentLabelsRef.current.push(labelMarker);
+        }
+      } else if (segment.type === 'area') {
+        const polygon = new google.maps.Polygon({
+          paths: latLngs,
+          fillColor: color,
+          fillOpacity: 0.15,
+          strokeColor: color,
+          strokeWeight: 2,
+          strokeOpacity: 0.7,
+          clickable: false,
+          editable: false,
+        });
+        polygon.setMap(map);
+        accumulatedSegmentsRef.current.push(polygon);
+        
+        // Add label at centroid
+        const bounds = new google.maps.LatLngBounds();
+        latLngs.forEach(ll => bounds.extend(ll));
+        const center = bounds.getCenter();
+        
+        const labelMarker = new google.maps.Marker({
+          position: center,
+          map: map,
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+          label: {
+            text: `${segment.value.toLocaleString()} sq ft`,
+            color: color,
+            fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+            fontWeight: '300',
+          },
+        });
+        accumulatedSegmentLabelsRef.current.push(labelMarker);
+      }
+    });
+  }, [accumulatedSegments, currentZoom, assignedMeasurementColor]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -2505,6 +2602,12 @@ const MeasurementTools = ({
       {!mapLoading && !mapError && currentStep === 'measurement' && (
         <div id="measurement-action-buttons" className="bg-background border-t px-3 sm:px-6 py-2">
           <div className="max-w-7xl mx-auto">
+            {/* Show accumulated total if segments exist */}
+            {accumulatedSegments.length > 0 && (
+              <div className="text-center mb-2 text-sm text-muted-foreground">
+                Total: {(accumulatedSegments.reduce((sum, s) => sum + s.value, 0) + (currentMeasurement?.value || 0)).toLocaleString()} {measurementType === 'area' ? 'sq ft' : measurementType === 'linear' ? 'ft' : 'items'} ({accumulatedSegments.length + (currentMeasurement ? 1 : 0)} segment{accumulatedSegments.length + (currentMeasurement ? 1 : 0) !== 1 ? 's' : ''})
+              </div>
+            )}
             <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
               {/* Always show navigation buttons first */}
               {!isConfigurationMode && (
@@ -2548,16 +2651,49 @@ const MeasurementTools = ({
                 </Button>
               )}
               
+              {/* Add Another Segment button - when measurement complete and handler provided */}
+              {currentMeasurement && !isConfigurationMode && onAddAnotherSegment && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    console.log('➕ Add Another Segment clicked, saving current measurement:', currentMeasurement);
+                    if (currentMeasurement) {
+                      onAddAnotherSegment(currentMeasurement);
+                    }
+                  }}
+                  className="flex-1 sm:flex-none sm:w-auto min-w-[140px] px-4 sm:px-6 shadow-lg gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Another
+                </Button>
+              )}
+              
               {/* Show Next when measurement is complete and not in configuration mode */}
               {currentMeasurement && !isConfigurationMode && (
                 <Button
                   variant="success"
                   size="lg"
                   onClick={() => {
-                    console.log('📤 NEXT button clicked, passing measurement to widget:', currentMeasurement);
-                    if (currentMeasurement) {
-                      onMeasurementComplete(currentMeasurement);
-                    }
+                    // Combine all accumulated segments + current segment
+                    const allSegments = [...accumulatedSegments, currentMeasurement];
+                    const totalValue = allSegments.reduce((sum, s) => sum + s.value, 0);
+                    
+                    // Combine coordinates from all segments - keep as number[][]
+                    const combinedCoordinates: number[][] = allSegments.flatMap(s => 
+                      s.coordinates || []
+                    );
+                    
+                    const combinedMeasurement: MeasurementData = {
+                      ...currentMeasurement,
+                      value: totalValue,
+                      coordinates: combinedCoordinates.length > 0 ? combinedCoordinates : undefined,
+                      // Store segment count for display
+                      segmentCount: allSegments.length
+                    };
+                    
+                    console.log('📤 NEXT button clicked, passing combined measurement to widget:', combinedMeasurement);
+                    onMeasurementComplete(combinedMeasurement);
                     onNext();
                   }}
                   disabled={currentMeasurement.value === 0}
@@ -2565,7 +2701,7 @@ const MeasurementTools = ({
                 >
                   <span>NEXT</span>
                   <span className="text-success-foreground/90 font-semibold">
-                    ({currentMeasurement.value.toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : currentMeasurement.type === 'linear' ? 'ft' : 'items'})
+                    ({(accumulatedSegments.reduce((sum, s) => sum + s.value, 0) + currentMeasurement.value).toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : currentMeasurement.type === 'linear' ? 'ft' : 'items'})
                   </span>
                 </Button>
               )}
