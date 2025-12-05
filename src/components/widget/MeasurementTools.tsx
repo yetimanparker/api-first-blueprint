@@ -318,10 +318,11 @@ const MeasurementTools = ({
       // But NOT if this is a manual entry measurement (user chose manual input)
       console.log('Map initialized, preparing to auto-start drawing');
       setTimeout(() => {
-        if (!showManualEntry && !isManualEntry) {
+        // Don't auto-start drawing in configuration mode
+        if (!showManualEntry && !isManualEntry && !isConfigurationMode) {
           startDrawing();
         } else {
-          console.log('Skipping auto-start drawing: manual entry mode');
+          console.log('Skipping auto-start drawing: manual entry mode or configuration mode');
         }
       }, 500);
       
@@ -352,15 +353,17 @@ const MeasurementTools = ({
   }, [apiKey]);
 
   // Auto-start drawing when map and drawing manager are ready
-  // But NOT if this is a manual entry measurement
+  // But NOT if this is a manual entry measurement or in configuration mode
   useEffect(() => {
-    if (mapRef.current && drawingManagerRef.current && !showManualEntry && !isManualEntry && !mapLoading) {
+    if (mapRef.current && drawingManagerRef.current && !showManualEntry && !isManualEntry && !mapLoading && !isConfigurationMode) {
       console.log('Map ready, auto-starting drawing for type:', measurementType);
       setTimeout(() => startDrawing(), 300);
     } else if (isManualEntry) {
       console.log('Skipping auto-start drawing: manual entry mode');
+    } else if (isConfigurationMode) {
+      console.log('Skipping auto-start drawing: configuration mode');
     }
-  }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, isManualEntry, mapLoading]);
+  }, [mapRef.current, drawingManagerRef.current, measurementType, showManualEntry, isManualEntry, mapLoading, isConfigurationMode]);
 
   // Auto-scroll to buttons when measurement is complete
   useEffect(() => {
