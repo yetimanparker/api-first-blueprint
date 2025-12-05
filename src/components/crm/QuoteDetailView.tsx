@@ -402,14 +402,12 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                   <div className="space-y-2">
                     {/* Base Product Calculation */}
                     <div className="text-sm text-muted-foreground pl-3">
-                      {showQuantity && `${product.instances.length} × (`}
                       {product.totalQuantity.toLocaleString()} {unitAbbr} × {formatExactPrice(product.unitPrice, {
                         currency_symbol: settings.currency_symbol,
                         decimal_precision: settings.decimal_precision
                       })}/{unitAbbr}
-                      {showQuantity && ')'}
                       {' = '}
-                      <span className="font-semibold text-foreground">{formatExactPrice(product.totalLineTotal, {
+                      <span className="font-semibold text-foreground">{formatExactPrice(product.totalQuantity * product.unitPrice, {
                         currency_symbol: settings.currency_symbol,
                         decimal_precision: settings.decimal_precision
                       })}</span>
