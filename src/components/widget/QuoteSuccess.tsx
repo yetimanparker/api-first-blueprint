@@ -17,7 +17,7 @@ import { formatExactPrice, calculatePriceRange, formatPriceRange, calculateAddon
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
-import { getZoomBasedFontSize, renderDimensionalProductLabels, renderEdgeMeasurements } from '@/lib/mapLabelUtils';
+import { getZoomBasedFontSize, getZoomBasedMarkerScale, renderDimensionalProductLabels, renderEdgeMeasurements } from '@/lib/mapLabelUtils';
 import { consolidateQuoteItems } from '@/lib/quoteConsolidation';
 
 interface QuoteSuccessProps {
@@ -56,11 +56,28 @@ const QuoteSuccess = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const [currentZoom, setCurrentZoom] = useState(19);
   const edgeLabelsRef = useRef<google.maps.Marker[]>([]);
+  const pointMarkersRef = useRef<google.maps.Marker[]>([]);
 
   useEffect(() => {
     fetchContractorInfo();
     initializeMap();
   }, []);
+
+  // Update point marker scales when zoom changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+    
+    const newScale = getZoomBasedMarkerScale(currentZoom);
+    pointMarkersRef.current.forEach(marker => {
+      const currentIcon = marker.getIcon() as google.maps.Symbol;
+      if (currentIcon) {
+        marker.setIcon({
+          ...currentIcon,
+          scale: newScale,
+        });
+      }
+    });
+  }, [currentZoom]);
 
   // Re-render edge labels when zoom changes
   useEffect(() => {
@@ -243,12 +260,12 @@ const QuoteSuccess = ({
             markerCounters[item.productId]++;
             const markerNumber = markerCounters[item.productId];
             
-            new google.maps.Marker({
+            const pointMarker = new google.maps.Marker({
               position: position, // Already in {lat, lng} format
               map: map,
               icon: {
                 path: google.maps.SymbolPath.CIRCLE,
-                scale: 10,
+                scale: getZoomBasedMarkerScale(currentZoom),
                 fillColor: color,
                 fillOpacity: 0.9,
                 strokeColor: '#ffffff',
@@ -262,6 +279,7 @@ const QuoteSuccess = ({
               },
               title: `${item.productName} - Location ${markerNumber}`,
             });
+            pointMarkersRef.current.push(pointMarker);
           });
         }
 
