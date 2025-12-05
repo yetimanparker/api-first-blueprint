@@ -144,6 +144,53 @@ export function calculateDistanceInFeet(
 }
 
 /**
+ * Calculate a midpoint offset perpendicular to an edge
+ * This positions labels away from the line so they don't overlap with nodes
+ * 
+ * @param point1 - First coordinate {lat, lng}
+ * @param point2 - Second coordinate {lat, lng}
+ * @param offsetMeters - Distance to offset in meters (default: 8)
+ * @returns Offset midpoint position
+ */
+export function calculateOffsetMidpoint(
+  point1: {lat: number, lng: number},
+  point2: {lat: number, lng: number},
+  offsetMeters: number = 8
+): {lat: number, lng: number} {
+  // Calculate midpoint
+  const midpoint = {
+    lat: (point1.lat + point2.lat) / 2,
+    lng: (point1.lng + point2.lng) / 2
+  };
+  
+  // Calculate direction vector
+  const dx = point2.lng - point1.lng;
+  const dy = point2.lat - point1.lat;
+  
+  // Get length of vector
+  const length = Math.sqrt(dx * dx + dy * dy);
+  if (length === 0) return midpoint;
+  
+  // Convert offset from meters to approximate lat/lng degrees
+  // At the equator, 1 degree ≈ 111,320 meters
+  // Adjust for latitude (cosine correction)
+  const latRadians = midpoint.lat * Math.PI / 180;
+  const metersPerDegreeLat = 111320;
+  const metersPerDegreeLng = 111320 * Math.cos(latRadians);
+  
+  // Perpendicular direction (rotated 90° clockwise: swap and negate)
+  // This gives us a vector pointing "right" of the edge direction
+  const perpLat = -dx / length;
+  const perpLng = dy / length;
+  
+  // Apply offset in the perpendicular direction
+  return {
+    lat: midpoint.lat + perpLat * (offsetMeters / metersPerDegreeLat),
+    lng: midpoint.lng + perpLng * (offsetMeters / metersPerDegreeLng)
+  };
+}
+
+/**
  * Render edge measurements (distance labels) between nodes of a polygon or polyline
  * 
  * @param map - Google Maps instance
@@ -178,11 +225,8 @@ export function renderEdgeMeasurements(
     // Skip very small edges (< 0.5 ft)
     if (distanceFeet < 0.5) continue;
     
-    // Calculate midpoint for label placement
-    const midpoint = {
-      lat: (point1.lat + point2.lat) / 2,
-      lng: (point1.lng + point2.lng) / 2
-    };
+    // Calculate offset midpoint (positioned perpendicular to edge, away from nodes)
+    const labelPosition = calculateOffsetMidpoint(point1, point2, 8);
     
     // Format distance with appropriate precision
     let distanceText: string;
@@ -196,7 +240,7 @@ export function renderEdgeMeasurements(
     
     // Create edge label marker
     const edgeLabel = new google.maps.Marker({
-      position: midpoint,
+      position: labelPosition,
       map: map,
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
