@@ -112,6 +112,7 @@ const MeasurementTools = ({
   const isDrawingRef = useRef(false);
   const pointCountRef = useRef(0); // Track point count for reliable sequential numbering
   const isRenderingRef = useRef(false); // Guard against concurrent renders
+  const isConfigurationModeRef = useRef(isConfigurationMode); // Track config mode for click handlers
   const currentPathRef = useRef<google.maps.LatLng[]>([]);
   const mouseMoveListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
@@ -491,6 +492,9 @@ const MeasurementTools = ({
 
   // Disable/enable shape editing based on configuration mode
   useEffect(() => {
+    // Update the ref so click handlers have access to current value
+    isConfigurationModeRef.current = isConfigurationMode;
+    
     if (currentShapeRef.current) {
       currentShapeRef.current.setEditable(!isConfigurationMode);
     }
@@ -1068,6 +1072,12 @@ const MeasurementTools = ({
 
     // Add map click listener for point placement mode using refs
     google.maps.event.addListener(map, 'click', (event: google.maps.MapMouseEvent) => {
+      // Don't allow any map interactions when in configuration mode
+      if (isConfigurationModeRef.current) {
+        console.log('🚫 Map click ignored - in configuration mode');
+        return;
+      }
+      
       console.log('Map clicked, measurementType:', measurementTypeRef.current, 'isDrawing:', isDrawingRef.current);
       
       if (measurementTypeRef.current === 'dimensional' && isDrawingRef.current && event.latLng) {
@@ -1119,6 +1129,9 @@ const MeasurementTools = ({
           google.maps.event.removeListener(clickListenerRef.current);
         }
         clickListenerRef.current = map.addListener('click', (event: google.maps.MapMouseEvent) => {
+          // Don't allow drawing interactions in configuration mode
+          if (isConfigurationModeRef.current) return;
+          
           if (event.latLng && isDrawingInProgress) {
             const previousPoint = currentPathRef.current[currentPathRef.current.length - 1];
             currentPathRef.current.push(event.latLng);
