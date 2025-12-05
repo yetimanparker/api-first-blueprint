@@ -804,7 +804,7 @@ const Widget = () => {
                 customerAddress={widgetState.customerInfo.address}
                 selectedProduct={selectedProduct}
                 onChangeProduct={goToProductSelection}
-                isConfigurationMode={widgetState.currentStep === 'product-configuration'}
+                isConfigurationMode={['product-configuration', 'addon-placement', 'addon-quantity-input', 'quote-review', 'contact-after', 'project-comments'].includes(widgetState.currentStep)}
                 currentStep={widgetState.currentStep}
                 existingQuoteItems={existingQuoteItemsForMap}
                 onResetToMeasurement={resetToMeasurement}
