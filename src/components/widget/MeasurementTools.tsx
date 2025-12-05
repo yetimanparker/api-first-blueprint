@@ -2690,15 +2690,18 @@ const MeasurementTools = ({
                     const allSegments = [...accumulatedSegments, currentMeasurement];
                     const totalValue = allSegments.reduce((sum, s) => sum + s.value, 0);
                     
-                    // Combine coordinates from all segments - keep as number[][]
-                    const combinedCoordinates: number[][] = allSegments.flatMap(s => 
-                      s.coordinates || []
-                    );
+                    // Keep each segment's coordinates separate (for independent rendering)
+                    const segmentsArray: number[][][] = allSegments
+                      .filter(s => s.coordinates && s.coordinates.length > 0)
+                      .map(s => s.coordinates!);
                     
                     const combinedMeasurement: MeasurementData = {
                       ...currentMeasurement,
                       value: totalValue,
-                      coordinates: combinedCoordinates.length > 0 ? combinedCoordinates : undefined,
+                      // Keep first segment's coordinates for backward compatibility
+                      coordinates: allSegments[0]?.coordinates,
+                      // Store all segments separately for proper rendering
+                      segments: segmentsArray.length > 1 ? segmentsArray : undefined,
                       // Store segment count for display
                       segmentCount: allSegments.length
                     };

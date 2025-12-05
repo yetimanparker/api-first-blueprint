@@ -16,6 +16,7 @@ export interface MeasurementData {
   value: number;
   unit: string;
   coordinates?: number[][];
+  segments?: number[][][]; // Array of coordinate arrays for multiple independent segments
   pointLocations?: Array<{lat: number, lng: number}>; // For 'point' type measurements
   manualEntry?: boolean;
   customName?: string;

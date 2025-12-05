@@ -12,6 +12,7 @@ interface AddonPlacementProps {
   mainProductMeasurement: {
     type: 'area' | 'linear' | 'point';
     coordinates?: number[][];
+    segments?: number[][][]; // Array of coordinate arrays for multiple independent segments
     pointLocations?: Array<{ lat: number; lng: number }>;
     centerPoint?: { lat: number; lng: number };
     mapColor?: string;
@@ -241,44 +242,58 @@ export function AddonPlacement({
   const drawMainProductShape = (mapInstance: google.maps.Map) => {
     const color = mainProductMeasurement.mapColor || '#3B82F6';
     
-    if (mainProductMeasurement.type === 'area' && mainProductMeasurement.coordinates) {
-      // Draw polygon
-      const paths = mainProductMeasurement.coordinates.map(coord => ({
-        lat: coord[0],
-        lng: coord[1]
-      }));
+    if (mainProductMeasurement.type === 'area') {
+      // Handle multiple segments if present
+      const segmentsToRender = mainProductMeasurement.segments || (mainProductMeasurement.coordinates ? [mainProductMeasurement.coordinates] : []);
+      
+      segmentsToRender.forEach((segmentCoords, idx) => {
+        const paths = segmentCoords.map(coord => ({
+          lat: coord[0],
+          lng: coord[1]
+        }));
 
-      const polygon = new google.maps.Polygon({
-        paths,
-        strokeColor: color,
-        strokeOpacity: 0.8,
-        strokeWeight: 2,
-        fillColor: color,
-        fillOpacity: 0.2,
-        editable: false,
-        draggable: false,
-        map: mapInstance
+        const polygon = new google.maps.Polygon({
+          paths,
+          strokeColor: color,
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: color,
+          fillOpacity: 0.2,
+          editable: false,
+          draggable: false,
+          map: mapInstance
+        });
+
+        // Store first polygon as mainProductShape for reference
+        if (idx === 0) {
+          setMainProductShape(polygon);
+        }
       });
+    } else if (mainProductMeasurement.type === 'linear') {
+      // Handle multiple segments if present
+      const segmentsToRender = mainProductMeasurement.segments || (mainProductMeasurement.coordinates ? [mainProductMeasurement.coordinates] : []);
+      
+      segmentsToRender.forEach((segmentCoords, idx) => {
+        const path = segmentCoords.map(coord => ({
+          lat: coord[0],
+          lng: coord[1]
+        }));
 
-      setMainProductShape(polygon);
-    } else if (mainProductMeasurement.type === 'linear' && mainProductMeasurement.coordinates) {
-      // Draw polyline
-      const path = mainProductMeasurement.coordinates.map(coord => ({
-        lat: coord[0],
-        lng: coord[1]
-      }));
+        const polyline = new google.maps.Polyline({
+          path,
+          strokeColor: color,
+          strokeOpacity: 0.8,
+          strokeWeight: 3,
+          editable: false,
+          draggable: false,
+          map: mapInstance
+        });
 
-      const polyline = new google.maps.Polyline({
-        path,
-        strokeColor: color,
-        strokeOpacity: 0.8,
-        strokeWeight: 3,
-        editable: false,
-        draggable: false,
-        map: mapInstance
+        // Store first polyline as mainProductShape for reference
+        if (idx === 0) {
+          setMainProductShape(polyline);
+        }
       });
-
-      setMainProductShape(polyline);
     }
   };
 
