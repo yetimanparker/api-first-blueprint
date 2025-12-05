@@ -490,6 +490,26 @@ const Widget = () => {
     }));
   };
 
+  // Handler for "Add Another Segment" - keeps same product, resets measurement
+  const handleAddAnotherSegment = () => {
+    console.log('🔄 Add Another Segment - keeping same product, resetting to measurement');
+    
+    // Clear any drawing manager state to allow fresh measurement
+    if ((window as any).__clearDrawingManager) {
+      (window as any).__clearDrawingManager();
+    }
+    
+    setWidgetState(prev => ({
+      ...prev,
+      currentStep: 'measurement',
+      currentMeasurement: undefined,
+      // Keep currentProductId unchanged - this is the key difference from resetToMeasurement
+      pendingAddons: [],
+      currentMainProductItem: undefined,
+      pendingAddon: undefined
+    }));
+  };
+
   const nextStep = () => {
     console.log('Moving to next step from:', widgetState.currentStep);
     console.log('Current widget state:', widgetState);
@@ -860,6 +880,7 @@ const Widget = () => {
                   pendingAddons: prev.pendingAddons?.filter(item => item.id !== addonItemId) || []
                 }));
               }}
+              onAddAnotherSegment={handleAddAnotherSegment}
             />
           </div>
         )}
