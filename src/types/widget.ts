@@ -1,7 +1,7 @@
 export interface CustomerInfo {
-  firstName: string;
-  lastName: string;
-  email: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
   phone?: string;
   address?: string;
   city?: string;
@@ -107,6 +107,18 @@ export type WorkflowStep =
   | 'confirmation'
   | 'internal-quote-review'; // Internal contractor quote review (no customer contact capture)
 
+// Pending addon configuration before placement
+export interface PendingAddonConfig {
+  addonId: string;
+  addonName: string;
+  priceValue: number;
+  selectedOptionId?: string;
+  selectedOptionName?: string;
+  selectedVariations?: any[];
+  linkedProductId?: string;
+  calculationType: string;
+}
+
 export interface WidgetState {
   currentStep: WorkflowStep;
   customerInfo: CustomerInfo;
@@ -125,7 +137,7 @@ export interface WidgetState {
   // Reference to the main product item for add-on configuration
   currentMainProductItem?: QuoteItem;
   // Single pending add-on currently being placed
-  pendingAddon?: QuoteItem;
+  pendingAddon?: PendingAddonConfig;
   // Accumulated segments for "Add Another Segment" workflow
   accumulatedSegments?: MeasurementData[];
 }

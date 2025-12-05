@@ -29,7 +29,6 @@ const Widget = () => {
   const { settings, loading: settingsLoading, error: settingsError } = useGlobalSettings(contractorId);
 
   const [widgetState, setWidgetState] = useState<WidgetState>({
-    contractorId: contractorId!,
     currentStep: 'product-selection', // Will be updated by useEffect based on settings
     customerInfo: {},
     quoteItems: [],
