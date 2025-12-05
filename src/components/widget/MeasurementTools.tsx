@@ -1160,7 +1160,7 @@ const MeasurementTools = ({
   const setupDrawingManager = (map: google.maps.Map) => {
     const drawingManager = new google.maps.drawing.DrawingManager({
       drawingMode: null,
-      drawingControl: !isConfigurationMode,
+      drawingControl: false, // Never show default drawing controls - we use custom workflow
       drawingControlOptions: {
         position: google.maps.ControlPosition.TOP_CENTER,
         drawingModes: measurementType === 'area' 
@@ -1187,6 +1187,24 @@ const MeasurementTools = ({
 
     drawingManager.setMap(map);
     drawingManagerRef.current = drawingManager;
+    
+    // Set up map click listener for point and dimensional modes
+    map.addListener('click', (e: google.maps.MapMouseEvent) => {
+      if (!e.latLng) return;
+      
+      // Don't handle clicks if in configuration mode
+      if (isConfigurationModeRef.current) return;
+      
+      // Handle point measurement clicks
+      if (measurementTypeRef.current === 'point' && isDrawingRef.current) {
+        addPointMarker(e.latLng);
+      }
+      
+      // Handle dimensional product placement
+      if (measurementTypeRef.current === 'dimensional' && isDrawingRef.current) {
+        placeDimensionalProduct(e.latLng);
+      }
+    });
 
     google.maps.event.addListener(drawingManager, 'drawingmode_changed', () => {
       const mode = drawingManager.getDrawingMode();
