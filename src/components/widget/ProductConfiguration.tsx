@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Minus, Package, Loader2, Trash2, Calculator, MapPin } from 'lucide-react';
+import { Plus, Minus, Package, Loader2, Trash2, Calculator, MapPin, RefreshCw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { QuoteItem, MeasurementData, ProductVariation, ProductAddon } from '@/types/widget';
@@ -117,6 +117,7 @@ interface ProductConfigurationProps {
     linkedProductId?: string;
   }, mainItem: QuoteItem) => void;
   onRemovePendingAddon?: (addonItemId: string) => void;
+  onAddAnotherSegment?: () => void;
 }
 
 const ProductConfiguration = ({ 
@@ -129,7 +130,8 @@ const ProductConfiguration = ({
   cachedProducts,
   pendingAddons,
   onAddonPlacementStart,
-  onRemovePendingAddon
+  onRemovePendingAddon,
+  onAddAnotherSegment
 }: ProductConfigurationProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [variations, setVariations] = useState<Variation[]>([]);
@@ -1122,6 +1124,25 @@ const ProductConfiguration = ({
                 <Trash2 className="h-4 w-4 mr-2" />
                 Remove
               </Button>
+              {onAddAnotherSegment && (
+                <Button 
+                  onClick={() => {
+                    handleAddToQuote();
+                    // Call onAddAnotherSegment after a brief delay to allow state update
+                    setTimeout(() => onAddAnotherSegment(), 100);
+                  }} 
+                  variant="outline" 
+                  size="lg" 
+                  className="flex-1 w-full"
+                  disabled={
+                    (isVolumeBased && (!depth || parseFloat(depth) <= 0)) ||
+                    (variations.some(v => v.is_required) && !selectedVariationId)
+                  }
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Add Another Segment
+                </Button>
+              )}
               <Button 
                 onClick={handleAddToQuote} 
                 variant="success" 
