@@ -240,16 +240,13 @@ export default function MeasurementMap({ measurements, center, className = "" }:
 
               // Add segment total label at middle of this segment's path
               const midIndex = Math.floor(path.length / 2);
-              const labelText = segmentsToRender.length > 1 
-                ? `Seg ${segIdx + 1}: ${Math.round(segmentTotalLength).toLocaleString()} ft`
-                : `Total: ${Math.round(segmentTotalLength).toLocaleString()} ft`;
               
               new google.maps.Marker({
                 position: path[midIndex],
                 map: map,
                 icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
                 label: {
-                  text: labelText,
+                  text: `${Math.round(segmentTotalLength).toLocaleString()} ft`,
                   color: color,
                   fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
                   fontWeight: 'bold',
