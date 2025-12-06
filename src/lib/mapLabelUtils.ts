@@ -226,7 +226,8 @@ export function renderEdgeMeasurements(
     if (distanceFeet < 0.5) continue;
     
     // Calculate offset midpoint (positioned perpendicular to edge, away from nodes)
-    const labelPosition = calculateOffsetMidpoint(point1, point2, 8);
+    // Use 15 meters offset for better visibility and node accessibility
+    const labelPosition = calculateOffsetMidpoint(point1, point2, 15);
     
     // Format distance with appropriate precision
     let distanceText: string;
