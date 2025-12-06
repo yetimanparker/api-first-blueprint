@@ -155,38 +155,36 @@ export function calculateDistanceInFeet(
 export function calculateOffsetMidpoint(
   point1: {lat: number, lng: number},
   point2: {lat: number, lng: number},
-  offsetMeters: number = 8
+  offsetMeters: number = 5
 ): {lat: number, lng: number} {
   // Calculate midpoint
-  const midpoint = {
-    lat: (point1.lat + point2.lat) / 2,
-    lng: (point1.lng + point2.lng) / 2
-  };
+  const midLat = (point1.lat + point2.lat) / 2;
+  const midLng = (point1.lng + point2.lng) / 2;
   
-  // Calculate direction vector
+  // Direction vector along the segment
   const dx = point2.lng - point1.lng;
   const dy = point2.lat - point1.lat;
   
   // Get length of vector
   const length = Math.sqrt(dx * dx + dy * dy);
-  if (length === 0) return midpoint;
+  if (length === 0) return { lat: midLat, lng: midLng };
   
-  // Convert offset from meters to approximate lat/lng degrees
-  // At the equator, 1 degree ≈ 111,320 meters
-  // Adjust for latitude (cosine correction)
-  const latRadians = midpoint.lat * Math.PI / 180;
+  // Perpendicular vector (rotate 90°): for (dx, dy), perpendicular is (-dy, dx)
+  // Normalize it
+  const perpLng = -dy / length;
+  const perpLat = dx / length;
+  
+  // Convert offset from meters to degrees
+  // 1 degree latitude ≈ 111,320 meters
+  // 1 degree longitude ≈ 111,320 * cos(lat) meters
+  const latRadians = midLat * Math.PI / 180;
   const metersPerDegreeLat = 111320;
   const metersPerDegreeLng = 111320 * Math.cos(latRadians);
   
-  // Perpendicular direction (rotated 90° clockwise: swap and negate)
-  // This gives us a vector pointing "right" of the edge direction
-  const perpLat = -dx / length;
-  const perpLng = dy / length;
-  
-  // Apply offset in the perpendicular direction
+  // Apply small offset perpendicular to the line
   return {
-    lat: midpoint.lat + perpLat * (offsetMeters / metersPerDegreeLat),
-    lng: midpoint.lng + perpLng * (offsetMeters / metersPerDegreeLng)
+    lat: midLat + perpLat * (offsetMeters / metersPerDegreeLat),
+    lng: midLng + perpLng * (offsetMeters / metersPerDegreeLng)
   };
 }
 
@@ -225,11 +223,8 @@ export function renderEdgeMeasurements(
     // Skip very small edges (< 0.5 ft)
     if (distanceFeet < 0.5) continue;
     
-    // Position label at the midpoint of the segment
-    const labelPosition = {
-      lat: (point1.lat + point2.lat) / 2,
-      lng: (point1.lng + point2.lng) / 2
-    };
+    // Position label at midpoint with small perpendicular offset (5 meters)
+    const labelPosition = calculateOffsetMidpoint(point1, point2, 5);
     
     // Format distance with appropriate precision
     let distanceText: string;
