@@ -348,7 +348,7 @@ export function AddonPlacement({
     setPlacedMarkers(newMarkers);
     setPlacedLocations(newLocations);
 
-    toast.success(`${addonName} #${markerNumber} placed`);
+    // Removed toast to avoid blocking Done button
   };
 
   const removeMarker = (marker: google.maps.Marker) => {
@@ -409,8 +409,8 @@ export function AddonPlacement({
           className="w-full h-full absolute inset-0"
         />
         
-        {/* Placement Instructions - on map */}
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10 pointer-events-none px-4 w-full sm:w-auto">
+        {/* Placement Instructions - bottom of map, above buttons */}
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none px-4 w-full sm:w-auto">
           <div className="bg-white rounded-lg shadow-lg px-3 py-2 text-xs sm:text-sm text-gray-700 text-center">
             Click to place add-ons. Click marker to remove.
           </div>
