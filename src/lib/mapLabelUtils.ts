@@ -223,8 +223,8 @@ export function renderEdgeMeasurements(
     // Skip very small edges (< 0.5 ft)
     if (distanceFeet < 0.5) continue;
     
-    // Position label at midpoint with small perpendicular offset (5 meters)
-    const labelPosition = calculateOffsetMidpoint(point1, point2, 5);
+    // Position label at midpoint with small perpendicular offset (2 meters)
+    const labelPosition = calculateOffsetMidpoint(point1, point2, 2);
     
     // Format distance with appropriate precision
     let distanceText: string;
