@@ -1479,18 +1479,21 @@ export default function QuoteEdit() {
             <CardContent>
               {quoteItems.some(item => 
                 item.measurement_data?.coordinates?.length || 
-                item.measurement_data?.pointLocations?.length
+                item.measurement_data?.pointLocations?.length ||
+                item.measurement_data?.segments?.length
               ) ? (
                 <>
                   <MeasurementMap
                     measurements={quoteItems
                       .filter(item => 
                         item.measurement_data?.coordinates?.length || 
-                        item.measurement_data?.pointLocations?.length
+                        item.measurement_data?.pointLocations?.length ||
+                        item.measurement_data?.segments?.length
                       )
                       .map(item => ({
                         type: item.measurement_data!.type,
                         coordinates: item.measurement_data!.coordinates,
+                        segments: item.measurement_data!.segments,
                         pointLocations: item.measurement_data!.pointLocations,
                         productName: item.product.name,
                         productColor: item.measurement_data!.mapColor || '#3B82F6',
@@ -1505,7 +1508,8 @@ export default function QuoteEdit() {
                       const uniqueProducts = quoteItems
                         .filter(item => 
                           item.measurement_data?.coordinates?.length || 
-                          item.measurement_data?.pointLocations?.length
+                          item.measurement_data?.pointLocations?.length ||
+                          item.measurement_data?.segments?.length
                         )
                         .reduce((acc, item) => {
                           // Only add if we haven't seen this product_id yet
