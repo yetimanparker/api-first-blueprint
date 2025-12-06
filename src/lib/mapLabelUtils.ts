@@ -225,9 +225,11 @@ export function renderEdgeMeasurements(
     // Skip very small edges (< 0.5 ft)
     if (distanceFeet < 0.5) continue;
     
-    // Calculate offset midpoint (positioned perpendicular to edge, away from nodes)
-    // Use small offset (3 meters) to stay close to segment but clear of nodes
-    const labelPosition = calculateOffsetMidpoint(point1, point2, 3);
+    // Position label at the midpoint of the segment
+    const labelPosition = {
+      lat: (point1.lat + point2.lat) / 2,
+      lng: (point1.lng + point2.lng) / 2
+    };
     
     // Format distance with appropriate precision
     let distanceText: string;
