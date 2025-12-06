@@ -192,6 +192,13 @@ export default function MeasurementMap({ measurements, center, className = "" }:
                 map: map,
               });
 
+              // Calculate this segment's total length
+              let segmentTotalLength = 0;
+              for (let i = 0; i < path.length - 1; i++) {
+                const edgeDistance = google.maps.geometry.spherical.computeLength([path[i], path[i + 1]]);
+                segmentTotalLength += edgeDistance * 3.28084; // Convert to feet
+              }
+
               // Add vertex markers at each point
               path.forEach((point, idx) => {
                 new google.maps.Marker({
@@ -208,11 +215,11 @@ export default function MeasurementMap({ measurements, center, className = "" }:
                 });
               });
 
-              // Add segment measurements for multi-point lines (only if >2 points in this segment)
+              // Add edge measurements for multi-point lines (only if >2 points in this segment)
               if (path.length > 2) {
                 for (let i = 0; i < path.length - 1; i++) {
-                  const segmentDistance = google.maps.geometry.spherical.computeLength([path[i], path[i + 1]]);
-                  const segmentDistanceFt = segmentDistance * 3.28084;
+                  const edgeDistance = google.maps.geometry.spherical.computeLength([path[i], path[i + 1]]);
+                  const edgeDistanceFt = edgeDistance * 3.28084;
                   
                   const midLat = (path[i].lat + path[i + 1].lat) / 2;
                   const midLng = (path[i].lng + path[i + 1].lng) / 2;
@@ -222,7 +229,7 @@ export default function MeasurementMap({ measurements, center, className = "" }:
                     map: map,
                     icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
                     label: {
-                      text: `${segmentDistanceFt.toFixed(1)} ft`,
+                      text: `${edgeDistanceFt.toFixed(1)} ft`,
                       color: color,
                       fontSize: `${Math.max(11, getZoomBasedFontSize(currentZoom) - 2)}px`,
                       fontWeight: 'normal',
@@ -231,21 +238,23 @@ export default function MeasurementMap({ measurements, center, className = "" }:
                 }
               }
 
-              // Add total measurement label (only on first segment)
-              if (segIdx === 0) {
-                const midIndex = Math.floor(path.length / 2);
-                new google.maps.Marker({
-                  position: path[midIndex],
-                  map: map,
-                  icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-                  label: {
-                    text: `Total: ${measurement.value.toLocaleString()} ft`,
-                    color: color,
-                    fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
-                    fontWeight: 'bold',
-                  },
-                });
-              }
+              // Add segment total label at middle of this segment's path
+              const midIndex = Math.floor(path.length / 2);
+              const labelText = segmentsToRender.length > 1 
+                ? `Seg ${segIdx + 1}: ${Math.round(segmentTotalLength).toLocaleString()} ft`
+                : `Total: ${Math.round(segmentTotalLength).toLocaleString()} ft`;
+              
+              new google.maps.Marker({
+                position: path[midIndex],
+                map: map,
+                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+                label: {
+                  text: labelText,
+                  color: color,
+                  fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
+                  fontWeight: 'bold',
+                },
+              });
             });
           } else if (measurement.type === 'point') {
             // Draw markers for point measurements (e.g., individual trees)
