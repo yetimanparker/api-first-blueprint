@@ -10,7 +10,7 @@ import { Loader2, Ruler, Square, MapPin, Undo2, PencilRuler, ArrowLeft, MousePoi
 import { MeasurementData } from '@/types/widget';
 import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
-import { getZoomBasedFontSize, getZoomBasedMarkerScale, renderDimensionalProductLabels, renderEdgeMeasurements } from '@/lib/mapLabelUtils';
+import { getZoomBasedFontSize, getZoomBasedMarkerScale, renderDimensionalProductLabels, renderEdgeMeasurements, calculateOffsetMidpoint } from '@/lib/mapLabelUtils';
 import { calculateRotatedRectangle } from '@/components/widget/DimensionalPlacement';
 
 interface MeasurementToolsProps {
@@ -1788,16 +1788,34 @@ const MeasurementTools = ({
   ) => {
     if (!mapRef.current) return;
 
-    let center: google.maps.LatLng;
+    let labelPosition: google.maps.LatLng | { lat: number; lng: number };
     
     if (shape instanceof google.maps.Polygon) {
       const bounds = new google.maps.LatLngBounds();
       shape.getPath().forEach((coord) => bounds.extend(coord));
-      center = bounds.getCenter();
+      labelPosition = bounds.getCenter();
     } else {
+      // For polylines, offset the label from the midpoint node
       const path = shape.getPath();
       const midIndex = Math.floor(path.getLength() / 2);
-      center = path.getAt(midIndex);
+      
+      // Get adjacent points for perpendicular offset calculation
+      if (path.getLength() >= 2) {
+        const midPoint = path.getAt(midIndex);
+        const prevIndex = Math.max(0, midIndex - 1);
+        const nextIndex = Math.min(path.getLength() - 1, midIndex + 1);
+        const prevPoint = path.getAt(prevIndex);
+        const nextPoint = path.getAt(nextIndex);
+        
+        // Calculate offset perpendicular to the line direction
+        labelPosition = calculateOffsetMidpoint(
+          { lat: prevPoint.lat(), lng: prevPoint.lng() },
+          { lat: nextPoint.lat(), lng: nextPoint.lng() },
+          2  // Same small offset as edge labels
+        );
+      } else {
+        labelPosition = path.getAt(midIndex);
+      }
     }
 
     if (measurementLabelRef.current) {
@@ -1805,7 +1823,7 @@ const MeasurementTools = ({
     }
 
     const marker = new google.maps.Marker({
-      position: center,
+      position: labelPosition,
       map: mapRef.current,
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
