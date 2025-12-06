@@ -1354,243 +1354,253 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           />
         </div>
 
-        {/* Sold in Increments Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Sold in Increments
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormDescription>
-              Configure if this product is only sold in fixed increments (e.g., pallets, bundles, 20ft lengths)
-            </FormDescription>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="sold_in_increments_of"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Increment Size</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.1" 
-                        placeholder="e.g., 450 or 20"
-                        {...field}
-                        value={field.value || ""}
-                        onChange={(e) => {
-                          const value = parseFloat(e.target.value);
-                          field.onChange(value > 0 ? value : undefined);
-                        }}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Size of each increment unit
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="increment_unit_label"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Increment Label</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="e.g., pallet, bundle, 20ft length"
-                        {...field}
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Display name for each increment
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        {/* Sold in Increments Settings - Collapsible */}
+        <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+          <div className="space-y-0.5 flex items-center gap-2">
+            <Package className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <Label className="text-base">Sold in Increments</Label>
+              <p className="text-sm text-muted-foreground">
+                Product is only sold in fixed increments (e.g., pallets, bundles)
+              </p>
             </div>
+          </div>
+          <Switch
+            checked={!!form.watch("sold_in_increments_of")}
+            onCheckedChange={(checked) => {
+              if (!checked) {
+                form.setValue("sold_in_increments_of", undefined);
+                form.setValue("increment_unit_label", "");
+                form.setValue("increment_description", "");
+                form.setValue("allow_partial_increments", false);
+              } else {
+                form.setValue("sold_in_increments_of", 1);
+              }
+            }}
+          />
+        </div>
 
-            <FormField
-              control={form.control}
-              name="increment_description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="e.g., Each pallet covers approximately 450 square feet"
-                      {...field}
-                      value={field.value || ""}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Explain to customers what each increment represents
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="allow_partial_increments"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Allow Partial Increments</FormLabel>
-                    <FormDescription>
-                      Allow half-increments (e.g., 0.5 pallets)
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Dimensional Product Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Ruler className="h-5 w-5" />
-              Predefined Dimensions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="has_fixed_dimensions"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">This product has fixed dimensions</FormLabel>
-                    <FormDescription>
-                      Enable for products like pickleball courts, pools, sheds, etc. that have standard sizes
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {form.watch("has_fixed_dimensions") && (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-                  <FormField
-                    control={form.control}
-                    name="default_width"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Default Width (feet)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.1" 
-                            placeholder="e.g., 20"
-                            {...field}
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="default_length"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Default Length (feet)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.1" 
-                            placeholder="e.g., 44"
-                            {...field}
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
+        {!!form.watch("sold_in_increments_of") && (
+          <Card>
+            <CardContent className="pt-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="allow_dimension_editing"
+                  name="sold_in_increments_of"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Allow customers to adjust dimensions</FormLabel>
-                        <FormDescription>
-                          If enabled, customers can modify width and length in the widget
-                        </FormDescription>
-                      </div>
+                    <FormItem>
+                      <FormLabel>Increment Size</FormLabel>
                       <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+                        <Input 
+                          type="number" 
+                          step="0.1" 
+                          placeholder="e.g., 450 or 20"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            field.onChange(value > 0 ? value : undefined);
+                          }}
                         />
                       </FormControl>
-                     </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="allow_addon_map_placement"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Allow Map-Placed Add-ons</FormLabel>
-                        <FormDescription>
-                          Enable add-ons to be placed at specific locations on the map (e.g., gate locations on a fence)
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
+                      <FormDescription>
+                        Size of each increment unit
+                      </FormDescription>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
-                    Example: Standard Pickleball Court
-                  </p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                    Width: 20ft × Length: 44ft = 880 sq ft
+                <FormField
+                  control={form.control}
+                  name="increment_unit_label"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Increment Label</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="e.g., pallet, bundle, 20ft length"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Display name for each increment
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="increment_description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="e.g., Each pallet covers approximately 450 square feet"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Explain to customers what each increment represents
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="allow_partial_increments"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Allow Partial Increments</FormLabel>
+                      <FormDescription>
+                        Allow half-increments (e.g., 0.5 pallets)
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Predefined Dimensions - Collapsible */}
+        <FormField
+          control={form.control}
+          name="has_fixed_dimensions"
+          render={({ field }) => (
+            <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5 flex items-center gap-2">
+                <Ruler className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <Label className="text-base">Predefined Dimensions</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Product has fixed dimensions (e.g., courts, pools, sheds)
                   </p>
                 </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+              </div>
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            </div>
+          )}
+        />
+
+        {form.watch("has_fixed_dimensions") && (
+          <Card>
+            <CardContent className="pt-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="default_width"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Default Width (feet)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.1" 
+                          placeholder="e.g., 20"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="default_length"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Default Length (feet)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.1" 
+                          placeholder="e.g., 44"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="allow_dimension_editing"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Allow customers to adjust dimensions</FormLabel>
+                      <FormDescription>
+                        If enabled, customers can modify width and length in the widget
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="allow_addon_map_placement"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Allow Map-Placed Add-ons</FormLabel>
+                      <FormDescription>
+                        Enable add-ons to be placed at specific locations on the map
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
+                  Example: Standard Pickleball Court
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  Width: 20ft × Length: 44ft = 880 sq ft
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Product Variations */}
         <Card>
