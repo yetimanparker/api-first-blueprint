@@ -229,7 +229,7 @@ export default function MeasurementMap({ measurements, center, className = "" }:
                     map: map,
                     icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
                     label: {
-                      text: `${edgeDistanceFt.toFixed(1)} ft`,
+                      text: `${Math.round(edgeDistanceFt)} ft`,
                       color: color,
                       fontSize: `${Math.max(11, getZoomBasedFontSize(currentZoom) - 2)}px`,
                       fontWeight: 'normal',
