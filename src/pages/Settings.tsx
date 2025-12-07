@@ -740,6 +740,22 @@ const Settings = () => {
                       )}
                     />
                     <FormField
+                      control={settingsForm.control}
+                      name="widget_theme_color"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Widget Theme Color</FormLabel>
+                          <FormControl>
+                            <Input type="color" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Primary color for the quote widget
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
                       control={contractorForm.control}
                       name="logo_url"
                       render={({ field }) => (
@@ -845,9 +861,35 @@ const Settings = () => {
               <Form {...settingsForm}>
                 <form onSubmit={settingsForm.handleSubmit(onSettingsSubmit)} className="space-y-6">
                   <div className="space-y-6">
+                    {/* Contact Capture Settings */}
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Contact Information Requirements</h3>
+                      <h3 className="text-lg font-medium mb-4">Contact Capture Settings</h3>
                       <div className="space-y-4">
+                        <FormField
+                          control={settingsForm.control}
+                          name="contact_capture_timing"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Contact Capture Timing</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select timing" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="before_quote">Before Quote</SelectItem>
+                                  <SelectItem value="on_submit">On Submit</SelectItem>
+                                  <SelectItem value="optional">Optional</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                When to capture customer contact information
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <FormField
                           control={settingsForm.control}
                           name="require_email"
@@ -913,34 +955,10 @@ const Settings = () => {
 
                     <Separator />
 
+                    {/* Pricing Settings */}
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Contact & Pricing Behavior</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={settingsForm.control}
-                          name="contact_capture_timing"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Contact Capture Timing</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select timing" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="before_quote">Before Quote</SelectItem>
-                                  <SelectItem value="on_submit">On Submit</SelectItem>
-                                  <SelectItem value="optional">Optional</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormDescription>
-                                When to capture customer contact information
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                      <h3 className="text-lg font-medium mb-4">Pricing</h3>
+                      <div className="space-y-4">
                         <FormField
                           control={settingsForm.control}
                           name="pricing_visibility"
@@ -966,36 +984,7 @@ const Settings = () => {
                             </FormItem>
                           )}
                         />
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Widget Appearance</h3>
-                      <FormField
-                        control={settingsForm.control}
-                        name="widget_theme_color"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Widget Theme Color</FormLabel>
-                            <FormControl>
-                              <Input type="color" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              Primary color for the quote widget
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <Separator />
-
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Price Range Settings</h3>
-                      <div className="space-y-4">
+                        
                         <FormField
                           control={settingsForm.control}
                           name="use_price_ranges"
@@ -1016,199 +1005,203 @@ const Settings = () => {
                             </FormItem>
                           )}
                         />
+                        
+                        {settingsForm.watch("use_price_ranges") && (
+                          <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-4 border-l-2 border-muted">
+                              <FormField
+                                control={settingsForm.control}
+                                name="price_range_lower_percentage"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Lower Range (%)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        min="0" 
+                                        max="50" 
+                                        {...field} 
+                                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Percentage discount from base price (0-50%)
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={settingsForm.control}
+                                name="price_range_upper_percentage"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Upper Range (%)</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        type="number" 
+                                        min="0" 
+                                        max="100" 
+                                        {...field} 
+                                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      Percentage increase from base price (0-100%)
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                            <div className="pl-4 border-l-2 border-muted">
+                              <FormField
+                                control={settingsForm.control}
+                                name="price_range_display_format"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Display Format</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select format" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        <SelectItem value="percentage">Show Percentage</SelectItem>
+                                        <SelectItem value="dollar_amounts">Dollar Amounts Only</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <FormDescription>
+                                      How to display price ranges
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </>
+                        )}
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <FormField
                             control={settingsForm.control}
-                            name="price_range_lower_percentage"
+                            name="currency_symbol"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Lower Range (%)</FormLabel>
+                                <FormLabel>Currency Symbol</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    type="number" 
-                                    min="0" 
-                                    max="50" 
-                                    {...field} 
-                                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                                  />
+                                  <Input placeholder="$" {...field} />
                                 </FormControl>
-                                <FormDescription>
-                                  Percentage discount from base price (0-50%)
-                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
                           <FormField
                             control={settingsForm.control}
-                            name="price_range_upper_percentage"
+                            name="decimal_precision"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Upper Range (%)</FormLabel>
+                                <FormLabel>Decimal Precision</FormLabel>
                                 <FormControl>
                                   <Input 
                                     type="number" 
                                     min="0" 
-                                    max="100" 
+                                    max="4" 
                                     {...field} 
-                                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                    onChange={(e) => field.onChange(parseInt(e.target.value))}
                                   />
                                 </FormControl>
                                 <FormDescription>
-                                  Percentage increase from base price (0-100%)
+                                  Number of decimal places for prices
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
                         </div>
-                        <FormField
-                          control={settingsForm.control}
-                          name="price_range_display_format"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Display Format</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={settingsForm.control}
+                            name="global_markup_percentage"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Global Markup (%)</FormLabel>
                                 <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select format" />
-                                  </SelectTrigger>
+                                  <Input 
+                                    type="number" 
+                                    min="0" 
+                                    max="100" 
+                                    step="0.1"
+                                    {...field} 
+                                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                  />
                                 </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="percentage">Show Percentage</SelectItem>
-                                  <SelectItem value="dollar_amounts">Dollar Amounts Only</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormDescription>
-                                How to display price ranges
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                <FormDescription>
+                                  Apply markup to all products
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={settingsForm.control}
+                            name="global_tax_rate"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Global Tax Rate (%)</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    min="0" 
+                                    max="100" 
+                                    step="0.1"
+                                    {...field} 
+                                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Apply tax rate to all quotes
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                       </div>
                     </div>
 
                     <Separator />
 
+                    {/* Product Defaults */}
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Default Product Settings</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={settingsForm.control}
-                          name="currency_symbol"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Currency Symbol</FormLabel>
+                      <h3 className="text-lg font-medium mb-4">Product Defaults</h3>
+                      <FormField
+                        control={settingsForm.control}
+                        name="default_unit_type"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Default Unit Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
-                                <Input placeholder="$" {...field} />
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select unit type" />
+                                </SelectTrigger>
                               </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={settingsForm.control}
-                          name="decimal_precision"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Decimal Precision</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  min="0" 
-                                  max="4" 
-                                  {...field} 
-                                  onChange={(e) => field.onChange(parseInt(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Number of decimal places for prices
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={settingsForm.control}
-                          name="default_unit_type"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Default Unit Type</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select unit type" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="sq_ft">Square Feet</SelectItem>
-                                  <SelectItem value="linear_ft">Linear Feet</SelectItem>
-                                  <SelectItem value="sq_m">Square Meters</SelectItem>
-                                  <SelectItem value="linear_m">Linear Meters</SelectItem>
-                                  <SelectItem value="each">Each</SelectItem>
-                                  <SelectItem value="hour">Hour</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Pricing Adjustments</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={settingsForm.control}
-                          name="global_markup_percentage"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Global Markup (%)</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  min="0" 
-                                  max="100" 
-                                  step="0.1"
-                                  {...field} 
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Apply markup to all products
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={settingsForm.control}
-                          name="global_tax_rate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Global Tax Rate (%)</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  min="0" 
-                                  max="100" 
-                                  step="0.01"
-                                  {...field} 
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Apply tax to all quotes
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                              <SelectContent>
+                                <SelectItem value="sq_ft">Square Feet</SelectItem>
+                                <SelectItem value="linear_ft">Linear Feet</SelectItem>
+                                <SelectItem value="sq_m">Square Meters</SelectItem>
+                                <SelectItem value="linear_m">Linear Meters</SelectItem>
+                                <SelectItem value="each">Each</SelectItem>
+                                <SelectItem value="hour">Hour</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
                     <Separator />
