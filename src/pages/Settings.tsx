@@ -1752,44 +1752,48 @@ const Settings = () => {
                     Provide this code to your web developer to embed the widget on your website
                   </p>
                 </div>
+              </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+          )}
 
-                {/* Live Preview */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Live Preview</label>
-                  <div className="border rounded-lg overflow-hidden">
-                    <iframe
-                      key={`widget-preview-${Date.now()}`}
-                      src={`/widget/${contractorId}?preview=true`}
-                      width="100%"
-                      height="800"
-                      style={{ border: 'none' }}
-                      title="Widget Preview"
-                    />
+          {/* Live Preview Card - Always Visible */}
+          {contractorId && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ExternalLink className="h-5 w-5" />
+                    Live Preview
                   </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full sm:w-auto"
+                    size="sm"
                     onClick={() => window.open(`/widget/${contractorId}`, '_blank')}
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Open in New Tab
                   </Button>
-                </div>
-
-                <div className="p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
-                  <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
-                    <strong>Note:</strong> The widget automatically updates when you change products, settings, or pricing. No need to update the embed code!
-                  </p>
+                </CardTitle>
+                <CardDescription>
+                  Preview how your widget appears to customers
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg overflow-hidden">
+                  <iframe
+                    key={`widget-preview-${Date.now()}`}
+                    src={`/widget/${contractorId}?preview=true`}
+                    width="100%"
+                    height="800"
+                    style={{ border: 'none' }}
+                    title="Widget Preview"
+                  />
                 </div>
               </CardContent>
-              </CollapsibleContent>
             </Card>
-          </Collapsible>
           )}
         </div>
       </main>
