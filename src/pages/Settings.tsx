@@ -88,6 +88,8 @@ const Settings = () => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoInputMethod, setLogoInputMethod] = useState<'url' | 'upload'>('url');
   const [businessInfoOpen, setBusinessInfoOpen] = useState(false);
+  const [contactCaptureOpen, setContactCaptureOpen] = useState(false);
+  const [pricingOpen, setPricingOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -862,8 +864,12 @@ const Settings = () => {
                 <form onSubmit={settingsForm.handleSubmit(onSettingsSubmit)} className="space-y-6">
                   <div className="space-y-6">
                     {/* Contact Capture Settings */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Contact Capture Settings</h3>
+                    <Collapsible open={contactCaptureOpen} onOpenChange={setContactCaptureOpen}>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
+                        <h3 className="text-lg font-medium">Contact Capture Settings</h3>
+                        {contactCaptureOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
                       <div className="space-y-4">
                         <FormField
                           control={settingsForm.control}
@@ -951,13 +957,18 @@ const Settings = () => {
                           )}
                         />
                       </div>
-                    </div>
+                      </CollapsibleContent>
+                    </Collapsible>
 
                     <Separator />
 
                     {/* Pricing Settings */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Pricing</h3>
+                    <Collapsible open={pricingOpen} onOpenChange={setPricingOpen}>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
+                        <h3 className="text-lg font-medium">Pricing Settings</h3>
+                        {pricingOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
                       <div className="space-y-4">
                         <FormField
                           control={settingsForm.control}
@@ -1170,7 +1181,8 @@ const Settings = () => {
                           />
                         </div>
                       </div>
-                    </div>
+                      </CollapsibleContent>
+                    </Collapsible>
 
                     <Separator />
 
