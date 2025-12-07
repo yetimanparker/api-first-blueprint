@@ -12,9 +12,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin, Navigation, Code, ExternalLink, Copy, Check, MessageSquare, Plus, Trash2, Upload, X } from "lucide-react";
+import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin, Navigation, Code, ExternalLink, Copy, Check, MessageSquare, Plus, Trash2, Upload, X, ChevronDown, ChevronRight } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const contractorSchema = z.object({
   business_name: z.string().min(1, "Business name is required"),
@@ -86,6 +87,7 @@ const Settings = () => {
   const [copiedEmbed, setCopiedEmbed] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoInputMethod, setLogoInputMethod] = useState<'url' | 'upload'>('url');
+  const [businessInfoOpen, setBusinessInfoOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -573,15 +575,26 @@ const Settings = () => {
         </div>
 
         <div className="space-y-8">
-          {/* Business Information Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Business Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          {/* Business Information Card - Collapsible */}
+          <Collapsible open={businessInfoOpen} onOpenChange={setBusinessInfoOpen}>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-5 w-5" />
+                      Business Information
+                    </div>
+                    {businessInfoOpen ? (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </CardTitle>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent>
               <Form {...contractorForm}>
                 <form onSubmit={contractorForm.handleSubmit(onContractorSubmit)} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -815,8 +828,10 @@ const Settings = () => {
                   </Button>
                 </form>
               </Form>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           {/* Widget Settings Card */}
           <Card>
