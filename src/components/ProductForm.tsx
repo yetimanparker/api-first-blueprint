@@ -956,35 +956,130 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           />
         </div>
 
-        {/* Predefined Dimensions - inline toggle after unit type */}
-        <FormField
-          control={form.control}
-          name="has_fixed_dimensions"
-          render={({ field }) => (
-            <div className="flex flex-row items-center gap-3 py-2">
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-              <div className="flex items-center gap-1.5">
-                <Ruler className="h-4 w-4 text-muted-foreground" />
-                <Label className="text-sm">Predefined Dimensions</Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs">
-                      <p className="text-xs">
-                        Customers will be able to place and adjust the product on the map.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+        {/* Height Configuration & Predefined Dimensions - inline toggles */}
+        <div className="flex flex-row items-center gap-6 py-2 flex-wrap">
+          {/* Height Configuration Toggle */}
+          <FormField
+            control={form.control}
+            name="use_height_in_calculation"
+            render={({ field }) => (
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+                <div className="flex items-center gap-1.5">
+                  <Ruler className="h-4 w-4 text-muted-foreground" />
+                  <Label className="text-sm">Height Calculation</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p className="text-xs mb-2">
+                          Converts linear measurements to area using height.
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Example: Chain Link Fence<br />
+                          100 LF × 6ft height = 600 sq ft<br />
+                          Price = 600 sq ft × $2.00/sq ft = $1,200
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </div>
-            </div>
-          )}
-        />
+            )}
+          />
+
+          {/* Predefined Dimensions Toggle */}
+          <FormField
+            control={form.control}
+            name="has_fixed_dimensions"
+            render={({ field }) => (
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+                <div className="flex items-center gap-1.5">
+                  <Ruler className="h-4 w-4 text-muted-foreground" />
+                  <Label className="text-sm">Predefined Dimensions</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p className="text-xs mb-2">
+                          Customers will be able to place and adjust the product on the map.
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Example: Pickleball Court<br />
+                          Width: 20ft × Length: 44ft = 880 sq ft<br />
+                          Price = 880 sq ft × $2.50/sq ft = $2,200
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div>
+            )}
+          />
+        </div>
+
+        {/* Height Configuration Expanded Options */}
+        {form.watch("use_height_in_calculation") && (
+          <Card className="border-l-4 border-l-primary/50">
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="base_height"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">Height Value</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="e.g., 6"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="base_height_unit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">Unit</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="ft">Feet</SelectItem>
+                          <SelectItem value="inches">Inches</SelectItem>
+                          <SelectItem value="m">Meters</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Predefined Dimensions Expanded Options */}
 
         {form.watch("has_fixed_dimensions") && (
           <Card className="border-l-4 border-l-primary/50">
@@ -1257,101 +1352,6 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           </CardContent>
         </Card>
 
-        {/* Base Product Height - For Area Calculation */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Ruler className="h-5 w-5" />
-              Height Configuration
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="use_height_in_calculation"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Use height in area calculations</FormLabel>
-                    <FormDescription>
-                      Enable for products like fences where linear measurements need to be converted to area (linear ft × height = sq ft)
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {form.watch("use_height_in_calculation") && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-muted/50 rounded-lg">
-                <FormField
-                  control={form.control}
-                  name="base_height"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Height Value (Optional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="e.g., 6, 8"
-                          {...field}
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Base height for this product
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="base_height_unit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit of Measurement</FormLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="ft">Feet</SelectItem>
-                          <SelectItem value="inches">Inches</SelectItem>
-                          <SelectItem value="m">Meters</SelectItem>
-                          <SelectItem value="cm">Centimeters</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-
-            <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
-                Example: Standard Chain Link Fence
-              </p>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                Customer measures 100 linear ft × 6 ft height = 600 sq ft for pricing
-              </p>
-            </div>
-          </CardContent>
-        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <FormField
