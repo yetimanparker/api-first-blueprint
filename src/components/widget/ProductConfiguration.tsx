@@ -858,7 +858,7 @@ const ProductConfiguration = ({
                     {(() => {
                       const depthValue = parseFloat(depth);
                       if (depthValue && !isNaN(depthValue) && isVolumeBased) {
-                        return `${((measurement.value * depthValue) / 324).toFixed(0)} cu yd`;
+                        return `${((measurement.value * depthValue) / 324).toFixed(2)} cu yd`;
                       }
                       const displayUnit = getDisplayUnit(product.unit_type, false);
                       
