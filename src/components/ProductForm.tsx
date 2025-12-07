@@ -1827,12 +1827,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                             
                             return isCompatibleForMap ? (
                               <div className="flex items-center justify-between p-3 bg-background rounded-lg border">
-                                <div className="space-y-0.5">
-                                  <Label className="text-sm font-medium">Place this add-on on the map in widget</Label>
-                                  <p className="text-xs text-muted-foreground">
-                                    Each placement becomes its own quote line (e.g., each gate along a fence)
-                                  </p>
-                                </div>
+                                <Label className="text-sm font-medium">Enable map placement for this add-on</Label>
                                 <Switch
                                   checked={addon.allow_map_placement || false}
                                   onCheckedChange={(checked) => updateAddon(index, "allow_map_placement", checked)}
