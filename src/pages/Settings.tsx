@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin, Navigation, Code, ExternalLink, Copy, Check, MessageSquare, Plus, Trash2, Upload, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Settings as SettingsIcon, Palette, CreditCard, ArrowLeft, MapPin, Navigation, Code, ExternalLink, Copy, Check, MessageSquare, Plus, Trash2, Upload, X, ChevronDown, ChevronRight, Users, DollarSign, Package } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -872,7 +872,10 @@ const Settings = () => {
                     {/* Contact Capture Settings */}
                     <Collapsible open={contactCaptureOpen} onOpenChange={setContactCaptureOpen}>
                       <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
-                        <h3 className="text-lg font-medium">Contact Capture Settings</h3>
+                        <h3 className="text-lg font-medium flex items-center gap-2">
+                          <Users className="h-5 w-5" />
+                          Contact Capture Settings
+                        </h3>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span>{contactCaptureOpen ? 'Close' : 'Edit'}</span>
                           {contactCaptureOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
@@ -974,7 +977,10 @@ const Settings = () => {
                     {/* Pricing Settings */}
                     <Collapsible open={pricingOpen} onOpenChange={setPricingOpen}>
                       <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
-                        <h3 className="text-lg font-medium">Pricing Settings</h3>
+                        <h3 className="text-lg font-medium flex items-center gap-2">
+                          <DollarSign className="h-5 w-5" />
+                          Pricing Settings
+                        </h3>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span>{pricingOpen ? 'Close' : 'Edit'}</span>
                           {pricingOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
@@ -1575,7 +1581,10 @@ const Settings = () => {
 
                     <Collapsible open={productManagementOpen} onOpenChange={setProductManagementOpen}>
                       <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
-                        <h3 className="text-lg font-medium">Product Management</h3>
+                        <h3 className="text-lg font-medium flex items-center gap-2">
+                          <Package className="h-5 w-5" />
+                          Product Management
+                        </h3>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span>{productManagementOpen ? 'Close' : 'Edit'}</span>
                           {productManagementOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
