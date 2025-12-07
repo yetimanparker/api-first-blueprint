@@ -93,6 +93,7 @@ const Settings = () => {
   const [serviceAreaOpen, setServiceAreaOpen] = useState(false);
   const [clarifyingQuestionsOpen, setClarifyingQuestionsOpen] = useState(false);
   const [productManagementOpen, setProductManagementOpen] = useState(false);
+  const [widgetIntegrationOpen, setWidgetIntegrationOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -1644,19 +1645,32 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          {/* Widget Integration Card */}
           {contractorId && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Code className="h-5 w-5" />
-                  Widget Integration
-                </CardTitle>
-                <CardDescription>
-                  Embed your quote widget on your website or share the direct link with customers
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+            <Collapsible open={widgetIntegrationOpen} onOpenChange={setWidgetIntegrationOpen}>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg">
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Code className="h-5 w-5" />
+                        Widget Integration
+                      </div>
+                      <div className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
+                        <span>{widgetIntegrationOpen ? 'Close' : 'View'}</span>
+                        {widgetIntegrationOpen ? (
+                          <ChevronDown className="h-5 w-5" />
+                        ) : (
+                          <ChevronRight className="h-5 w-5" />
+                        )}
+                      </div>
+                    </CardTitle>
+                    <CardDescription>
+                      Embed your quote widget on your website or share the direct link with customers
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                <CardContent className="space-y-6">
                 {/* Widget URL */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -1773,7 +1787,9 @@ const Settings = () => {
                   </p>
                 </div>
               </CardContent>
+              </CollapsibleContent>
             </Card>
+          </Collapsible>
           )}
         </div>
       </main>
