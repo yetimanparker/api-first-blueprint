@@ -90,6 +90,9 @@ const Settings = () => {
   const [businessInfoOpen, setBusinessInfoOpen] = useState(false);
   const [contactCaptureOpen, setContactCaptureOpen] = useState(false);
   const [pricingOpen, setPricingOpen] = useState(false);
+  const [serviceAreaOpen, setServiceAreaOpen] = useState(false);
+  const [clarifyingQuestionsOpen, setClarifyingQuestionsOpen] = useState(false);
+  const [productManagementOpen, setProductManagementOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -581,17 +584,20 @@ const Settings = () => {
           <Collapsible open={businessInfoOpen} onOpenChange={setBusinessInfoOpen}>
             <Card>
               <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg">
                   <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <CreditCard className="h-5 w-5" />
                       Business Information
                     </div>
-                    {businessInfoOpen ? (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                    )}
+                    <div className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
+                      <span>{businessInfoOpen ? 'Close' : 'Edit'}</span>
+                      {businessInfoOpen ? (
+                        <ChevronDown className="h-5 w-5" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5" />
+                      )}
+                    </div>
                   </CardTitle>
                 </CardHeader>
               </CollapsibleTrigger>
@@ -865,11 +871,14 @@ const Settings = () => {
                   <div className="space-y-6">
                     {/* Contact Capture Settings */}
                     <Collapsible open={contactCaptureOpen} onOpenChange={setContactCaptureOpen}>
-                      <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
                         <h3 className="text-lg font-medium">Contact Capture Settings</h3>
-                        {contactCaptureOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>{contactCaptureOpen ? 'Close' : 'Edit'}</span>
+                          {contactCaptureOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                        </div>
                       </CollapsibleTrigger>
-                      <CollapsibleContent>
+                      <CollapsibleContent className="mt-4">
                       <div className="space-y-4">
                         <FormField
                           control={settingsForm.control}
@@ -964,11 +973,14 @@ const Settings = () => {
 
                     {/* Pricing Settings */}
                     <Collapsible open={pricingOpen} onOpenChange={setPricingOpen}>
-                      <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
+                      <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
                         <h3 className="text-lg font-medium">Pricing Settings</h3>
-                        {pricingOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>{pricingOpen ? 'Close' : 'Edit'}</span>
+                          {pricingOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                        </div>
                       </CollapsibleTrigger>
-                      <CollapsibleContent>
+                      <CollapsibleContent className="mt-4">
                       <div className="space-y-4">
                         <FormField
                           control={settingsForm.control}
@@ -1186,11 +1198,18 @@ const Settings = () => {
 
                     <Separator />
 
-                    <div>
-                      <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                        <MapPin className="h-5 w-5" />
-                        Service Area Configuration
-                      </h3>
+                    <Collapsible open={serviceAreaOpen} onOpenChange={setServiceAreaOpen}>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <h3 className="text-lg font-medium flex items-center gap-2">
+                          <MapPin className="h-5 w-5" />
+                          Service Area Configuration
+                        </h3>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>{serviceAreaOpen ? 'Close' : 'Edit'}</span>
+                          {serviceAreaOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-4">
                       <div className="space-y-4">
                         <FormField
                           control={settingsForm.control}
@@ -1428,15 +1447,23 @@ const Settings = () => {
                           </>
                         )}
                       </div>
-                    </div>
+                      </CollapsibleContent>
+                    </Collapsible>
 
                     <Separator />
 
-                    <div>
-                      <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                        <MessageSquare className="h-5 w-5" />
-                        Clarifying Questions
-                      </h3>
+                    <Collapsible open={clarifyingQuestionsOpen} onOpenChange={setClarifyingQuestionsOpen}>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <h3 className="text-lg font-medium flex items-center gap-2">
+                          <MessageSquare className="h-5 w-5" />
+                          Clarifying Questions
+                        </h3>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>{clarifyingQuestionsOpen ? 'Close' : 'Edit'}</span>
+                          {clarifyingQuestionsOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-4">
                       <div className="space-y-4">
                         <FormField
                           control={settingsForm.control}
@@ -1541,12 +1568,20 @@ const Settings = () => {
                           </div>
                         )}
                       </div>
-                    </div>
+                      </CollapsibleContent>
+                    </Collapsible>
 
                     <Separator />
 
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Product Management</h3>
+                    <Collapsible open={productManagementOpen} onOpenChange={setProductManagementOpen}>
+                      <CollapsibleTrigger className="flex items-center justify-between w-full py-3 px-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <h3 className="text-lg font-medium">Product Management</h3>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>{productManagementOpen ? 'Close' : 'Edit'}</span>
+                          {productManagementOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-4">
                       <div className="space-y-4">
                         <FormField
                           control={settingsForm.control}
@@ -1589,7 +1624,8 @@ const Settings = () => {
                           )}
                         />
                       </div>
-                    </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </div>
                   <Button type="submit" disabled={saving}>
                     {saving ? "Saving..." : "Save Widget Settings"}
