@@ -971,12 +971,14 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                 <div className="flex items-center gap-1.5">
                   <Ruler className="h-4 w-4 text-muted-foreground" />
                   <Label className="text-sm">Height Calculation</Label>
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={0}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                        <button type="button" className="inline-flex">
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs">
+                      <TooltipContent side="right" className="max-w-xs z-50">
                         <p className="text-xs mb-2">
                           Converts linear measurements to area using height.
                         </p>
@@ -1006,12 +1008,14 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                 <div className="flex items-center gap-1.5">
                   <Ruler className="h-4 w-4 text-muted-foreground" />
                   <Label className="text-sm">Predefined Dimensions</Label>
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={0}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                        <button type="button" className="inline-flex">
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs">
+                      <TooltipContent side="right" className="max-w-xs z-50">
                         <p className="text-xs mb-2">
                           Customers will be able to place and adjust the product on the map.
                         </p>
