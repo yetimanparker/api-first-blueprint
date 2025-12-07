@@ -14,7 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobalSettings, useProductCategories } from "@/hooks/useGlobalSettings";
 import { displayPrice, calculateFinalPrice, PricingTier, validateTiers } from "@/lib/priceUtils";
-import { Plus, Trash2, GripVertical, Upload, Image, Ruler, Package } from "lucide-react";
+import { Plus, Trash2, GripVertical, Upload, Image, Ruler, Package, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useContractorId } from "@/hooks/useContractorId";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -955,6 +956,93 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           />
         </div>
 
+        {/* Predefined Dimensions - inline toggle after unit type */}
+        <FormField
+          control={form.control}
+          name="has_fixed_dimensions"
+          render={({ field }) => (
+            <div className="flex flex-row items-center gap-3 py-2">
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+              <div className="flex items-center gap-1.5">
+                <Ruler className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm">Predefined Dimensions</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs">
+                      <p className="font-medium mb-1">Set fixed dimensions for standard-sized products</p>
+                      <p className="text-xs text-muted-foreground">
+                        Example: Pickleball Court<br />
+                        Width: 20ft × Length: 44ft = 880 sq ft<br /><br />
+                        Price = 880 sq ft × $2.50/sq ft = $2,200
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+          )}
+        />
+
+        {form.watch("has_fixed_dimensions") && (
+          <Card className="border-l-4 border-l-primary/50">
+            <CardContent className="pt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="default_width"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">Width (ft)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.1" 
+                          placeholder="e.g., 20"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="default_length"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm">Length (ft)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.1" 
+                          placeholder="e.g., 44"
+                          {...field}
+                          value={field.value || ""}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={form.watch("allow_dimension_editing")}
+                  onCheckedChange={(checked) => form.setValue("allow_dimension_editing", checked)}
+                />
+                <Label className="text-sm">Allow customers to adjust</Label>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -1478,129 +1566,6 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           </Card>
         )}
 
-        {/* Predefined Dimensions - Collapsible */}
-        <FormField
-          control={form.control}
-          name="has_fixed_dimensions"
-          render={({ field }) => (
-            <div className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5 flex items-center gap-2">
-                <Ruler className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <Label className="text-base">Predefined Dimensions</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Product has fixed dimensions (e.g., courts, pools, sheds)
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            </div>
-          )}
-        />
-
-        {form.watch("has_fixed_dimensions") && (
-          <Card>
-            <CardContent className="pt-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="default_width"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Default Width (feet)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.1" 
-                          placeholder="e.g., 20"
-                          {...field}
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="default_length"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Default Length (feet)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.1" 
-                          placeholder="e.g., 44"
-                          {...field}
-                          value={field.value || ""}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="allow_dimension_editing"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Allow customers to adjust dimensions</FormLabel>
-                      <FormDescription>
-                        If enabled, customers can modify width and length in the widget
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="allow_addon_map_placement"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Allow Map-Placed Add-ons</FormLabel>
-                      <FormDescription>
-                        Enable add-ons to be placed at specific locations on the map
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm text-blue-900 dark:text-blue-100 font-medium">
-                  Example: Standard Pickleball Court
-                </p>
-                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                  Width: 20ft × Length: 44ft = 880 sq ft
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Product Variations */}
         <Card>
