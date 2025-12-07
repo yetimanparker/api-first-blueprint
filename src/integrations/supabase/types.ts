@@ -655,6 +655,7 @@ export type Database = {
           updated_at: string
           use_height_in_calculation: boolean | null
           use_tiered_pricing: boolean
+          variations_required: boolean | null
         }
         Insert: {
           allow_addon_map_placement?: boolean | null
@@ -688,6 +689,7 @@ export type Database = {
           updated_at?: string
           use_height_in_calculation?: boolean | null
           use_tiered_pricing?: boolean
+          variations_required?: boolean | null
         }
         Update: {
           allow_addon_map_placement?: boolean | null
@@ -721,6 +723,7 @@ export type Database = {
           updated_at?: string
           use_height_in_calculation?: boolean | null
           use_tiered_pricing?: boolean
+          variations_required?: boolean | null
         }
         Relationships: [
           {

@@ -47,6 +47,7 @@ const productSchema = z.object({
   increment_description: z.string().optional(),
   allow_partial_increments: z.boolean(),
   allow_addon_map_placement: z.boolean(),
+  variations_required: z.boolean(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -90,7 +91,6 @@ interface ProductVariation {
   height_value?: number;
   unit_of_measurement: string;
   affects_area_calculation: boolean;
-  is_required: boolean;
   is_default: boolean;
 }
 
@@ -189,6 +189,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       increment_description: product?.increment_description || "",
       allow_partial_increments: product?.allow_partial_increments ?? false,
       allow_addon_map_placement: product?.allow_addon_map_placement ?? false,
+      variations_required: (product as any)?.variations_required ?? false,
     },
   });
 
@@ -340,7 +341,6 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       height_value: undefined,
       unit_of_measurement: "ft",
       affects_area_calculation: false,
-      is_required: false,
       is_default: false,
     };
     setVariations([...variations, newVariation]);
@@ -605,6 +605,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         increment_description: data.sold_in_increments_of ? (data.increment_description || null) : null,
         allow_partial_increments: data.sold_in_increments_of ? data.allow_partial_increments : false,
         allow_addon_map_placement: data.allow_addon_map_placement || false,
+        variations_required: data.variations_required || false,
       };
 
       let productId = product?.id;
@@ -724,7 +725,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             height_value: variation.height_value || null,
             unit_of_measurement: variation.unit_of_measurement || "ft",
             affects_area_calculation: variation.affects_area_calculation || false,
-            is_required: variation.is_required || false,
+            is_required: false,
             is_default: variation.is_default || false,
           }));
 
@@ -1572,7 +1573,30 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              Product Variations
+              <div className="flex items-center gap-3">
+                <span>Product Variations</span>
+                <div className="flex items-center gap-1.5">
+                  <Switch
+                    checked={form.watch("variations_required")}
+                    onCheckedChange={(checked) => form.setValue("variations_required", checked)}
+                  />
+                  <Label className="text-sm font-normal">Required</Label>
+                  <TooltipProvider delayDuration={0}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="inline-flex">
+                          <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs z-50">
+                        <p className="text-xs">
+                          When enabled, customers must select a variation before adding to quote.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div>
               <Button type="button" variant="outline" size="sm" onClick={addNewVariation}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Variation
@@ -1686,46 +1710,31 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                      </div>
                    </div>
                    <div className="mt-3 flex items-center gap-4">
-                     <div className="flex items-center gap-2">
-                       <Switch
-                         checked={variation.is_active}
-                         onCheckedChange={(checked) => updateVariation(index, "is_active", checked)}
-                       />
-                       <Label>Active</Label>
-                     </div>
-                     <div className="flex items-center gap-2">
-                       <Switch
-                         checked={variation.is_required}
-                         onCheckedChange={(checked) => updateVariation(index, "is_required", checked)}
-                       />
-                       <Label>Required</Label>
-                     </div>
-                     {variation.is_required && (
-                       <div className="flex items-center gap-2">
-                         <Switch
-                           checked={variation.is_default}
-                           onCheckedChange={(checked) => {
-                             if (checked) {
-                               // Unset default on all other variations
-                               variations.forEach((v, i) => {
-                                 if (i !== index) {
-                                   updateVariation(i, "is_default", false);
-                                 }
-                               });
-                             }
-                             updateVariation(index, "is_default", checked);
-                           }}
-                         />
-                         <Label>Set as Default</Label>
-                       </div>
-                     )}
-                   </div>
-                   {variation.is_required && (
-                     <p className="text-xs text-muted-foreground mt-2">
-                       Required variations must be selected before adding to quote.
-                       {variation.is_default && " This variation will be pre-selected."}
-                     </p>
-                   )}
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={variation.is_active}
+                          onCheckedChange={(checked) => updateVariation(index, "is_active", checked)}
+                        />
+                        <Label>Active</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={variation.is_default}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              // Unset default on all other variations
+                              variations.forEach((v, i) => {
+                                if (i !== index) {
+                                  updateVariation(i, "is_default", false);
+                                }
+                              });
+                            }
+                            updateVariation(index, "is_default", checked);
+                          }}
+                        />
+                        <Label>Set as Default</Label>
+                      </div>
+                    </div>
                 </Card>
               ))
             )}
