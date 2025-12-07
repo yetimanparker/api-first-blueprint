@@ -975,11 +975,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                       <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-xs">
-                      <p className="font-medium mb-1">Set fixed dimensions for standard-sized products</p>
-                      <p className="text-xs text-muted-foreground">
-                        Example: Pickleball Court<br />
-                        Width: 20ft × Length: 44ft = 880 sq ft<br /><br />
-                        Price = 880 sq ft × $2.50/sq ft = $2,200
+                      <p className="text-xs">
+                        Customers will be able to place and adjust the product on the map.
                       </p>
                     </TooltipContent>
                   </Tooltip>
