@@ -86,7 +86,7 @@ serve(async (req) => {
     // Fetch products with related data
     const { data: products, error: productsError } = await supabaseClient
       .from('products')
-      .select('id, name, description, unit_type, unit_price, color_hex, photo_url, category, subcategory, is_active, show_in_widget_selector, show_pricing_before_submit, min_order_quantity, sold_in_increments_of, increment_unit_label, increment_description, allow_partial_increments, has_fixed_dimensions, default_width, default_length, dimension_unit, allow_dimension_editing, base_height, use_height_in_calculation, base_height_unit, display_order, allow_addon_map_placement')
+      .select('id, name, description, unit_type, unit_price, color_hex, photo_url, category, subcategory, is_active, show_in_widget_selector, show_pricing_before_submit, min_order_quantity, sold_in_increments_of, increment_unit_label, increment_description, allow_partial_increments, has_fixed_dimensions, default_width, default_length, dimension_unit, allow_dimension_editing, base_height, use_height_in_calculation, base_height_unit, display_order')
       .eq('contractor_id', contractor_id)
       .eq('is_active', true)
       .eq('show_in_widget_selector', true)

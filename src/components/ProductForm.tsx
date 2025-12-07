@@ -46,7 +46,6 @@ const productSchema = z.object({
   increment_unit_label: z.string().optional(),
   increment_description: z.string().optional(),
   allow_partial_increments: z.boolean(),
-  allow_addon_map_placement: z.boolean(),
   variations_required: z.boolean(),
 });
 
@@ -124,7 +123,6 @@ interface Product {
   increment_unit_label?: string | null;
   increment_description?: string | null;
   allow_partial_increments?: boolean;
-  allow_addon_map_placement?: boolean;
 }
 
 interface AvailableProduct {
@@ -188,7 +186,6 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       increment_unit_label: product?.increment_unit_label || "",
       increment_description: product?.increment_description || "",
       allow_partial_increments: product?.allow_partial_increments ?? false,
-      allow_addon_map_placement: product?.allow_addon_map_placement ?? false,
       variations_required: (product as any)?.variations_required ?? false,
     },
   });
@@ -604,7 +601,6 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
         increment_unit_label: data.sold_in_increments_of ? (data.increment_unit_label || null) : null,
         increment_description: data.sold_in_increments_of ? (data.increment_description || null) : null,
         allow_partial_increments: data.sold_in_increments_of ? data.allow_partial_increments : false,
-        allow_addon_map_placement: data.allow_addon_map_placement || false,
         variations_required: data.variations_required || false,
       };
 
@@ -1753,26 +1749,6 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="allow_addon_map_placement"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-muted/30">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Enable Map-Placed Add-ons</FormLabel>
-                    <FormDescription>
-                      Allows certain add-ons (like gates) to be placed as individual locations on the map in the widget
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
             {addons.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">
                 No add-ons yet. Click "Add Add-on" to create optional upgrades for this product.
@@ -1844,8 +1820,8 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                             </div>
                           </div>
                           
-                          {/* Map placement toggle - only show if product-level setting is enabled and linked product is compatible */}
-                          {form.watch("allow_addon_map_placement") && (() => {
+                          {/* Map placement toggle - show if linked product is compatible */}
+                          {(() => {
                             const linkedProduct = availableProducts.find(p => p.id === addon.linked_product_id);
                             const isCompatibleForMap = linkedProduct?.unit_type === 'each';
                             
