@@ -1174,38 +1174,6 @@ const Settings = () => {
 
                     <Separator />
 
-                    {/* Product Defaults */}
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Product Defaults</h3>
-                      <FormField
-                        control={settingsForm.control}
-                        name="default_unit_type"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Default Unit Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select unit type" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="sq_ft">Square Feet</SelectItem>
-                                <SelectItem value="linear_ft">Linear Feet</SelectItem>
-                                <SelectItem value="sq_m">Square Meters</SelectItem>
-                                <SelectItem value="linear_m">Linear Meters</SelectItem>
-                                <SelectItem value="each">Each</SelectItem>
-                                <SelectItem value="hour">Hour</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <Separator />
-
                     <div>
                       <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
                         <MapPin className="h-5 w-5" />
