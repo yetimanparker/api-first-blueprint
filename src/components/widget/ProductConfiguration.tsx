@@ -61,7 +61,6 @@ interface Product {
   increment_unit_label?: string | null;
   increment_description?: string | null;
   allow_partial_increments?: boolean;
-  allow_addon_map_placement?: boolean;
 }
 
 interface Variation {
@@ -660,7 +659,7 @@ const ProductConfiguration = ({
                         
                         {/* Addon controls - map placement or quantity */}
                         {(() => {
-                          const canPlaceOnMap = product?.allow_addon_map_placement && addon.allow_map_placement;
+                          const canPlaceOnMap = addon.allow_map_placement;
                           
                           if (canPlaceOnMap && onAddonPlacementStart) {
                             // Map-placeable addon - show "Place on Map" button

@@ -624,7 +624,6 @@ export type Database = {
       }
       products: {
         Row: {
-          allow_addon_map_placement: boolean | null
           allow_dimension_editing: boolean | null
           allow_partial_increments: boolean | null
           base_height: number | null
@@ -658,7 +657,6 @@ export type Database = {
           variations_required: boolean | null
         }
         Insert: {
-          allow_addon_map_placement?: boolean | null
           allow_dimension_editing?: boolean | null
           allow_partial_increments?: boolean | null
           base_height?: number | null
@@ -692,7 +690,6 @@ export type Database = {
           variations_required?: boolean | null
         }
         Update: {
-          allow_addon_map_placement?: boolean | null
           allow_dimension_editing?: boolean | null
           allow_partial_increments?: boolean | null
           base_height?: number | null
