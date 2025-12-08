@@ -214,10 +214,13 @@ const QuoteReview = ({
         const isEnabled = addonToggleStates[key] !== false; // Default to true
         
         if (isEnabled && addon.quantity > 0) {
+          // Calculate effective addon price including option adjustment
+          const effectiveAddonPrice = addon.priceValue + (addon.selectedOptionPriceAdjustment || 0);
+          
           // Handle percentage vs fixed price_type
           if (addon.priceType === 'percentage') {
             // Percentage addon: X% of the product base total (before addons)
-            addonsTotal += (basePrice * addon.priceValue / 100) * addon.quantity;
+            addonsTotal += (basePrice * effectiveAddonPrice / 100) * addon.quantity;
           } else {
             // Fixed price addon
             const variationData = item.measurement.variations && item.measurement.variations.length > 0
@@ -229,7 +232,7 @@ const QuoteReview = ({
               : undefined;
             
             const addonPriceCalc = calculateAddonWithAreaData(
-              addon.priceValue,
+              effectiveAddonPrice,
               baseQuantity,
               addon.calculationType,
               variationData
@@ -291,10 +294,13 @@ const QuoteReview = ({
       let addonsTotal = 0;
       updatedAddons.forEach(addon => {
         if (addon.quantity > 0) {
+          // Calculate effective addon price including option adjustment
+          const effectiveAddonPrice = addon.priceValue + (addon.selectedOptionPriceAdjustment || 0);
+          
           // Handle percentage vs fixed price_type
           if (addon.priceType === 'percentage') {
             // Percentage addon: X% of the product base total (before addons)
-            addonsTotal += (basePrice * addon.priceValue / 100) * addon.quantity;
+            addonsTotal += (basePrice * effectiveAddonPrice / 100) * addon.quantity;
           } else {
             // Get variation data for area calculations
             const variationData = item.measurement.variations && item.measurement.variations.length > 0
@@ -311,7 +317,7 @@ const QuoteReview = ({
               : item.measurement.value;
             
             const addonPriceCalc = calculateAddonWithAreaData(
-              addon.priceValue,
+              effectiveAddonPrice,
               baseQuantity,
               addon.calculationType,
               variationData
@@ -916,10 +922,12 @@ const QuoteReview = ({
                               
                               let addonPrice = 0;
                               const isPercentageAddon = addon.priceType === 'percentage';
+                              // Calculate effective addon price including option adjustment
+                              const effectiveAddonPrice = addon.priceValue + (addon.selectedOptionPriceAdjustment || 0);
                               
                               if (isPercentageAddon) {
                                 // Percentage addon: X% of the product base total
-                                addonPrice = productBasePrice * addon.priceValue / 100;
+                                addonPrice = productBasePrice * effectiveAddonPrice / 100;
                               } else if (addon.calculationType === 'area_calculation') {
                                 const variationData = item.measurement.variations && item.measurement.variations.length > 0
                                   ? {
@@ -930,15 +938,15 @@ const QuoteReview = ({
                                   : undefined;
                                 
                                 addonPrice = calculateAddonWithAreaData(
-                                  addon.priceValue,
+                                  effectiveAddonPrice,
                                   baseQuantity,
                                   addon.calculationType,
                                   variationData
                                 );
                               } else if (addon.calculationType === 'per_unit') {
-                                addonPrice = addon.priceValue * quantity;
+                                addonPrice = effectiveAddonPrice * quantity;
                               } else {
-                                addonPrice = addon.priceValue;
+                                addonPrice = effectiveAddonPrice;
                               }
                               
                               const addonKey = `${item.id}-${addon.id}`;
@@ -973,7 +981,8 @@ const QuoteReview = ({
                                         
                                         let displayQuantity = '';
                                         let displayUnit = '';
-                                        let displayPrice = addon.priceValue;
+                                        // Use effective price including option adjustment
+                                        let displayPrice = addon.priceValue + (addon.selectedOptionPriceAdjustment || 0);
                                         
                                         if (addon.calculationType === 'area_calculation') {
                                           if (variationData?.height && variationData.affects_area_calculation) {

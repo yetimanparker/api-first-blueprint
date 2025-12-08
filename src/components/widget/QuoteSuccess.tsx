@@ -501,8 +501,11 @@ const QuoteSuccess = ({
                             {product.traditionalAddons.map((addon) => {
                               const addonQty = addon.instances.reduce((sum, inst) => sum + inst.addonData.quantity, 0);
                               const displayName = addon.selectedOption 
-                                ? `${addon.name}(${addon.selectedOption})`
+                                ? `${addon.name} (${addon.selectedOption})`
                                 : addon.name;
+                              
+                              // Calculate effective addon price including option adjustment
+                              const effectiveAddonPrice = addon.priceValue + (addon.selectedOptionPriceAdjustment || 0);
                               
                               // Handle percentage vs fixed price_type
                               const isPercentage = addon.priceType === 'percentage';
@@ -510,10 +513,10 @@ const QuoteSuccess = ({
                               
                               if (isPercentage) {
                                 // Percentage addon: X% of the product total
-                                const addonTotal = (baseProdTotal * addon.priceValue / 100) * addonQty;
+                                const addonTotal = (baseProdTotal * effectiveAddonPrice / 100) * addonQty;
                                 return (
                                   <div key={addon.id} className="text-sm text-muted-foreground pl-3">
-                                    <span className="font-medium text-foreground">{displayName}</span>: {addon.priceValue}% of {formatExactPrice(baseProdTotal, {
+                                    <span className="font-medium text-foreground">{displayName}</span>: {effectiveAddonPrice}% of {formatExactPrice(baseProdTotal, {
                                       currency_symbol: settings.currency_symbol,
                                       decimal_precision: settings.decimal_precision
                                     })} = <span className="font-semibold text-foreground">{formatExactPrice(addonTotal, {
@@ -527,11 +530,11 @@ const QuoteSuccess = ({
                                 // For 'total' or other types, use the addon's own quantity
                                 const isPerUnit = addon.calculationType === 'per_unit';
                                 const displayQty = isPerUnit ? product.totalQuantity : addonQty;
-                                const addonTotal = addon.priceValue * displayQty;
+                                const addonTotal = effectiveAddonPrice * displayQty;
                                 
                                 return (
                                   <div key={addon.id} className="text-sm text-muted-foreground pl-3">
-                                    <span className="font-medium text-foreground">{displayName}</span>: {displayQty.toLocaleString()} × {formatExactPrice(addon.priceValue, {
+                                    <span className="font-medium text-foreground">{displayName}</span>: {displayQty.toLocaleString()} × {formatExactPrice(effectiveAddonPrice, {
                                       currency_symbol: settings.currency_symbol,
                                       decimal_precision: settings.decimal_precision
                                     })}/{isPerUnit ? unitAbbr : 'ea'} = <span className="font-semibold text-foreground">{formatExactPrice(addonTotal, {

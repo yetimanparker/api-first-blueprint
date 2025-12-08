@@ -412,6 +412,9 @@ const ProductConfiguration = ({
           ? addonOptions[addonId]?.find(opt => opt.id === selectedOptionId)
           : null;
         
+        // Calculate option price adjustment (fixed amount only for now)
+        const optionPriceAdjustment = optionData?.price_adjustment || 0;
+        
         return {
           id: addon.id,
           name: addon.name,
@@ -420,7 +423,8 @@ const ProductConfiguration = ({
           calculationType: addon.calculation_type,
           quantity,
           selectedOptionId: selectedOptionId,
-          selectedOptionName: optionData?.name
+          selectedOptionName: optionData?.name,
+          selectedOptionPriceAdjustment: optionPriceAdjustment
         };
       });
 
@@ -972,8 +976,16 @@ const ProductConfiguration = ({
                           affects_area_calculation: selectedVariationObj.affects_area_calculation || false
                         } : undefined;
 
+                        // Get selected option data for price adjustment
+                        const selectedOptionId = selectedAddonOptions[addonId];
+                        const optionData = selectedOptionId 
+                          ? addonOptions[addonId]?.find(opt => opt.id === selectedOptionId)
+                          : null;
+                        const optionPriceAdjustment = optionData?.price_adjustment || 0;
+                        const effectiveAddonPrice = addon.price_value + optionPriceAdjustment;
+
                         const addonPrice = calculateAddonWithAreaData(
-                          addon.price_value,
+                          effectiveAddonPrice,
                           quantity,
                           addon.calculation_type,
                           variationData,
@@ -1031,11 +1043,11 @@ const ProductConfiguration = ({
                           <div key={addonId} className="text-base">
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
-                                <div>{addon.name}:</div>
+                                <div>{addon.name}{optionData?.name && ` (${optionData.name})`}:</div>
                                 <div className="text-sm text-muted-foreground">
                                   {isPercentageAddon ? (
                                     <>
-                                      {addon.price_value}% of {formatExactPrice(productBasePrice, {
+                                      {effectiveAddonPrice}% of {formatExactPrice(productBasePrice, {
                                         currency_symbol: settings.currency_symbol,
                                         decimal_precision: settings.decimal_precision
                                       })}
@@ -1049,7 +1061,7 @@ const ProductConfiguration = ({
                                   ) : (
                                     <>
                                       {addonQuantity > 1 && `${addonQuantity} × (`}
-                                      {displayQuantity} {displayUnit} × {formatExactPrice(addon.price_value, {
+                                      {displayQuantity} {displayUnit} × {formatExactPrice(effectiveAddonPrice, {
                                         currency_symbol: settings.currency_symbol,
                                         decimal_precision: settings.decimal_precision
                                       })}/{displayUnit}
