@@ -8,7 +8,7 @@ import { formatExactPrice, calculatePriceRange, formatPriceRange, displayQuoteTo
 import { GlobalSettings } from '@/hooks/useGlobalSettings';
 import { getZoomBasedFontSize, getZoomBasedMarkerScale, renderDimensionalProductLabels } from '@/lib/mapLabelUtils';
 import { consolidateQuoteItems, ConsolidatedMainProduct } from '@/lib/quoteConsolidation';
-
+import { calculateAddonDisplay, getUnitAbbreviation } from '@/lib/addonDisplayUtils';
 interface QuoteItem {
   id: string;
   product_id: string;
@@ -464,44 +464,42 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                         <div className="text-sm text-muted-foreground mt-2">Add-ons:</div>
                         {product.traditionalAddons.map((addon) => {
                           const totalQty = addon.instances.reduce((sum, inst) => sum + inst.addonData.quantity, 0);
-                          const displayName = addon.selectedOption 
-                            ? `${addon.name} (${addon.selectedOption})`
-                            : addon.name;
                           
-                          // Calculate effective addon price including option adjustment
-                          const effectiveAddonPrice = addon.priceValue + (addon.selectedOptionPriceAdjustment || 0);
+                          // Use shared addon display utility for consistent rendering
+                          const addonDisplay = calculateAddonDisplay(
+                            {
+                              name: addon.name,
+                              priceValue: addon.priceValue,
+                              priceType: addon.priceType || 'fixed',
+                              calculationType: addon.calculationType,
+                              quantity: totalQty,
+                              selectedOption: addon.selectedOption,
+                              selectedOptionPriceAdjustment: addon.selectedOptionPriceAdjustment
+                            },
+                            {
+                              totalQuantity: product.totalQuantity,
+                              unitPrice: product.unitPrice,
+                              unitType: product.unitType,
+                              variations: product.variations?.map((v: any) => ({
+                                height_value: v.height_value,
+                                unit_of_measurement: v.unit_of_measurement,
+                                affects_area_calculation: v.affects_area_calculation
+                              }))
+                            },
+                            {
+                              currency_symbol: settings.currency_symbol,
+                              decimal_precision: settings.decimal_precision
+                            }
+                          );
                           
-                          // Handle percentage vs fixed price_type
-                          const isPercentage = addon.priceType === 'percentage';
-                          const baseProdTotal = product.totalQuantity * product.unitPrice;
-                          
-                          if (isPercentage) {
-                            // Percentage addon: X% of the product total
-                            const addonTotal = (baseProdTotal * effectiveAddonPrice / 100) * totalQty;
-                            return (
-                              <div key={addon.id} className="text-sm text-muted-foreground pl-3">
-                                <span className="font-medium text-foreground">{displayName}</span>: {effectiveAddonPrice}% of {formatExactPrice(baseProdTotal, {
-                                  currency_symbol: settings.currency_symbol,
-                                  decimal_precision: settings.decimal_precision
-                                })} = <span className="font-semibold text-foreground">{formatExactPrice(addonTotal, {
-                                  currency_symbol: settings.currency_symbol,
-                                  decimal_precision: settings.decimal_precision
-                                })}</span>
-                              </div>
-                            );
-                          } else {
-                            return (
-                              <div key={addon.id} className="text-sm text-muted-foreground pl-3">
-                                <span className="font-medium text-foreground">{displayName}</span>: {totalQty} × {formatExactPrice(effectiveAddonPrice, {
-                                  currency_symbol: settings.currency_symbol,
-                                  decimal_precision: settings.decimal_precision
-                                })} = <span className="font-semibold text-foreground">{formatExactPrice(effectiveAddonPrice * totalQty, {
-                                  currency_symbol: settings.currency_symbol,
-                                  decimal_precision: settings.decimal_precision
-                                })}</span>
-                              </div>
-                            );
-                          }
+                          return (
+                            <div key={addon.id} className="text-sm text-muted-foreground pl-3">
+                              <span className="font-medium text-foreground">{addonDisplay.displayName}</span>: {addonDisplay.displayEquation} = <span className="font-semibold text-foreground">{formatExactPrice(addonDisplay.total, {
+                                currency_symbol: settings.currency_symbol,
+                                decimal_precision: settings.decimal_precision
+                              })}</span>
+                            </div>
+                          );
                         })}
                       </div>
                     )}
