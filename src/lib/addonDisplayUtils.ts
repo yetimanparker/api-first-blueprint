@@ -13,6 +13,7 @@ export interface AddonDisplayConfig {
 export interface ProductContext {
   totalQuantity: number;
   unitPrice: number;
+  adjustedUnitPrice?: number; // Unit price with variations applied (if provided, used instead of unitPrice)
   unitType: string;
   variations?: Array<{
     height_value?: number | null;
@@ -58,7 +59,9 @@ export function calculateAddonDisplay(
   // Calculate effective addon price including option adjustment
   const effectiveAddonPrice = addon.priceValue + (addon.selectedOptionPriceAdjustment || 0);
   const unitAbbr = getUnitAbbreviation(product.unitType);
-  const baseProdTotal = product.totalQuantity * product.unitPrice;
+  // Use adjustedUnitPrice if provided (includes variation adjustments), otherwise use unitPrice
+  const effectiveUnitPrice = product.adjustedUnitPrice ?? product.unitPrice;
+  const baseProdTotal = product.totalQuantity * effectiveUnitPrice;
   
   // Handle percentage addons
   if (addon.priceType === 'percentage') {

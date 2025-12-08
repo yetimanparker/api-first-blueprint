@@ -20,6 +20,7 @@ import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 import { getZoomBasedFontSize, getZoomBasedMarkerScale, renderDimensionalProductLabels, renderEdgeMeasurements } from '@/lib/mapLabelUtils';
 import { consolidateQuoteItems } from '@/lib/quoteConsolidation';
 import { calculateAddonDisplay, getUnitAbbreviation } from '@/lib/addonDisplayUtils';
+import { calculateProductPrice } from '@/lib/productPricingUtils';
 
 interface QuoteSuccessProps {
   quoteNumber: string;
@@ -482,18 +483,31 @@ const QuoteSuccess = ({
                     {/* Pricing Breakdown - only show if pricing should be visible */}
                     {showPricing && (
                       <div className="space-y-2">
-                        {/* Base Product Calculation */}
-                        <div className="text-sm text-muted-foreground pl-3">
-                          {product.totalQuantity.toLocaleString()} {unitAbbr} × {formatExactPrice(product.unitPrice, {
-                            currency_symbol: settings.currency_symbol,
-                            decimal_precision: settings.decimal_precision
-                          })}/{unitAbbr}
-                          {' = '}
-                          <span className="font-semibold text-foreground">{formatExactPrice(product.totalQuantity * product.unitPrice, {
-                            currency_symbol: settings.currency_symbol,
-                            decimal_precision: settings.decimal_precision
-                          })}</span>
-                        </div>
+                        {/* Base Product Calculation - use shared pricing utility */}
+                        {(() => {
+                          const priceResult = calculateProductPrice(
+                            {
+                              baseUnitPrice: product.unitPrice,
+                              quantity: product.totalQuantity,
+                              unitType: product.unitType,
+                              variations: product.variations?.map((v: any) => ({
+                                name: v.name,
+                                priceAdjustment: v.priceAdjustment || 0,
+                                adjustmentType: v.adjustmentType || 'fixed'
+                              }))
+                            },
+                            {
+                              currency_symbol: settings.currency_symbol,
+                              decimal_precision: settings.decimal_precision
+                            }
+                          );
+                          
+                          return (
+                            <div className="text-sm text-muted-foreground pl-3">
+                              {priceResult.displayEquation}
+                            </div>
+                          );
+                        })()}
                         
                         {/* Traditional Add-ons */}
                         {product.traditionalAddons.length > 0 && (
@@ -516,6 +530,7 @@ const QuoteSuccess = ({
                                 {
                                   totalQuantity: product.totalQuantity,
                                   unitPrice: product.unitPrice,
+                                  adjustedUnitPrice: product.adjustedUnitPrice, // Use adjusted price
                                   unitType: product.unitType,
                                   variations: product.variations?.map((v: any) => ({
                                     height_value: v.height_value,

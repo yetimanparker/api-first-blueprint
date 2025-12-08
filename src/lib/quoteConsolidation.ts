@@ -1,4 +1,5 @@
 import { QuoteItem } from '@/types/widget';
+import { calculateAdjustedUnitPrice, VariationInput } from '@/lib/productPricingUtils';
 
 export interface ConsolidatedAddon {
   id: string;
@@ -31,6 +32,7 @@ export interface ConsolidatedMainProduct {
   productName: string;
   unitType: string;
   unitPrice: number;
+  adjustedUnitPrice: number; // Unit price with variation adjustments applied
   instances: QuoteItem[];
   totalQuantity: number;
   totalLineTotal: number;
@@ -69,6 +71,19 @@ export function consolidateQuoteItems(items: QuoteItem[]): ConsolidatedQuoteData
     
     let group = productGroups.get(groupKey);
     
+    // Convert variations to VariationInput format for pricing calculation
+    const variationsForPricing: VariationInput[] = (item.measurement?.variations || []).map((v: any) => ({
+      name: v.name,
+      priceAdjustment: v.priceAdjustment || 0,
+      adjustmentType: v.adjustmentType || 'fixed',
+      height_value: v.height_value,
+      unit_of_measurement: v.unit_of_measurement,
+      affects_area_calculation: v.affects_area_calculation
+    }));
+    
+    // Calculate adjusted unit price including variations
+    const adjustedUnitPrice = calculateAdjustedUnitPrice(item.unitPrice, variationsForPricing);
+    
     if (!group) {
       // Create new group
       group = {
@@ -76,6 +91,7 @@ export function consolidateQuoteItems(items: QuoteItem[]): ConsolidatedQuoteData
         productName: item.productName,
         unitType: item.unitType,
         unitPrice: item.unitPrice,
+        adjustedUnitPrice: adjustedUnitPrice,
         instances: [item],
         totalQuantity: item.quantity,
         totalLineTotal: item.lineTotal,
