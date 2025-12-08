@@ -530,28 +530,27 @@ export default function Products() {
                       <TableBody>
                         {filteredProducts.map((product) => (
                           <TableRow key={product.id}>
-                            <TableCell>
-                              <div className="flex items-center space-x-3">
+                            <TableCell className="min-w-[200px]">
+                              <div className="flex items-center gap-3">
                                 {product.photo_url ? (
                                   <img
                                     src={product.photo_url}
                                     alt={product.name}
-                                    className="h-12 w-12 rounded-lg object-cover"
+                                    className="h-12 w-12 rounded-lg object-cover flex-shrink-0"
                                   />
                                 ) : (
-                                  <div className="h-12 w-12 rounded-lg flex items-center justify-center bg-muted text-muted-foreground text-sm font-semibold">
+                                  <div className="h-12 w-12 rounded-lg flex items-center justify-center bg-muted text-muted-foreground text-sm font-semibold flex-shrink-0">
                                     <Package className="h-6 w-6" />
                                   </div>
                                 )}
-                              <div>
-                                  <div className="font-medium">{product.name}</div>
-                                </div>
+                                <div className="font-medium">{product.name}</div>
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="min-w-[140px]">
                               <div className="space-y-1">
                                  <Badge 
                                    variant="secondary" 
+                                   className="whitespace-nowrap"
                                    style={{ 
                                      backgroundColor: categories.find(c => c.name === product.categoryName)?.color_hex + '20',
                                      color: categories.find(c => c.name === product.categoryName)?.color_hex
