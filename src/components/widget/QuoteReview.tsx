@@ -897,9 +897,30 @@ const QuoteReview = ({
                             {/* Traditional measurement add-ons with edit/delete buttons */}
                             {item.measurement.addons?.map((addon) => {
                               // Calculate addon price properly including area calculations
-                              let addonPrice = 0;
+                              // Calculate base price for percentage addons
+                              const baseQuantity = item.measurement.depth
+                                ? (item.measurement.value * item.measurement.depth) / 324
+                                : item.measurement.value;
+                              let productBasePrice = baseQuantity * item.unitPrice;
                               
-                              if (addon.calculationType === 'area_calculation') {
+                              // Apply variations to get product base
+                              if (item.measurement.variations && item.measurement.variations.length > 0) {
+                                item.measurement.variations.forEach(variation => {
+                                  if (variation.adjustmentType === 'percentage') {
+                                    productBasePrice += productBasePrice * (variation.priceAdjustment / 100);
+                                  } else {
+                                    productBasePrice += variation.priceAdjustment * baseQuantity;
+                                  }
+                                });
+                              }
+                              
+                              let addonPrice = 0;
+                              const isPercentageAddon = addon.priceType === 'percentage';
+                              
+                              if (isPercentageAddon) {
+                                // Percentage addon: X% of the product base total
+                                addonPrice = productBasePrice * addon.priceValue / 100;
+                              } else if (addon.calculationType === 'area_calculation') {
                                 const variationData = item.measurement.variations && item.measurement.variations.length > 0
                                   ? {
                                       height: item.measurement.variations[0].height_value || null,
@@ -907,10 +928,6 @@ const QuoteReview = ({
                                       affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
                                     }
                                   : undefined;
-                                
-                                const baseQuantity = item.measurement.depth
-                                  ? (item.measurement.value * item.measurement.depth) / 324
-                                  : item.measurement.value;
                                 
                                 addonPrice = calculateAddonWithAreaData(
                                   addon.priceValue,
@@ -936,6 +953,16 @@ const QuoteReview = ({
                                     </span>
                                     <span className="text-muted-foreground" style={{ opacity: isEnabled ? 1 : 0.5 }}>
                                       : {(() => {
+                                        // Handle percentage addon display
+                                        if (isPercentageAddon) {
+                                          const qtyMultiplier = addon.quantity > 1 ? ` × ${addon.quantity}` : '';
+                                          return ` ${addon.priceValue}% of ${formatExactPrice(productBasePrice, {
+                                            currency_symbol: settings.currency_symbol,
+                                            decimal_precision: settings.decimal_precision
+                                          })}${qtyMultiplier} = `;
+                                        }
+                                        
+                                        // Handle fixed price addon display
                                         const variationData = item.measurement.variations && item.measurement.variations.length > 0
                                           ? {
                                               height: item.measurement.variations[0].height_value || null,
@@ -956,9 +983,6 @@ const QuoteReview = ({
                                             displayQuantity = squareFeet.toLocaleString();
                                             displayUnit = 'SF';
                                           } else {
-                                            const baseQuantity = item.measurement.depth
-                                              ? (item.measurement.value * item.measurement.depth) / 324
-                                              : item.measurement.value;
                                             displayQuantity = baseQuantity.toLocaleString();
                                             displayUnit = getDisplayUnit(item.unitType, !!item.measurement.depth);
                                           }
