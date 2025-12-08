@@ -815,22 +815,22 @@ const QuoteReview = ({
                   {/* Mobile-optimized layout: stack everything vertically on mobile */}
                   <div className="flex flex-col gap-3 mb-3">
                     {/* Row 1: Color badge + Product name with measurement inline */}
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-center gap-2">
                       <div 
-                        className="w-3 h-3 rounded-full flex-shrink-0 mt-1.5" 
+                        className="w-3 h-3 rounded-full flex-shrink-0" 
                         style={{ 
                           backgroundColor: item.measurement.mapColor || '#3B82F6',
                         }}
                       />
-                      <h3 className="font-semibold text-base flex-1 break-words leading-tight">
+                      <span className="font-semibold text-base flex-1 break-words leading-tight">
                         {item.productName}
                         <span className="text-sm text-muted-foreground font-normal ml-2">
                           ({item.measurement.depth 
-                            ? `${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cubic yards`
-                            : `${item.measurement.value.toLocaleString()} ${item.measurement.unit.replace('_', ' ')}`
+                            ? `${((item.measurement.value * item.measurement.depth) / 324).toFixed(2)} cu yd`
+                            : `${item.measurement.value.toLocaleString()} ${getDisplayUnit(item.unitType, !!item.measurement.depth)}`
                           })
                         </span>
-                      </h3>
+                      </span>
                       {onRemoveItem && (
                         <Button 
                           variant="ghost" 
@@ -1255,7 +1255,7 @@ const QuoteReview = ({
               
               <Separator className="my-2 bg-green-300 dark:bg-green-700" />
               
-              <div className="flex justify-between text-2xl font-bold pt-2">
+              <div className="flex justify-between text-xl font-bold pt-2">
                 <span>Total:</span>
                 <span className="text-green-600">
                   {formatExactPrice(total, {

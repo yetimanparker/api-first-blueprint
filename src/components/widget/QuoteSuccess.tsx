@@ -464,18 +464,20 @@ const QuoteSuccess = ({
                     {/* Header: Product name with color indicator and quantity */}
                     <div className="flex items-center gap-2">
                       <div 
-                        className="w-3 h-3 rounded-full" 
+                        className="w-3 h-3 rounded-full flex-shrink-0" 
                         style={{ backgroundColor: product.color }}
                       />
-                      <span className="font-semibold">
+                      <span className="font-semibold text-base">
                         {product.productName}
-                        {showQuantity && <span className="text-sm text-muted-foreground font-normal ml-2">- Qty: {product.instances.length}</span>}
+                        <span className="text-sm text-muted-foreground font-normal ml-2">
+                          ({product.totalQuantity.toLocaleString()} {unitAbbr})
+                        </span>
                       </span>
                     </div>
                     
                     {/* Variation selection */}
                     {product.variations.length > 0 && (
-                      <div className="text-sm text-muted-foreground pl-3">
+                      <div className="text-sm text-muted-foreground">
                         ({product.variations.map((v: any) => v.name).join(', ')})
                       </div>
                     )}
@@ -629,7 +631,7 @@ const QuoteSuccess = ({
                 
                 <Separator />
                 
-                <div className="flex justify-between text-2xl font-bold">
+                <div className="flex justify-between text-xl font-bold">
                   <span>Total:</span>
                   <span className="text-green-600">
                     {settings.use_price_ranges ? (

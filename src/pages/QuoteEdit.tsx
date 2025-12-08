@@ -1096,7 +1096,7 @@ export default function QuoteEdit() {
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="flex items-center gap-2 flex-1">
                           <div 
-                            className="w-3 h-3 rounded-full"
+                            className="w-3 h-3 rounded-full flex-shrink-0"
                             style={{ backgroundColor: item.measurement_data?.mapColor || '#3B82F6' }}
                           />
                           <span className="font-semibold text-base">
@@ -1409,7 +1409,7 @@ export default function QuoteEdit() {
                   
                   <Separator className="my-2 bg-green-300 dark:bg-green-700" />
                   
-                  <div className="flex justify-between text-xl sm:text-2xl font-bold pt-2">
+                  <div className="flex justify-between text-xl font-bold pt-2">
                     <span>Total:</span>
                     <span className="text-green-600">
                       {formatExactPrice(
