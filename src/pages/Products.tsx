@@ -543,13 +543,8 @@ export default function Products() {
                                     <Package className="h-6 w-6" />
                                   </div>
                                 )}
-                                <div>
+                              <div>
                                   <div className="font-medium">{product.name}</div>
-                                  {product.description && (
-                                    <div className="text-sm text-muted-foreground">
-                                      {product.description}
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                             </TableCell>
