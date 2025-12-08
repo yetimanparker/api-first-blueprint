@@ -113,7 +113,7 @@ serve(async (req) => {
     // Fetch addons for all products (explicit foreign key to avoid ambiguity)
     const { data: addons, error: addonsError } = await supabaseClient
       .from('product_addons')
-      .select('id, product_id, name, description, price_type, price_value, calculation_type, calculation_formula, display_order, is_active, linked_product_id, allow_map_placement')
+      .select('id, product_id, name, description, price_type, price_value, calculation_type, calculation_formula, display_order, is_active, linked_product_id, allow_map_placement, input_mode')
       .in('product_id', productIds)
       .eq('is_active', true)
       .order('display_order', { ascending: true });

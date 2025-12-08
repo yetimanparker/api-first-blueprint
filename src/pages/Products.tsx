@@ -45,6 +45,7 @@ interface ProductAddon {
   is_active: boolean;
   calculation_type: "total" | "per_unit" | "area_calculation";
   calculation_formula?: string | null;
+  input_mode?: "toggle" | "quantity";
 }
 
 interface Product {
@@ -208,7 +209,8 @@ export default function Products() {
         product_addons: product.product_addons?.map(addon => ({
           ...addon,
           price_type: addon.price_type as "fixed" | "percentage",
-          calculation_type: addon.calculation_type as "total" | "per_unit" | "area_calculation" || "total"
+          calculation_type: addon.calculation_type as "total" | "per_unit" | "area_calculation" || "total",
+          input_mode: (addon.input_mode as "toggle" | "quantity") || "quantity"
         })),
         product_variations: product.product_variations?.map(variation => ({
           ...variation,

@@ -374,6 +374,7 @@ export type Database = {
           description: string | null
           display_order: number | null
           id: string
+          input_mode: string
           is_active: boolean
           linked_product_id: string | null
           name: string
@@ -390,6 +391,7 @@ export type Database = {
           description?: string | null
           display_order?: number | null
           id?: string
+          input_mode?: string
           is_active?: boolean
           linked_product_id?: string | null
           name: string
@@ -406,6 +408,7 @@ export type Database = {
           description?: string | null
           display_order?: number | null
           id?: string
+          input_mode?: string
           is_active?: boolean
           linked_product_id?: string | null
           name?: string

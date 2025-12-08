@@ -77,6 +77,7 @@ interface ProductAddon {
   linked_product_id?: string | null;
   isLinked?: boolean; // UI state to track link mode
   allow_map_placement?: boolean;
+  input_mode?: "toggle" | "quantity"; // How addon is selected: toggle (on/off) or quantity (+/-)
 }
 
 interface ProductVariation {
@@ -202,6 +203,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
           calculation_formula: addon.calculation_formula || "",
           isLinked: !!addon.linked_product_id,
           allow_map_placement: addon.allow_map_placement ?? false,
+          input_mode: (addon as any).input_mode || "quantity",
         })));
         
         // Load addon options for existing addons
@@ -323,6 +325,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       calculation_formula: "",
       isLinked: false,
       linked_product_id: null,
+      input_mode: "quantity",
     };
     setAddons([...addons, newAddon]);
   };
@@ -652,6 +655,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             calculation_formula: (addon.calculation_formula || "").trim() || null,
             linked_product_id: addon.linked_product_id || null,
             allow_map_placement: addon.allow_map_placement || false,
+            input_mode: addon.input_mode || "quantity",
           }));
 
           const { data: insertedAddons, error: addonError } = await supabase
@@ -1908,7 +1912,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                   </div>
                   
                   {/* Enhanced Add-on Options */}
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor={`addon-calculation-type-${index}`}>Calculation Type</Label>
                       <Select
@@ -1924,6 +1928,24 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                           <SelectItem value="area_calculation">Area Calculation (height × linear ft)</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor={`addon-input-mode-${index}`}>Input Mode</Label>
+                      <Select
+                        value={addon.input_mode || "quantity"}
+                        onValueChange={(value) => updateAddon(index, "input_mode", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="quantity">Quantity (+/-)</SelectItem>
+                          <SelectItem value="toggle">Toggle (On/Off)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Toggle: simple include/exclude. Quantity: allow multiple.
+                      </p>
                     </div>
                     <div>
                       <Label htmlFor={`addon-formula-${index}`}>Formula (auto-filled)</Label>
