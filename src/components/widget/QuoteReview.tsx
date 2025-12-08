@@ -791,7 +791,18 @@ const QuoteReview = ({
                 const quantity = item.measurement.depth 
                   ? (item.measurement.value * item.measurement.depth) / 324 
                   : item.measurement.value;
-                const basePrice = quantity * item.unitPrice;
+                
+                // Calculate variation-adjusted unit price for basePrice
+                let adjustedUnitPriceForBase = item.unitPrice;
+                if (item.measurement.variations && item.measurement.variations.length > 0) {
+                  const variation = item.measurement.variations[0];
+                  if (variation.adjustmentType === 'fixed') {
+                    adjustedUnitPriceForBase += variation.priceAdjustment;
+                  } else if (variation.adjustmentType === 'percentage') {
+                    adjustedUnitPriceForBase += (item.unitPrice * variation.priceAdjustment) / 100;
+                  }
+                }
+                const basePrice = quantity * adjustedUnitPriceForBase;
                 const consolidatedChildren = consolidatedChildrenByParent.get(item.id) || [];
                 
                 return (
