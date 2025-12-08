@@ -1174,22 +1174,30 @@ const QuoteReview = ({
                                 const isEnabled = addonToggleStates[addonKey] !== false;
                                 
                                 if (isEnabled && addon.quantity > 0) {
-                                  const variationData = item.measurement.variations && item.measurement.variations.length > 0
-                                    ? {
-                                        height: item.measurement.variations[0].height_value || null,
-                                        unit: item.measurement.variations[0].unit_of_measurement || 'ft',
-                                        affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
-                                      }
-                                    : undefined;
+                                  // Include option price adjustment
+                                  const effectiveAddonPrice = addon.priceValue + (addon.selectedOptionPriceAdjustment || 0);
                                   
-                                  const addonPrice = calculateAddonWithAreaData(
-                                    addon.priceValue,
-                                    baseQuantity,
-                                    addon.calculationType,
-                                    variationData
-                                  );
-                                  
-                                  addonsTotal += addonPrice * addon.quantity;
+                                  // Handle percentage vs fixed price_type
+                                  if (addon.priceType === 'percentage') {
+                                    addonsTotal += (basePrice * effectiveAddonPrice / 100) * addon.quantity;
+                                  } else {
+                                    const variationData = item.measurement.variations && item.measurement.variations.length > 0
+                                      ? {
+                                          height: item.measurement.variations[0].height_value || null,
+                                          unit: item.measurement.variations[0].unit_of_measurement || 'ft',
+                                          affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
+                                        }
+                                      : undefined;
+                                    
+                                    const addonPrice = calculateAddonWithAreaData(
+                                      effectiveAddonPrice,
+                                      baseQuantity,
+                                      addon.calculationType,
+                                      variationData
+                                    );
+                                    
+                                    addonsTotal += addonPrice * addon.quantity;
+                                  }
                                 }
                               });
                               
