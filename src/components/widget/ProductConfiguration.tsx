@@ -981,23 +981,66 @@ const ProductConfiguration = ({
                           displayUnit = 'ea';
                         }
 
+                        // Check if this is a percentage add-on
+                        const isPercentageAddon = addon.price_type === 'percentage';
+                        
+                        // Calculate product base price for percentage add-ons
+                        let productBasePrice = 0;
+                        if (isPercentageAddon) {
+                          const depthValue = parseFloat(depth);
+                          const qty = (depthValue && !isNaN(depthValue) && isVolumeBased) 
+                            ? (measurement.value * depthValue) / 324 
+                            : measurement.value;
+                          
+                          productBasePrice = product.unit_price * qty;
+                          if (selectedVariationObj) {
+                            if (selectedVariationObj.adjustment_type === 'percentage') {
+                              productBasePrice = productBasePrice + (productBasePrice * selectedVariationObj.price_adjustment / 100);
+                            } else {
+                              productBasePrice = productBasePrice + (selectedVariationObj.price_adjustment * qty);
+                            }
+                          }
+                        }
+                        
+                        // Calculate percentage addon total correctly
+                        const percentageAddonTotal = isPercentageAddon 
+                          ? (productBasePrice * addon.price_value / 100) * addonQuantity
+                          : addonTotal;
+                        
                         return (
                           <div key={addonId} className="text-base">
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
                                 <div>{addon.name}:</div>
                                 <div className="text-sm text-muted-foreground">
-                                  {addonQuantity > 1 && `${addonQuantity} × (`}
-                                  {displayQuantity} {displayUnit} × {formatExactPrice(addon.price_value, {
-                                    currency_symbol: settings.currency_symbol,
-                                    decimal_precision: settings.decimal_precision
-                                  })}/{displayUnit}
-                                  {addonQuantity > 1 && ')'}
-                                  {' = '}
-                                  <span className="font-bold">{formatExactPrice(addonTotal, {
-                                    currency_symbol: settings.currency_symbol,
-                                    decimal_precision: settings.decimal_precision
-                                  })}</span>
+                                  {isPercentageAddon ? (
+                                    <>
+                                      {addon.price_value}% of {formatExactPrice(productBasePrice, {
+                                        currency_symbol: settings.currency_symbol,
+                                        decimal_precision: settings.decimal_precision
+                                      })}
+                                      {addonQuantity > 1 && ` × ${addonQuantity}`}
+                                      {' = '}
+                                      <span className="font-bold">{formatExactPrice(percentageAddonTotal, {
+                                        currency_symbol: settings.currency_symbol,
+                                        decimal_precision: settings.decimal_precision
+                                      })}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      {addonQuantity > 1 && `${addonQuantity} × (`}
+                                      {displayQuantity} {displayUnit} × {formatExactPrice(addon.price_value, {
+                                        currency_symbol: settings.currency_symbol,
+                                        decimal_precision: settings.decimal_precision
+                                      })}/{displayUnit}
+                                      {addonQuantity > 1 && ')'}
+                                      {' = '}
+                                      <span className="font-bold">{formatExactPrice(addonTotal, {
+                                        currency_symbol: settings.currency_symbol,
+                                        decimal_precision: settings.decimal_precision
+                                      })}</span>
+                                    </>
+                                  )}
                                 </div>
                               </div>
                               <Button
