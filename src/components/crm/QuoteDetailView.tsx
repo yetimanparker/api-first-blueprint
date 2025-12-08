@@ -465,8 +465,11 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                         {product.traditionalAddons.map((addon) => {
                           const totalQty = addon.instances.reduce((sum, inst) => sum + inst.addonData.quantity, 0);
                           const displayName = addon.selectedOption 
-                            ? `${addon.name}(${addon.selectedOption})`
+                            ? `${addon.name} (${addon.selectedOption})`
                             : addon.name;
+                          
+                          // Calculate effective addon price including option adjustment
+                          const effectiveAddonPrice = addon.priceValue + (addon.selectedOptionPriceAdjustment || 0);
                           
                           // Handle percentage vs fixed price_type
                           const isPercentage = addon.priceType === 'percentage';
@@ -474,10 +477,10 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                           
                           if (isPercentage) {
                             // Percentage addon: X% of the product total
-                            const addonTotal = (baseProdTotal * addon.priceValue / 100) * totalQty;
+                            const addonTotal = (baseProdTotal * effectiveAddonPrice / 100) * totalQty;
                             return (
                               <div key={addon.id} className="text-sm text-muted-foreground pl-3">
-                                <span className="font-medium text-foreground">{displayName}</span>: {addon.priceValue}% of {formatExactPrice(baseProdTotal, {
+                                <span className="font-medium text-foreground">{displayName}</span>: {effectiveAddonPrice}% of {formatExactPrice(baseProdTotal, {
                                   currency_symbol: settings.currency_symbol,
                                   decimal_precision: settings.decimal_precision
                                 })} = <span className="font-semibold text-foreground">{formatExactPrice(addonTotal, {
@@ -489,10 +492,10 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                           } else {
                             return (
                               <div key={addon.id} className="text-sm text-muted-foreground pl-3">
-                                <span className="font-medium text-foreground">{displayName}</span>: {totalQty} × {formatExactPrice(addon.priceValue, {
+                                <span className="font-medium text-foreground">{displayName}</span>: {totalQty} × {formatExactPrice(effectiveAddonPrice, {
                                   currency_symbol: settings.currency_symbol,
                                   decimal_precision: settings.decimal_precision
-                                })} = <span className="font-semibold text-foreground">{formatExactPrice(addon.priceValue * totalQty, {
+                                })} = <span className="font-semibold text-foreground">{formatExactPrice(effectiveAddonPrice * totalQty, {
                                   currency_symbol: settings.currency_symbol,
                                   decimal_precision: settings.decimal_precision
                                 })}</span>

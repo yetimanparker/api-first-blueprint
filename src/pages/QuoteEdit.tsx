@@ -1153,7 +1153,9 @@ export default function QuoteEdit() {
                               <div className="text-sm text-muted-foreground mt-2">Add-ons:</div>
                               {addons.filter((a) => a.quantity > 0).map((addon) => {
                                 const addonName = addon.name || addon.addon_name;
-                                const addonPriceValue = addon.priceValue || addon.addon_price || 0;
+                                const baseAddonPrice = addon.priceValue || addon.addon_price || 0;
+                                const optionAdjustment = addon.selectedOptionPriceAdjustment || 0;
+                                const addonPriceValue = baseAddonPrice + optionAdjustment;
                                 const addonCalcType = addon.calculationType || addon.calculation_type || 'total';
                                 const addonId = addon.id || addon.addon_id;
                                 const addonQty = addon.quantity || 1;

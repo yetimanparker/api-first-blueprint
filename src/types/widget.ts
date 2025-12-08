@@ -81,6 +81,7 @@ export interface ProductAddon {
   quantity: number;
   selectedOptionId?: string;
   selectedOptionName?: string;
+  selectedOptionPriceAdjustment?: number; // Price adjustment from selected option (fixed amount)
   allowMapPlacement?: boolean; // Whether this addon can be placed on the map
   placedLocations?: Array<{lat: number, lng: number}>; // Coordinates where addon is placed
   inputMode?: 'toggle' | 'quantity'; // How addon is selected: toggle (on/off) or quantity (+/-)

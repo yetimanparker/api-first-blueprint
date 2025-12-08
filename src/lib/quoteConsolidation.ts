@@ -8,6 +8,7 @@ export interface ConsolidatedAddon {
   calculationType: string;
   quantity: number;
   selectedOption?: string;
+  selectedOptionPriceAdjustment?: number; // Price adjustment from selected option
   instances: Array<{
     parentItemId: string;
     addonData: any;
@@ -115,7 +116,8 @@ export function consolidateQuoteItems(items: QuoteItem[]): ConsolidatedQuoteData
             priceType: addon.priceType || addon.price_type || 'fixed',
             calculationType: addon.calculationType || addon.calculation_type || 'total',
             quantity: addon.quantity || 0,
-            selectedOption: selectedOption,
+            selectedOption: addon.selectedOptionName || selectedOption,
+            selectedOptionPriceAdjustment: addon.selectedOptionPriceAdjustment || 0,
             instances: []
           };
           addonMap.set(addonKey, consolidatedAddon);
