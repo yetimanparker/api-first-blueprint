@@ -76,6 +76,7 @@ export interface ProductAddon {
   id: string;
   name: string;
   priceValue: number;
+  priceType?: 'fixed' | 'percentage'; // Whether price_value is a fixed amount or percentage of product total
   calculationType: 'total' | 'per_unit' | 'area_calculation';
   quantity: number;
   selectedOptionId?: string;

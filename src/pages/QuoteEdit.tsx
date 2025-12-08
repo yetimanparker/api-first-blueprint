@@ -556,14 +556,20 @@ export default function QuoteEdit() {
       });
       
       // Recalculate line total
-      let newLineTotal = item.unit_price * item.quantity;
+      const baseTotal = item.unit_price * item.quantity;
+      let newLineTotal = baseTotal;
       updatedAddons?.forEach(addon => {
         if (addon.quantity > 0) {
           const addonPrice = addon.priceValue || addon.addon_price || 0;
           const addonQty = addon.quantity || 1;
           const calcType = addon.calculationType || addon.calculation_type || 'total';
+          const priceType = addon.priceType || addon.price_type || 'fixed';
           
-          if (calcType === 'per_unit') {
+          // Handle percentage vs fixed price_type
+          if (priceType === 'percentage') {
+            // Percentage addon: X% of the product base total
+            newLineTotal += (baseTotal * addonPrice / 100) * addonQty;
+          } else if (calcType === 'per_unit') {
             newLineTotal += addonPrice * item.quantity * addonQty;
           } else if (calcType === 'area_calculation') {
             const variations = item.measurement_data?.variations || [];
@@ -624,14 +630,18 @@ export default function QuoteEdit() {
       });
       
       // Recalculate line total
-      let newLineTotal = item.unit_price * item.quantity;
+      const baseTotal = item.unit_price * item.quantity;
+      let newLineTotal = baseTotal;
       updatedAddons?.forEach(addon => {
         if (addon.quantity > 0) {
           const addonPrice = addon.priceValue || addon.addon_price || 0;
           const addonQty = addon.quantity || 1;
           const calcType = addon.calculationType || addon.calculation_type || 'total';
+          const priceType = addon.priceType || addon.price_type || 'fixed';
           
-          if (calcType === 'per_unit') {
+          if (priceType === 'percentage') {
+            newLineTotal += (baseTotal * addonPrice / 100) * addonQty;
+          } else if (calcType === 'per_unit') {
             newLineTotal += addonPrice * item.quantity * addonQty;
           } else if (calcType === 'area_calculation') {
             const variations = item.measurement_data?.variations || [];
@@ -1157,7 +1167,17 @@ export default function QuoteEdit() {
                                   affects_area_calculation: variations[0].affects_area_calculation || variations[0].affectsAreaCalculation
                                 } : undefined;
                                 
-                                if (addonCalcType === 'per_unit') {
+                                const addonPriceType = addon.priceType || addon.price_type || 'fixed';
+                                
+                                // Handle percentage vs fixed price_type
+                                if (addonPriceType === 'percentage') {
+                                  const baseTotal = item.unit_price * item.quantity;
+                                  addonPrice = (baseTotal * addonPriceValue / 100) * addonQty;
+                                  addonCalc = `${addonPriceValue}% of ${formatExactPrice(baseTotal, {
+                                    currency_symbol: settings?.currency_symbol || '$',
+                                    decimal_precision: settings?.decimal_precision || 2
+                                  })}`;
+                                } else if (addonCalcType === 'per_unit') {
                                   addonPrice = addonPriceValue * item.quantity * addonQty;
                                   addonCalc = `${item.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addonPriceValue, {
                                     currency_symbol: settings?.currency_symbol || '$',

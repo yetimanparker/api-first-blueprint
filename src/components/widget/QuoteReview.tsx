@@ -214,22 +214,29 @@ const QuoteReview = ({
         const isEnabled = addonToggleStates[key] !== false; // Default to true
         
         if (isEnabled && addon.quantity > 0) {
-          const variationData = item.measurement.variations && item.measurement.variations.length > 0
-            ? {
-                height: item.measurement.variations[0].height_value || null,
-                unit: item.measurement.variations[0].unit_of_measurement || 'ft',
-                affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
-              }
-            : undefined;
-          
-          const addonPrice = calculateAddonWithAreaData(
-            addon.priceValue,
-            baseQuantity,
-            addon.calculationType,
-            variationData
-          );
-          
-          addonsTotal += addonPrice * addon.quantity;
+          // Handle percentage vs fixed price_type
+          if (addon.priceType === 'percentage') {
+            // Percentage addon: X% of the product base total (before addons)
+            addonsTotal += (basePrice * addon.priceValue / 100) * addon.quantity;
+          } else {
+            // Fixed price addon
+            const variationData = item.measurement.variations && item.measurement.variations.length > 0
+              ? {
+                  height: item.measurement.variations[0].height_value || null,
+                  unit: item.measurement.variations[0].unit_of_measurement || 'ft',
+                  affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
+                }
+              : undefined;
+            
+            const addonPriceCalc = calculateAddonWithAreaData(
+              addon.priceValue,
+              baseQuantity,
+              addon.calculationType,
+              variationData
+            );
+            
+            addonsTotal += addonPriceCalc * addon.quantity;
+          }
         }
       });
       
@@ -284,28 +291,34 @@ const QuoteReview = ({
       let addonsTotal = 0;
       updatedAddons.forEach(addon => {
         if (addon.quantity > 0) {
-          // Get variation data for area calculations
-          const variationData = item.measurement.variations && item.measurement.variations.length > 0
-            ? {
-                height: item.measurement.variations[0].height_value || null,
-                unit: item.measurement.variations[0].unit_of_measurement || 'ft',
-                affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
-              }
-            : undefined;
-          
-          // Use the same calculation method as ProductConfiguration
-          const baseQuantity = item.measurement.depth
-            ? (item.measurement.value * item.measurement.depth) / 324
-            : item.measurement.value;
-          
-          const addonPrice = calculateAddonWithAreaData(
-            addon.priceValue,
-            baseQuantity,
-            addon.calculationType,
-            variationData
-          );
-          
-          addonsTotal += addonPrice * addon.quantity;
+          // Handle percentage vs fixed price_type
+          if (addon.priceType === 'percentage') {
+            // Percentage addon: X% of the product base total (before addons)
+            addonsTotal += (basePrice * addon.priceValue / 100) * addon.quantity;
+          } else {
+            // Get variation data for area calculations
+            const variationData = item.measurement.variations && item.measurement.variations.length > 0
+              ? {
+                  height: item.measurement.variations[0].height_value || null,
+                  unit: item.measurement.variations[0].unit_of_measurement || 'ft',
+                  affects_area_calculation: item.measurement.variations[0].affects_area_calculation || false
+                }
+              : undefined;
+            
+            // Use the same calculation method as ProductConfiguration
+            const baseQuantity = item.measurement.depth
+              ? (item.measurement.value * item.measurement.depth) / 324
+              : item.measurement.value;
+            
+            const addonPriceCalc = calculateAddonWithAreaData(
+              addon.priceValue,
+              baseQuantity,
+              addon.calculationType,
+              variationData
+            );
+            
+            addonsTotal += addonPriceCalc * addon.quantity;
+          }
         }
       });
 
