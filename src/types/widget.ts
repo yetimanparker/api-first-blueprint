@@ -83,6 +83,7 @@ export interface ProductAddon {
   selectedOptionName?: string;
   allowMapPlacement?: boolean; // Whether this addon can be placed on the map
   placedLocations?: Array<{lat: number, lng: number}>; // Coordinates where addon is placed
+  inputMode?: 'toggle' | 'quantity'; // How addon is selected: toggle (on/off) or quantity (+/-)
 }
 
 export interface QuoteSummary {

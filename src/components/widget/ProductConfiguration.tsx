@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { Plus, Minus, Package, Loader2, Trash2, Calculator, MapPin } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
@@ -86,6 +87,7 @@ interface Addon {
   addon_options?: AddonOption[];
   linked_product_id?: string | null;
   allow_map_placement?: boolean;
+  input_mode?: 'toggle' | 'quantity';
 }
 
 interface PricingTier {
@@ -747,7 +749,25 @@ const ProductConfiguration = ({
                             );
                           }
                           
-                          // Normal addon behavior - show quantity controls
+                          // Normal addon behavior - show toggle or quantity controls based on input_mode
+                          const isToggleMode = addon.input_mode === 'toggle';
+                          
+                          if (isToggleMode) {
+                            // Toggle mode - simple on/off switch
+                            return (
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={(selectedAddons[addon.id] || 0) > 0}
+                                  onCheckedChange={(checked) => updateAddonQuantity(addon.id, checked ? 1 : 0)}
+                                />
+                                <span className="text-sm text-muted-foreground">
+                                  {(selectedAddons[addon.id] || 0) > 0 ? 'Included' : 'Not included'}
+                                </span>
+                              </div>
+                            );
+                          }
+                          
+                          // Quantity mode - show +/- controls
                           return (
                             <div className="flex items-center gap-2 justify-end sm:justify-start flex-shrink-0">
                               <Button
