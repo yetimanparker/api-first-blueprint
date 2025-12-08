@@ -23,6 +23,7 @@ import type { MeasurementData } from "@/types/widget";
 import { TaskDropdown } from "@/components/crm/TaskDropdown";
 import QuoteTasksSection from "@/components/crm/QuoteTasksSection";
 import { QuoteTasksDialog } from "@/components/crm/QuoteTasksDialog";
+import { calculateAddonDisplay, getUnitAbbreviation } from "@/lib/addonDisplayUtils";
 
 interface Quote {
   id: string;
@@ -1155,52 +1156,39 @@ export default function QuoteEdit() {
                                 const addonName = addon.name || addon.addon_name;
                                 const baseAddonPrice = addon.priceValue || addon.addon_price || 0;
                                 const optionAdjustment = addon.selectedOptionPriceAdjustment || 0;
-                                const addonPriceValue = baseAddonPrice + optionAdjustment;
                                 const addonCalcType = addon.calculationType || addon.calculation_type || 'total';
                                 const addonId = addon.id || addon.addon_id;
                                 const addonQty = addon.quantity || 1;
-                                
-                                let addonCalc = '';
-                                let addonPrice = 0;
+                                const addonPriceType = addon.priceType || addon.price_type || 'fixed';
                                 
                                 const variationData = variations[0] ? {
-                                  height: variations[0].height_value || variations[0].height || variations[0].heightValue,
-                                  unit: variations[0].unit_of_measurement || variations[0].unit,
+                                  height_value: variations[0].height_value || variations[0].height || variations[0].heightValue,
+                                  unit_of_measurement: variations[0].unit_of_measurement || variations[0].unit,
                                   affects_area_calculation: variations[0].affects_area_calculation || variations[0].affectsAreaCalculation
                                 } : undefined;
                                 
-                                const addonPriceType = addon.priceType || addon.price_type || 'fixed';
-                                
-                                // Handle percentage vs fixed price_type
-                                if (addonPriceType === 'percentage') {
-                                  const baseTotal = item.unit_price * item.quantity;
-                                  addonPrice = (baseTotal * addonPriceValue / 100) * addonQty;
-                                  addonCalc = `${addonPriceValue}% of ${formatExactPrice(baseTotal, {
+                                // Use shared addon display utility for consistent rendering
+                                const addonDisplay = calculateAddonDisplay(
+                                  {
+                                    name: addonName,
+                                    priceValue: baseAddonPrice,
+                                    priceType: addonPriceType as 'fixed' | 'percentage',
+                                    calculationType: addonCalcType,
+                                    quantity: addonQty,
+                                    selectedOption: addon.selectedOptionName,
+                                    selectedOptionPriceAdjustment: optionAdjustment
+                                  },
+                                  {
+                                    totalQuantity: item.quantity,
+                                    unitPrice: item.unit_price,
+                                    unitType: item.product?.unit_type || 'each',
+                                    variations: variationData ? [variationData] : undefined
+                                  },
+                                  {
                                     currency_symbol: settings?.currency_symbol || '$',
                                     decimal_precision: settings?.decimal_precision || 2
-                                  })}`;
-                                } else if (addonCalcType === 'per_unit') {
-                                  addonPrice = addonPriceValue * item.quantity * addonQty;
-                                  addonCalc = `${item.quantity.toLocaleString()} ${unitAbbr} × ${formatExactPrice(addonPriceValue, {
-                                    currency_symbol: settings?.currency_symbol || '$',
-                                    decimal_precision: settings?.decimal_precision || 2
-                                  })}/${unitAbbr}${addonQty > 1 ? ` × ${addonQty}` : ''}`;
-                                } else if (addonCalcType === 'area_calculation') {
-                                  const squareFeet = variationData?.affects_area_calculation && variationData.height
-                                    ? item.quantity * variationData.height
-                                    : item.quantity;
-                                  addonPrice = addonPriceValue * squareFeet * addonQty;
-                                  addonCalc = `${squareFeet.toLocaleString()} SF × ${formatExactPrice(addonPriceValue, {
-                                    currency_symbol: settings?.currency_symbol || '$',
-                                    decimal_precision: settings?.decimal_precision || 2
-                                  })}/SF${addonQty > 1 ? ` × ${addonQty}` : ''}`;
-                                } else {
-                                  addonPrice = addonPriceValue * addonQty;
-                                  addonCalc = `${addonQty} × ${formatExactPrice(addonPriceValue, {
-                                    currency_symbol: settings?.currency_symbol || '$',
-                                    decimal_precision: settings?.decimal_precision || 2
-                                  })}`;
-                                }
+                                  }
+                                );
                                 
                                 const isEditing = editingAddonId === addonId && editingParentItemId === item.id;
                                 
@@ -1208,8 +1196,7 @@ export default function QuoteEdit() {
                                   <div key={addonId} className="text-sm text-muted-foreground pl-3">
                                     <div className="flex items-center justify-between gap-2">
                                       <div>
-                                        <span className="font-medium text-foreground">{addonName}</span>
-                                        {addon.selectedOptionName && `(${addon.selectedOptionName})`}: {addonCalc} = <span className="font-semibold text-foreground">{formatExactPrice(addonPrice, {
+                                        <span className="font-medium text-foreground">{addonDisplay.displayName}</span>: {addonDisplay.displayEquation} = <span className="font-semibold text-foreground">{formatExactPrice(addonDisplay.total, {
                                           currency_symbol: settings?.currency_symbol || '$',
                                           decimal_precision: settings?.decimal_precision || 2
                                         })}</span>

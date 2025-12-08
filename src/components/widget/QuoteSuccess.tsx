@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { loadGoogleMapsAPI } from '@/lib/googleMapsLoader';
 import { getZoomBasedFontSize, getZoomBasedMarkerScale, renderDimensionalProductLabels, renderEdgeMeasurements } from '@/lib/mapLabelUtils';
 import { consolidateQuoteItems } from '@/lib/quoteConsolidation';
+import { calculateAddonDisplay, getUnitAbbreviation } from '@/lib/addonDisplayUtils';
 
 interface QuoteSuccessProps {
   quoteNumber: string;
@@ -500,50 +501,42 @@ const QuoteSuccess = ({
                             <div className="text-sm text-muted-foreground mt-2">Add-ons:</div>
                             {product.traditionalAddons.map((addon) => {
                               const addonQty = addon.instances.reduce((sum, inst) => sum + inst.addonData.quantity, 0);
-                              const displayName = addon.selectedOption 
-                                ? `${addon.name} (${addon.selectedOption})`
-                                : addon.name;
                               
-                              // Calculate effective addon price including option adjustment
-                              const effectiveAddonPrice = addon.priceValue + (addon.selectedOptionPriceAdjustment || 0);
+                              // Use shared addon display utility for consistent rendering
+                              const addonDisplay = calculateAddonDisplay(
+                                {
+                                  name: addon.name,
+                                  priceValue: addon.priceValue,
+                                  priceType: addon.priceType || 'fixed',
+                                  calculationType: addon.calculationType,
+                                  quantity: addonQty,
+                                  selectedOption: addon.selectedOption,
+                                  selectedOptionPriceAdjustment: addon.selectedOptionPriceAdjustment
+                                },
+                                {
+                                  totalQuantity: product.totalQuantity,
+                                  unitPrice: product.unitPrice,
+                                  unitType: product.unitType,
+                                  variations: product.variations?.map((v: any) => ({
+                                    height_value: v.height_value,
+                                    unit_of_measurement: v.unit_of_measurement,
+                                    affects_area_calculation: v.affects_area_calculation
+                                  }))
+                                },
+                                {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                }
+                              );
                               
-                              // Handle percentage vs fixed price_type
-                              const isPercentage = addon.priceType === 'percentage';
-                              const baseProdTotal = product.totalQuantity * product.unitPrice;
-                              
-                              if (isPercentage) {
-                                // Percentage addon: X% of the product total
-                                const addonTotal = (baseProdTotal * effectiveAddonPrice / 100) * addonQty;
-                                return (
-                                  <div key={addon.id} className="text-sm text-muted-foreground pl-3">
-                                    <span className="font-medium text-foreground">{displayName}</span>: {effectiveAddonPrice}% of {formatExactPrice(baseProdTotal, {
-                                      currency_symbol: settings.currency_symbol,
-                                      decimal_precision: settings.decimal_precision
-                                    })} = <span className="font-semibold text-foreground">{formatExactPrice(addonTotal, {
-                                      currency_symbol: settings.currency_symbol,
-                                      decimal_precision: settings.decimal_precision
-                                    })}</span>
-                                  </div>
-                                );
-                              } else {
-                                // For per_unit calculation, the addon applies to the parent's quantity
-                                // For 'total' or other types, use the addon's own quantity
-                                const isPerUnit = addon.calculationType === 'per_unit';
-                                const displayQty = isPerUnit ? product.totalQuantity : addonQty;
-                                const addonTotal = effectiveAddonPrice * displayQty;
-                                
-                                return (
-                                  <div key={addon.id} className="text-sm text-muted-foreground pl-3">
-                                    <span className="font-medium text-foreground">{displayName}</span>: {displayQty.toLocaleString()} × {formatExactPrice(effectiveAddonPrice, {
-                                      currency_symbol: settings.currency_symbol,
-                                      decimal_precision: settings.decimal_precision
-                                    })}/{isPerUnit ? unitAbbr : 'ea'} = <span className="font-semibold text-foreground">{formatExactPrice(addonTotal, {
-                                      currency_symbol: settings.currency_symbol,
-                                      decimal_precision: settings.decimal_precision
-                                    })}</span>
-                                  </div>
-                                );
-                              }
+                              return (
+                                <div key={addon.id} className="text-sm text-muted-foreground pl-3">
+                                  <span className="font-medium text-foreground">{addonDisplay.displayName}</span>: {addonDisplay.displayEquation} = <span className="font-semibold text-foreground">{formatExactPrice(addonDisplay.total, {
+                                    currency_symbol: settings.currency_symbol,
+                                    decimal_precision: settings.decimal_precision
+                                  })}</span>
+                                </div>
+                              );
                             })}
                           </div>
                         )}
