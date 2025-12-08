@@ -499,17 +499,23 @@ const QuoteSuccess = ({
                           <div className="space-y-1">
                             <div className="text-sm text-muted-foreground mt-2">Add-ons:</div>
                             {product.traditionalAddons.map((addon) => {
-                              const totalQty = addon.instances.reduce((sum, inst) => sum + inst.addonData.quantity, 0);
+                              const addonQty = addon.instances.reduce((sum, inst) => sum + inst.addonData.quantity, 0);
                               const displayName = addon.selectedOption 
                                 ? `${addon.name}(${addon.selectedOption})`
                                 : addon.name;
                               
+                              // For per_unit calculation, the addon applies to the parent's quantity
+                              // For 'total' or other types, use the addon's own quantity
+                              const isPerUnit = addon.calculationType === 'per_unit';
+                              const displayQty = isPerUnit ? product.totalQuantity : addonQty;
+                              const addonTotal = addon.priceValue * displayQty;
+                              
                               return (
                                 <div key={addon.id} className="text-sm text-muted-foreground pl-3">
-                                  <span className="font-medium text-foreground">{displayName}</span>: {totalQty} × {formatExactPrice(addon.priceValue, {
+                                  <span className="font-medium text-foreground">{displayName}</span>: {displayQty.toLocaleString()} × {formatExactPrice(addon.priceValue, {
                                     currency_symbol: settings.currency_symbol,
                                     decimal_precision: settings.decimal_precision
-                                  })} = <span className="font-semibold text-foreground">{formatExactPrice(addon.priceValue * totalQty, {
+                                  })}/{isPerUnit ? unitAbbr : 'ea'} = <span className="font-semibold text-foreground">{formatExactPrice(addonTotal, {
                                     currency_symbol: settings.currency_symbol,
                                     decimal_precision: settings.decimal_precision
                                   })}</span>
