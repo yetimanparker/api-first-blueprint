@@ -294,49 +294,60 @@ const ProductConfiguration = ({
       if (addonQuantity > 0) {
         const addon = addons.find(a => a.id === addonId);
         if (addon) {
-          let addonPrice = addon.price_value;
+          let addonCost = 0;
           
-          // Apply addon option price adjustment
-          const selectedOptionId = selectedAddonOptions[addonId];
-          if (selectedOptionId) {
-            const optionData = addonOptions[addonId]?.find(opt => opt.id === selectedOptionId);
-            if (optionData) {
-              if (optionData.adjustment_type === 'percentage') {
-                addonPrice += addonPrice * (optionData.price_adjustment / 100);
-              } else {
-                addonPrice += optionData.price_adjustment;
+          // Handle percentage vs fixed price_type
+          if (addon.price_type === 'percentage') {
+            // Percentage addon: X% of the product subtotal (before addons)
+            addonCost = (subtotal * addon.price_value / 100) * addonQuantity;
+          } else {
+            // Fixed price addon: use calculation_type logic
+            let addonPrice = addon.price_value;
+            
+            // Apply addon option price adjustment
+            const selectedOptionId = selectedAddonOptions[addonId];
+            if (selectedOptionId) {
+              const optionData = addonOptions[addonId]?.find(opt => opt.id === selectedOptionId);
+              if (optionData) {
+                if (optionData.adjustment_type === 'percentage') {
+                  addonPrice += addonPrice * (optionData.price_adjustment / 100);
+                } else {
+                  addonPrice += optionData.price_adjustment;
+                }
               }
             }
+            
+            let addonBaseQuantity = measurement.value;
+            
+            if (addon.calculation_type !== 'area_calculation') {
+              const depthValue = parseFloat(depth);
+              if (depthValue && !isNaN(depthValue) && isVolumeBased && measurement.type === 'area') {
+                addonBaseQuantity = (measurement.value * depthValue) / 324;
+              }
+            }
+            
+            const variation = selectedVariation;
+            const variationData = variation ? {
+              height: variation.height_value || null,
+              unit: variation.unit_of_measurement || 'ft',
+              affects_area_calculation: variation.affects_area_calculation || false
+            } : undefined;
+            
+            const addonPriceWithCalc = calculateAddonWithAreaData(
+              addonPrice,
+              addonBaseQuantity,
+              addon.calculation_type,
+              variationData,
+              {
+                base_height: product.base_height,
+                base_height_unit: product.base_height_unit,
+                use_height_in_calculation: product.use_height_in_calculation
+              }
+            );
+            addonCost = addonPriceWithCalc * addonQuantity;
           }
           
-          let addonBaseQuantity = measurement.value;
-          
-          if (addon.calculation_type !== 'area_calculation') {
-            const depthValue = parseFloat(depth);
-            if (depthValue && !isNaN(depthValue) && isVolumeBased && measurement.type === 'area') {
-              addonBaseQuantity = (measurement.value * depthValue) / 324;
-            }
-          }
-          
-          const variation = selectedVariation;
-          const variationData = variation ? {
-            height: variation.height_value || null,
-            unit: variation.unit_of_measurement || 'ft',
-            affects_area_calculation: variation.affects_area_calculation || false
-          } : undefined;
-          
-          const addonPriceWithCalc = calculateAddonWithAreaData(
-            addonPrice,
-            addonBaseQuantity,
-            addon.calculation_type,
-            variationData,
-            {
-              base_height: product.base_height,
-              base_height_unit: product.base_height_unit,
-              use_height_in_calculation: product.use_height_in_calculation
-            }
-          );
-          subtotal += addonPriceWithCalc * addonQuantity;
+          subtotal += addonCost;
         }
       }
     });
@@ -403,6 +414,7 @@ const ProductConfiguration = ({
           id: addon.id,
           name: addon.name,
           priceValue: addon.price_value,
+          priceType: addon.price_type as 'fixed' | 'percentage',
           calculationType: addon.calculation_type,
           quantity,
           selectedOptionId: selectedOptionId,

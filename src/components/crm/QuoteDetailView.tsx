@@ -468,17 +468,37 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                             ? `${addon.name}(${addon.selectedOption})`
                             : addon.name;
                           
-                          return (
-                            <div key={addon.id} className="text-sm text-muted-foreground pl-3">
-                              <span className="font-medium text-foreground">{displayName}</span>: {totalQty} × {formatExactPrice(addon.priceValue, {
-                                currency_symbol: settings.currency_symbol,
-                                decimal_precision: settings.decimal_precision
-                              })} = <span className="font-semibold text-foreground">{formatExactPrice(addon.priceValue * totalQty, {
-                                currency_symbol: settings.currency_symbol,
-                                decimal_precision: settings.decimal_precision
-                              })}</span>
-                            </div>
-                          );
+                          // Handle percentage vs fixed price_type
+                          const isPercentage = addon.priceType === 'percentage';
+                          const baseProdTotal = product.totalQuantity * product.unitPrice;
+                          
+                          if (isPercentage) {
+                            // Percentage addon: X% of the product total
+                            const addonTotal = (baseProdTotal * addon.priceValue / 100) * totalQty;
+                            return (
+                              <div key={addon.id} className="text-sm text-muted-foreground pl-3">
+                                <span className="font-medium text-foreground">{displayName}</span>: {addon.priceValue}% of {formatExactPrice(baseProdTotal, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })} = <span className="font-semibold text-foreground">{formatExactPrice(addonTotal, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })}</span>
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <div key={addon.id} className="text-sm text-muted-foreground pl-3">
+                                <span className="font-medium text-foreground">{displayName}</span>: {totalQty} × {formatExactPrice(addon.priceValue, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })} = <span className="font-semibold text-foreground">{formatExactPrice(addon.priceValue * totalQty, {
+                                  currency_symbol: settings.currency_symbol,
+                                  decimal_precision: settings.decimal_precision
+                                })}</span>
+                              </div>
+                            );
+                          }
                         })}
                       </div>
                     )}

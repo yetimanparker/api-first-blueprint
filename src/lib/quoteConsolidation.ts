@@ -4,6 +4,7 @@ export interface ConsolidatedAddon {
   id: string;
   name: string;
   priceValue: number;
+  priceType?: 'fixed' | 'percentage'; // Whether price is fixed or percentage of product total
   calculationType: string;
   quantity: number;
   selectedOption?: string;
@@ -111,6 +112,7 @@ export function consolidateQuoteItems(items: QuoteItem[]): ConsolidatedQuoteData
             id: addonId,
             name: addon.name || addon.addon_name || '',
             priceValue: addon.priceValue || addon.addon_price || 0,
+            priceType: addon.priceType || addon.price_type || 'fixed',
             calculationType: addon.calculationType || addon.calculation_type || 'total',
             quantity: addon.quantity || 0,
             selectedOption: selectedOption,
