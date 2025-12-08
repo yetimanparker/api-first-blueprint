@@ -24,6 +24,7 @@ import { TaskDropdown } from "@/components/crm/TaskDropdown";
 import QuoteTasksSection from "@/components/crm/QuoteTasksSection";
 import { QuoteTasksDialog } from "@/components/crm/QuoteTasksDialog";
 import { calculateAddonDisplay, getUnitAbbreviation } from "@/lib/addonDisplayUtils";
+import { calculateAdjustedUnitPrice, getUnitAbbreviation as getUnitAbbreviation2 } from "@/lib/productPricingUtils";
 
 interface Quote {
   id: string;
@@ -1077,20 +1078,15 @@ export default function QuoteEdit() {
                     }
                   };
                   
-                  // Calculate variation-adjusted unit price
-                  const getVariationAdjustedPrice = () => {
-                    let adjustedPrice = item.unit_price;
-                    variations.forEach((v) => {
-                      if (v.adjustmentType === 'percentage') {
-                        adjustedPrice += item.unit_price * (v.priceAdjustment / 100);
-                      } else {
-                        adjustedPrice += v.priceAdjustment;
-                      }
-                    });
-                    return adjustedPrice;
-                  };
-                  
-                  const baseUnitPrice = getVariationAdjustedPrice();
+                  // Calculate variation-adjusted unit price using shared utility
+                  const baseUnitPrice = calculateAdjustedUnitPrice(
+                    item.unit_price,
+                    variations.map((v: any) => ({
+                      name: v.name,
+                      priceAdjustment: v.priceAdjustment || 0,
+                      adjustmentType: v.adjustmentType || 'fixed'
+                    }))
+                  );
                   const baseTotal = baseUnitPrice * item.quantity;
                   const unitAbbr = getUnitAbbreviation(item.product.unit_type);
                   
@@ -1181,6 +1177,7 @@ export default function QuoteEdit() {
                                   {
                                     totalQuantity: item.quantity,
                                     unitPrice: item.unit_price,
+                                    adjustedUnitPrice: baseUnitPrice, // Use the calculated adjusted price
                                     unitType: item.product?.unit_type || 'each',
                                     variations: variationData ? [variationData] : undefined
                                   },

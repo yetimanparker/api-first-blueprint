@@ -9,6 +9,7 @@ import { GlobalSettings } from '@/hooks/useGlobalSettings';
 import { getZoomBasedFontSize, getZoomBasedMarkerScale, renderDimensionalProductLabels } from '@/lib/mapLabelUtils';
 import { consolidateQuoteItems, ConsolidatedMainProduct } from '@/lib/quoteConsolidation';
 import { calculateAddonDisplay, getUnitAbbreviation } from '@/lib/addonDisplayUtils';
+import { calculateProductPrice } from '@/lib/productPricingUtils';
 interface QuoteItem {
   id: string;
   product_id: string;
@@ -445,18 +446,31 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                 {/* Pricing Breakdown - only show if pricing should be visible */}
                 {settings.pricing_visibility === 'before_submit' && (
                   <div className="space-y-2">
-                    {/* Base Product Calculation */}
-                    <div className="text-sm text-muted-foreground pl-3">
-                      {product.totalQuantity.toLocaleString()} {unitAbbr} × {formatExactPrice(product.unitPrice, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })}/{unitAbbr}
-                      {' = '}
-                      <span className="font-semibold text-foreground">{formatExactPrice(product.totalQuantity * product.unitPrice, {
-                        currency_symbol: settings.currency_symbol,
-                        decimal_precision: settings.decimal_precision
-                      })}</span>
-                    </div>
+                    {/* Base Product Calculation - use shared pricing utility */}
+                    {(() => {
+                      const priceResult = calculateProductPrice(
+                        {
+                          baseUnitPrice: product.unitPrice,
+                          quantity: product.totalQuantity,
+                          unitType: product.unitType,
+                          variations: product.variations?.map((v: any) => ({
+                            name: v.name,
+                            priceAdjustment: v.priceAdjustment || 0,
+                            adjustmentType: v.adjustmentType || 'fixed'
+                          }))
+                        },
+                        {
+                          currency_symbol: settings.currency_symbol,
+                          decimal_precision: settings.decimal_precision
+                        }
+                      );
+                      
+                      return (
+                        <div className="text-sm text-muted-foreground pl-3">
+                          {priceResult.displayEquation}
+                        </div>
+                      );
+                    })()}
                     
                     {/* Traditional Add-ons */}
                     {product.traditionalAddons.length > 0 && (
@@ -479,6 +493,7 @@ export default function QuoteDetailView({ quote, settings }: QuoteDetailViewProp
                             {
                               totalQuantity: product.totalQuantity,
                               unitPrice: product.unitPrice,
+                              adjustedUnitPrice: product.adjustedUnitPrice, // Use adjusted price
                               unitType: product.unitType,
                               variations: product.variations?.map((v: any) => ({
                                 height_value: v.height_value,

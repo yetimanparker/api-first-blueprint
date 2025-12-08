@@ -23,6 +23,7 @@ import {
   calculateFinalPrice,
   calculateAddonWithAreaData
 } from '@/lib/priceUtils';
+import { calculateAdjustedUnitPrice, getUnitAbbreviation as getUnitAbbr } from '@/lib/productPricingUtils';
 
 interface QuoteReviewProps {
   quoteItems: QuoteItem[];
@@ -853,19 +854,18 @@ const QuoteReview = ({
                     {/* Pricing Breakdown */}
                     {settings.pricing_visibility === 'before_submit' && (
                       <div className="space-y-2">
-                        {/* Base Product Calculation */}
+                        {/* Base Product Calculation - use shared pricing utility */}
                         <div className="text-sm text-muted-foreground pl-3">
                           {(() => {
-                            // Calculate variation-adjusted unit price
-                            let adjustedUnitPrice = item.unitPrice;
-                            if (item.measurement.variations && item.measurement.variations.length > 0) {
-                              const variation = item.measurement.variations[0];
-                              if (variation.adjustmentType === 'fixed') {
-                                adjustedUnitPrice += variation.priceAdjustment;
-                              } else if (variation.adjustmentType === 'percentage') {
-                                adjustedUnitPrice += (item.unitPrice * variation.priceAdjustment) / 100;
-                              }
-                            }
+                            // Calculate variation-adjusted unit price using shared utility
+                            const adjustedUnitPrice = calculateAdjustedUnitPrice(
+                              item.unitPrice,
+                              item.measurement.variations?.map((v: any) => ({
+                                name: v.name,
+                                priceAdjustment: v.priceAdjustment || 0,
+                                adjustmentType: v.adjustmentType || 'fixed'
+                              }))
+                            );
                             
                             const displayQuantity = item.measurement.depth 
                               ? ((item.measurement.value * item.measurement.depth) / 324).toFixed(2)
