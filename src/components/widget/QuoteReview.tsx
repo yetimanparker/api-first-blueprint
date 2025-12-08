@@ -527,10 +527,12 @@ const QuoteReview = ({
             id: a.id,
             name: a.name,
             priceValue: a.priceValue,
+            priceType: a.priceType,
             calculationType: a.calculationType,
             quantity: a.quantity,
             selectedOptionId: a.selectedOptionId,
-            selectedOptionName: a.selectedOptionName
+            selectedOptionName: a.selectedOptionName,
+            selectedOptionPriceAdjustment: a.selectedOptionPriceAdjustment
           }))
         },
         notes: item.notes || '',
