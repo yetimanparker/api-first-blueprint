@@ -949,13 +949,16 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Unit Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || ""}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select unit type" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="" disabled className="text-muted-foreground">
+                      Select unit type
+                    </SelectItem>
                     {unitTypeOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
