@@ -13,7 +13,7 @@ import { Settings as SettingsIcon } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const productSettingsSchema = z.object({
-  default_unit_type: z.enum(['sq_ft', 'linear_ft', 'each', 'hour', 'cubic_yard']),
+  default_unit_type: z.enum(['sq_ft', 'linear_ft', 'each', 'hour', 'cubic_yard', 'none']),
   auto_activate_products: z.boolean(),
   require_product_photos: z.boolean(),
   global_tax_rate: z.number().min(0).max(100),
@@ -25,6 +25,7 @@ const productSettingsSchema = z.object({
 type ProductSettingsFormData = z.infer<typeof productSettingsSchema>;
 
 const unitTypes = [
+  { value: 'none', label: 'None (Require Selection)' },
   { value: 'sq_ft', label: 'Square Feet' },
   { value: 'linear_ft', label: 'Linear Feet' },
   { value: 'each', label: 'Each' },
@@ -47,7 +48,7 @@ export function ProductSettings() {
   const form = useForm<ProductSettingsFormData>({
     resolver: zodResolver(productSettingsSchema),
     defaultValues: {
-      default_unit_type: 'sq_ft',
+      default_unit_type: 'none',
       auto_activate_products: true,
       require_product_photos: false,
       global_tax_rate: 0,
@@ -88,7 +89,7 @@ export function ProductSettings() {
 
         if (settings) {
           form.reset({
-            default_unit_type: (settings.default_unit_type as any) || 'sq_ft',
+            default_unit_type: (settings.default_unit_type as any) || 'none',
             auto_activate_products: settings.auto_activate_products ?? true,
             require_product_photos: settings.require_product_photos || false,
             global_tax_rate: settings.global_tax_rate || 0,
