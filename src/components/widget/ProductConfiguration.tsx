@@ -90,6 +90,17 @@ interface Addon {
   input_mode?: 'toggle' | 'quantity';
 }
 
+// Helper to get effective addon price (uses linked product price if available)
+const getEffectiveAddonPrice = (addon: Addon, cachedProducts?: any[]): number => {
+  if (addon.linked_product_id && cachedProducts) {
+    const linkedProduct = cachedProducts.find(p => p.id === addon.linked_product_id);
+    if (linkedProduct) {
+      return linkedProduct.unit_price;
+    }
+  }
+  return addon.price_value;
+};
+
 interface PricingTier {
   id: string;
   min_quantity: number;
@@ -332,10 +343,10 @@ const ProductConfiguration = ({
           // Handle percentage vs fixed price_type
           if (addon.price_type === 'percentage') {
             // Percentage addon: X% of the product subtotal (before addons)
-            addonCost = (subtotal * addon.price_value / 100) * addonQuantity;
+            addonCost = (subtotal * getEffectiveAddonPrice(addon, cachedProducts) / 100) * addonQuantity;
           } else {
             // Fixed price addon: use calculation_type logic
-            let addonPrice = addon.price_value;
+            let addonPrice = getEffectiveAddonPrice(addon, cachedProducts);
             
             // Apply addon option price adjustment
             const selectedOptionId = selectedAddonOptions[addonId];
@@ -449,7 +460,7 @@ const ProductConfiguration = ({
         return {
           id: addon.id,
           name: addon.name,
-          priceValue: addon.price_value,
+          priceValue: getEffectiveAddonPrice(addon, cachedProducts),
           priceType: addon.price_type as 'fixed' | 'percentage',
           calculationType: addon.calculation_type,
           quantity,
@@ -688,7 +699,7 @@ const ProductConfiguration = ({
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground mt-1">
-                            Base: {formatExactPrice(addon.price_value, {
+                            Base: {formatExactPrice(getEffectiveAddonPrice(addon, cachedProducts), {
                               currency_symbol: settings.currency_symbol,
                               decimal_precision: settings.decimal_precision
                             })} {addon.calculation_type === 'per_unit' ? 'per unit' : addon.calculation_type === 'area_calculation' ? 'per SF' : 'total'}
@@ -762,7 +773,7 @@ const ProductConfiguration = ({
                                   // Calculate addon price with any option adjustments
                                   const selectedOption = hasOptions ? addonOptions[addon.id].find(opt => opt.id === selectedAddonOptions[addon.id]) : null;
                                   const optionPrice = selectedOption?.price_adjustment || 0;
-                                  const totalAddonPrice = addon.price_value + optionPrice;
+                                  const totalAddonPrice = getEffectiveAddonPrice(addon, cachedProducts) + optionPrice;
                                   
                                   onAddonPlacementStart(
                                     {
@@ -1013,7 +1024,7 @@ const ProductConfiguration = ({
                           ? addonOptions[addonId]?.find(opt => opt.id === selectedOptionId)
                           : null;
                         const optionPriceAdjustment = optionData?.price_adjustment || 0;
-                        const effectiveAddonPrice = addon.price_value + optionPriceAdjustment;
+                        const effectiveAddonPrice = getEffectiveAddonPrice(addon, cachedProducts) + optionPriceAdjustment;
 
                         const addonPrice = calculateAddonWithAreaData(
                           effectiveAddonPrice,
@@ -1067,7 +1078,7 @@ const ProductConfiguration = ({
                         
                         // Calculate percentage addon total correctly
                         const percentageAddonTotal = isPercentageAddon 
-                          ? (productBasePrice * addon.price_value / 100) * addonQuantity
+                          ? (productBasePrice * getEffectiveAddonPrice(addon, cachedProducts) / 100) * addonQuantity
                           : addonTotal;
                         
                         return (
