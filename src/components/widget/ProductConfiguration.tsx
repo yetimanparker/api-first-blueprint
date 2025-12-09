@@ -299,7 +299,9 @@ const ProductConfiguration = ({
     if (!product) return 0;
 
     let basePrice = product.unit_price;
-    let quantity = measurement.value;
+    // For "each" unit type products (including dimensional products like pickleball courts),
+    // quantity is always 1 - the measurement value is just for map display purposes
+    let quantity = product.unit_type === 'each' ? 1 : measurement.value;
 
     // Check if required variation is selected
     const hasRequiredVariations = variations.some(v => v.is_required);
@@ -361,7 +363,8 @@ const ProductConfiguration = ({
               }
             }
             
-            let addonBaseQuantity = measurement.value;
+            // For "each" unit type products, use quantity 1 for addon calculations
+            let addonBaseQuantity = product.unit_type === 'each' ? 1 : measurement.value;
             
             if (addon.calculation_type !== 'area_calculation') {
               const depthValue = parseFloat(depth);
@@ -474,7 +477,8 @@ const ProductConfiguration = ({
     const depthValue = parseFloat(depth);
     
     // Calculate the actual quantity (convert to cubic yards if depth is provided)
-    let actualQuantity = measurement.value;
+    // For "each" unit type products, quantity is always 1
+    let actualQuantity = product.unit_type === 'each' ? 1 : measurement.value;
     if (depthValue && !isNaN(depthValue) && isVolumeBased && measurement.type === 'area') {
       actualQuantity = (measurement.value * depthValue) / 324;
     }
@@ -747,7 +751,8 @@ const ProductConfiguration = ({
                                   }
 
                                   const depthValue = parseFloat(depth);
-                                  let actualQuantity = measurement.value;
+                                  // For "each" unit type products, quantity is always 1
+                                  let actualQuantity = product.unit_type === 'each' ? 1 : measurement.value;
                                   if (depthValue && !isNaN(depthValue) && isVolumeBased && measurement.type === 'area') {
                                     actualQuantity = (measurement.value * depthValue) / 324;
                                   }
