@@ -144,4 +144,8 @@ export interface WidgetState {
   pendingAddon?: PendingAddonConfig;
   // Accumulated segments for "Add Another Segment" workflow
   accumulatedSegments?: MeasurementData[];
+  // Preserve addon selections across step changes (key: addonId, value: quantity)
+  configuredAddons?: Record<string, number>;
+  // Preserve addon option selections across step changes (key: addonId, value: optionId)
+  configuredAddonOptions?: Record<string, string>;
 }

@@ -33,6 +33,8 @@ const Widget = () => {
     customerInfo: {},
     quoteItems: [],
     pendingAddons: [],
+    configuredAddons: {},
+    configuredAddonOptions: {},
   });
 
   const [contractorInfo, setContractorInfo] = useState<any>(null);
@@ -865,6 +867,20 @@ const Widget = () => {
               onRemove={goToProductSelection}
               cachedProducts={widgetProducts}
               pendingAddons={widgetState.pendingAddons}
+              configuredAddons={widgetState.configuredAddons}
+              configuredAddonOptions={widgetState.configuredAddonOptions}
+              onConfiguredAddonsChange={(addons) => {
+                setWidgetState(prev => ({
+                  ...prev,
+                  configuredAddons: addons
+                }));
+              }}
+              onConfiguredAddonOptionsChange={(options) => {
+                setWidgetState(prev => ({
+                  ...prev,
+                  configuredAddonOptions: options
+                }));
+              }}
               onAddonPlacementStart={(addon, mainItem) => {
                 // Don't add mainItem yet - keep it for reference
                 setWidgetState(prev => ({

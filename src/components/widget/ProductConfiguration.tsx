@@ -107,6 +107,10 @@ interface ProductConfigurationProps {
   onRemove?: () => void;
   cachedProducts?: any[];
   pendingAddons?: QuoteItem[];
+  configuredAddons?: Record<string, number>;
+  configuredAddonOptions?: Record<string, string>;
+  onConfiguredAddonsChange?: (addons: Record<string, number>) => void;
+  onConfiguredAddonOptionsChange?: (options: Record<string, string>) => void;
   onAddonPlacementStart?: (addon: {
     addonId: string;
     addonName: string;
@@ -129,6 +133,10 @@ const ProductConfiguration = ({
   onRemove,
   cachedProducts,
   pendingAddons,
+  configuredAddons: externalConfiguredAddons,
+  configuredAddonOptions: externalConfiguredAddonOptions,
+  onConfiguredAddonsChange,
+  onConfiguredAddonOptionsChange,
   onAddonPlacementStart,
   onRemovePendingAddon
 }: ProductConfigurationProps) => {
@@ -136,16 +144,39 @@ const ProductConfiguration = ({
   const [variations, setVariations] = useState<Variation[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
   const [addonOptions, setAddonOptions] = useState<Record<string, any[]>>({});
-  const [selectedAddonOptions, setSelectedAddonOptions] = useState<Record<string, string>>({});
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [selectedVariationId, setSelectedVariationId] = useState<string>('');
   const [variationError, setVariationError] = useState<string>('');
-  const [selectedAddons, setSelectedAddons] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState('');
   const [depth, setDepth] = useState<string>(measurement.depth?.toString() || '');
   const [isAdded, setIsAdded] = useState(false);
+
+  // Use external state if provided, otherwise fallback to local state
+  const [localSelectedAddons, setLocalSelectedAddons] = useState<Record<string, number>>({});
+  const [localSelectedAddonOptions, setLocalSelectedAddonOptions] = useState<Record<string, string>>({});
+  
+  const selectedAddons = externalConfiguredAddons ?? localSelectedAddons;
+  const selectedAddonOptions = externalConfiguredAddonOptions ?? localSelectedAddonOptions;
+  
+  const setSelectedAddons = (updater: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => {
+    const newValue = typeof updater === 'function' ? updater(selectedAddons) : updater;
+    if (onConfiguredAddonsChange) {
+      onConfiguredAddonsChange(newValue);
+    } else {
+      setLocalSelectedAddons(newValue);
+    }
+  };
+  
+  const setSelectedAddonOptions = (updater: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => {
+    const newValue = typeof updater === 'function' ? updater(selectedAddonOptions) : updater;
+    if (onConfiguredAddonOptionsChange) {
+      onConfiguredAddonOptionsChange(newValue);
+    } else {
+      setLocalSelectedAddonOptions(newValue);
+    }
+  };
 
   // Check if product is volume-based
   const isVolumeBased = product && (
