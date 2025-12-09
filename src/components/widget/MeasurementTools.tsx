@@ -476,7 +476,7 @@ const MeasurementTools = ({
             map: map,
             icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
             label: {
-              text: `${segment.value.toLocaleString()} ft`,
+              text: `${segment.value.toLocaleString(undefined, { maximumFractionDigits: 2 })} ft`,
               color: color,
               fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
               fontWeight: '300',
@@ -508,7 +508,7 @@ const MeasurementTools = ({
           map: map,
           icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
           label: {
-            text: `${segment.value.toLocaleString()} sq ft`,
+            text: `${segment.value.toLocaleString(undefined, { maximumFractionDigits: 2 })} sq ft`,
             color: color,
             fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
             fontWeight: '300',
@@ -915,7 +915,7 @@ const MeasurementTools = ({
               scale: 0,
             },
             label: {
-              text: `${(item.measurement.originalMeasurement || item.measurement.value).toLocaleString()} sq ft`,
+              text: `${(item.measurement.originalMeasurement || item.measurement.value).toLocaleString(undefined, { maximumFractionDigits: 2 })} sq ft`,
               color: color,
               fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
               fontWeight: 'bold',
@@ -985,7 +985,7 @@ const MeasurementTools = ({
                 scale: 0,
               },
               label: {
-                text: `${(item.measurement.originalMeasurement || item.measurement.value).toLocaleString()} sq ft`,
+                text: `${(item.measurement.originalMeasurement || item.measurement.value).toLocaleString(undefined, { maximumFractionDigits: 2 })} sq ft`,
                 color: color,
                 fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
                 fontWeight: 'bold',
@@ -1097,7 +1097,7 @@ const MeasurementTools = ({
               scale: 0,
             },
             label: {
-              text: `${(item.measurement.originalMeasurement || item.measurement.value).toLocaleString()} ft`,
+              text: `${(item.measurement.originalMeasurement || item.measurement.value).toLocaleString(undefined, { maximumFractionDigits: 2 })} ft`,
               color: color,
               fontSize: `${getZoomBasedFontSize(currentZoom)}px`,
               fontWeight: 'bold',
@@ -2593,7 +2593,7 @@ const MeasurementTools = ({
             {/* Show accumulated total if segments exist */}
             {accumulatedSegments.length > 0 && (
               <div className="text-center mb-2 text-sm text-muted-foreground">
-                Total: {(accumulatedSegments.reduce((sum, s) => sum + s.value, 0) + (currentMeasurement?.value || 0)).toLocaleString()} {measurementType === 'area' ? 'sq ft' : measurementType === 'linear' ? 'ft' : 'items'} ({accumulatedSegments.length + (currentMeasurement ? 1 : 0)} segment{accumulatedSegments.length + (currentMeasurement ? 1 : 0) !== 1 ? 's' : ''})
+                Total: {(accumulatedSegments.reduce((sum, s) => sum + s.value, 0) + (currentMeasurement?.value || 0)).toLocaleString(undefined, { maximumFractionDigits: 2 })} {measurementType === 'area' ? 'sq ft' : measurementType === 'linear' ? 'ft' : 'items'} ({accumulatedSegments.length + (currentMeasurement ? 1 : 0)} segment{accumulatedSegments.length + (currentMeasurement ? 1 : 0) !== 1 ? 's' : ''})
               </div>
             )}
             <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
@@ -2703,7 +2703,7 @@ const MeasurementTools = ({
                 >
                   <span>NEXT</span>
                   <span className="text-success-foreground/90 font-semibold">
-                    ({(accumulatedSegments.reduce((sum, s) => sum + s.value, 0) + currentMeasurement.value).toLocaleString()} {currentMeasurement.type === 'area' ? 'sq ft' : currentMeasurement.type === 'linear' ? 'ft' : 'items'})
+                    ({(accumulatedSegments.reduce((sum, s) => sum + s.value, 0) + currentMeasurement.value).toLocaleString(undefined, { maximumFractionDigits: 2 })} {currentMeasurement.type === 'area' ? 'sq ft' : currentMeasurement.type === 'linear' ? 'ft' : 'items'})
                   </span>
                 </Button>
               )}
