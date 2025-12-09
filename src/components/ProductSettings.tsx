@@ -14,7 +14,6 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 
 const productSettingsSchema = z.object({
   default_unit_type: z.enum(['sq_ft', 'linear_ft', 'each', 'hour', 'cubic_yard']),
-  default_product_color: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid hex color"),
   auto_activate_products: z.boolean(),
   require_product_photos: z.boolean(),
   global_tax_rate: z.number().min(0).max(100),
@@ -49,7 +48,6 @@ export function ProductSettings() {
     resolver: zodResolver(productSettingsSchema),
     defaultValues: {
       default_unit_type: 'sq_ft',
-      default_product_color: '#3B82F6',
       auto_activate_products: true,
       require_product_photos: false,
       global_tax_rate: 0,
@@ -91,7 +89,6 @@ export function ProductSettings() {
         if (settings) {
           form.reset({
             default_unit_type: (settings.default_unit_type as any) || 'sq_ft',
-            default_product_color: settings.default_product_color || '#3B82F6',
             auto_activate_products: settings.auto_activate_products ?? true,
             require_product_photos: settings.require_product_photos || false,
             global_tax_rate: settings.global_tax_rate || 0,
@@ -165,65 +162,33 @@ export function ProductSettings() {
             <div className="space-y-4">
               <h3 className="font-semibold text-base sm:text-lg">Default Product Settings</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="default_unit_type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Default Unit Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select unit type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {unitTypes.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription className="text-sm">
-                        Default unit type for new products
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="default_product_color"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Default Product Color</FormLabel>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <FormControl>
-                          <Input
-                            type="color"
-                            {...field}
-                            className="w-full sm:w-20 h-10"
-                          />
-                        </FormControl>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="#3B82F6"
-                            className="flex-1"
-                          />
-                        </FormControl>
-                      </div>
-                      <FormDescription className="text-sm">
-                        Default color for new products
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="default_unit_type"
+                render={({ field }) => (
+                  <FormItem className="max-w-sm">
+                    <FormLabel>Default Unit Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select unit type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {unitTypes.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription className="text-sm">
+                      Default unit type for new products
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="grid grid-cols-1 gap-4">
                 <FormField
