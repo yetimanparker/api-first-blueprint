@@ -25,7 +25,7 @@ const productSchema = z.object({
   description: z.string().optional(),
   unit_price: z.number().min(0, "Price must be positive"),
   min_order_quantity: z.number().min(0.01, "Minimum order quantity must be greater than 0"),
-  unit_type: z.enum(["sq_ft", "linear_ft", "each", "hour", "cubic_yard", "pound", "ton", "pallet", ""]),
+  unit_type: z.string().min(1, { message: "Please select a unit type" }),
   is_active: z.boolean(),
   show_in_widget_selector: z.boolean(),
   show_pricing_before_submit: z.boolean(),
