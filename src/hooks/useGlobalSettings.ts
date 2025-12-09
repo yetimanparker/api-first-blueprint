@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PriceRangeSettings } from '@/lib/priceUtils';
 
 export interface GlobalSettings extends PriceRangeSettings {
-  default_unit_type: 'sq_ft' | 'linear_ft' | 'each' | 'hour' | 'cubic_yard' | 'pound' | 'ton' | 'pallet';
+  default_unit_type: 'sq_ft' | 'linear_ft' | 'each' | 'hour' | 'cubic_yard' | 'pound' | 'ton' | 'pallet' | 'none';
   default_product_color: string;
   auto_activate_products: boolean;
   require_product_photos: boolean;
