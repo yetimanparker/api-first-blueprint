@@ -279,6 +279,14 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       setInitialValuesSet(true);
     }
   }, [product, categories, initialValuesSet, form, getSubcategoriesForCategory]);
+
+  // Reset unit_type when globalSettings loads for new products
+  useEffect(() => {
+    if (!product && globalSettings) {
+      const defaultUnitType = globalSettings.default_unit_type === 'none' ? '' : globalSettings.default_unit_type;
+      form.setValue('unit_type', defaultUnitType as any);
+    }
+  }, [product, globalSettings, form]);
   
   // Load available products for linking
   useEffect(() => {
