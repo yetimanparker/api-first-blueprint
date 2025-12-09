@@ -122,6 +122,33 @@ serve(async (req) => {
       console.error('Error fetching addons:', addonsError);
     }
     
+    // Get linked product IDs that might not be in the main product list
+    const linkedProductIds = (addons || [])
+      .filter(a => a.linked_product_id)
+      .map(a => a.linked_product_id)
+      .filter((id, idx, arr) => arr.indexOf(id) === idx); // unique
+    
+    // Fetch linked products (for addon pricing) - these might have show_in_widget_selector = false
+    let linkedProducts: any[] = [];
+    if (linkedProductIds.length > 0) {
+      const { data: linkedProds, error: linkedError } = await supabaseClient
+        .from('products')
+        .select('id, name, unit_price')
+        .in('id', linkedProductIds)
+        .eq('is_active', true);
+      
+      if (linkedError) {
+        console.error('Error fetching linked products:', linkedError);
+      }
+      linkedProducts = linkedProds || [];
+    }
+    
+    // Create a map of linked product prices for quick lookup
+    const linkedProductPrices: Record<string, number> = {};
+    linkedProducts.forEach(p => {
+      linkedProductPrices[p.id] = p.unit_price;
+    });
+    
     // Fetch addon options for all addons
     const addonIds = addons?.map(a => a.id) || [];
     const { data: addonOptions, error: addonOptionsError } = await supabaseClient
@@ -188,10 +215,19 @@ serve(async (req) => {
 
     // Organize data by product
     const productsWithRelations = products?.map(product => {
-      const productAddons = (addons?.filter(a => a.product_id === product.id) || []).map(addon => ({
-        ...addon,
-        addon_options: optionsByAddon[addon.id] || []
-      }));
+      const productAddons = (addons?.filter(a => a.product_id === product.id) || []).map(addon => {
+        // If addon has linked_product_id, use the linked product's price
+        let effectivePrice = addon.price_value;
+        if (addon.linked_product_id && linkedProductPrices[addon.linked_product_id] !== undefined) {
+          effectivePrice = linkedProductPrices[addon.linked_product_id];
+        }
+        
+        return {
+          ...addon,
+          price_value: effectivePrice, // Override price_value with linked product price
+          addon_options: optionsByAddon[addon.id] || []
+        };
+      });
       
       return {
         ...product,
