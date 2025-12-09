@@ -319,7 +319,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       description: "",
       price_type: "fixed",
       price_value: 0,
-      display_order: addons.length,
+      display_order: 0,
       is_active: true,
       calculation_type: "total",
       calculation_formula: "",
@@ -327,7 +327,9 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       linked_product_id: null,
       input_mode: "quantity",
     };
-    setAddons([...addons, newAddon]);
+    // Insert at beginning and update display_order for existing items
+    const updatedAddons = addons.map(addon => ({ ...addon, display_order: addon.display_order + 1 }));
+    setAddons([newAddon, ...updatedAddons]);
   };
 
   const addNewVariation = () => {
@@ -336,14 +338,16 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       description: "",
       price_adjustment: 0,
       adjustment_type: "fixed",
-      display_order: variations.length,
+      display_order: 0,
       is_active: true,
       height_value: undefined,
       unit_of_measurement: "ft",
       affects_area_calculation: false,
       is_default: false,
     };
-    setVariations([...variations, newVariation]);
+    // Insert at beginning and update display_order for existing items
+    const updatedVariations = variations.map(v => ({ ...v, display_order: v.display_order + 1 }));
+    setVariations([newVariation, ...updatedVariations]);
   };
 
   const updateAddon = (index: number, field: keyof ProductAddon, value: any) => {
