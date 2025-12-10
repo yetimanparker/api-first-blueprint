@@ -106,11 +106,15 @@ const CRM = () => {
     fetchCustomers();
     fetchAllQuotes();
     fetchAllTasks();
-    // Check for URL filter parameter
+    // Check for URL filter and sort parameters
     const filterParam = searchParams.get('filter');
+    const sortParam = searchParams.get('sort');
     if (filterParam === 'unviewed') {
       setActiveTab('quotes');
       setQuoteStatusFilter('unviewed');
+    }
+    if (sortParam === 'recent') {
+      setQuoteSortBy('newest');
     }
   }, [searchParams]);
 
