@@ -166,7 +166,7 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
       description: product?.description || "",
       unit_price: product?.unit_price || 0,
       min_order_quantity: product?.min_order_quantity || 1,
-      unit_type: (product?.unit_type as any) || (globalSettings?.default_unit_type === 'none' ? '' : globalSettings?.default_unit_type) || "sq_ft",
+      unit_type: product?.unit_type || "",
       is_active: product?.is_active ?? (globalSettings?.auto_activate_products ?? true),
       show_in_widget_selector: product?.show_in_widget_selector ?? true,
       show_pricing_before_submit: product?.show_pricing_before_submit ?? true,
