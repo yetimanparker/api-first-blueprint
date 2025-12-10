@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LogOut, Building2, Package, Users, FileText, Settings, Plus, ExternalLink, Eye, Zap, UserPlus } from "lucide-react";
+import { LogOut, Building2, Package, Users, FileText, Settings, Plus, ExternalLink, Eye, Zap, UserPlus, ListTodo } from "lucide-react";
 import type { User, Session } from "@supabase/supabase-js";
 import { useContractorId } from "@/hooks/useContractorId";
 import { ProductForm } from "@/components/ProductForm";
@@ -21,6 +21,7 @@ const Dashboard = () => {
     totalCustomers: 0,
     totalRevenue: 0,
     totalQuotes: 0,
+    totalTasks: 0,
   });
   const [showQuickAddDialog, setShowQuickAddDialog] = useState(false);
   const navigate = useNavigate();
@@ -64,6 +65,12 @@ const Dashboard = () => {
         .eq('contractor_id', contractorId)
         .eq('status', 'accepted');
 
+      // Fetch total tasks count
+      const { count: tasksCount } = await supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('contractor_id', contractorId);
+
       const totalRevenue = acceptedQuotes?.reduce((sum, quote) => sum + Number(quote.total_amount || 0), 0) || 0;
 
       setStats({
@@ -71,6 +78,7 @@ const Dashboard = () => {
         totalCustomers: customersCount || 0,
         totalRevenue,
         totalQuotes: totalQuotesCount || 0,
+        totalTasks: tasksCount || 0,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -193,7 +201,7 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 md:gap-6 mb-8">
           <Card 
             className="cursor-pointer transition-all hover:shadow-lg"
             onClick={() => navigate('/crm?filter=all&sort=recent')}
@@ -221,6 +229,20 @@ const Dashboard = () => {
                 {stats.quotesNotViewed}
               </div>
               <p className="text-xs text-muted-foreground">Click to view</p>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="cursor-pointer transition-all hover:shadow-lg"
+            onClick={() => navigate('/crm?tab=tasks')}
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tasks</CardTitle>
+              <ListTodo className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalTasks}</div>
+              <p className="text-xs text-muted-foreground">Click to view all</p>
             </CardContent>
           </Card>
 
