@@ -201,7 +201,7 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 md:gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-8">
           <Card 
             className="cursor-pointer transition-all hover:shadow-lg"
             onClick={() => navigate('/crm?filter=all&sort=recent')}
@@ -243,17 +243,6 @@ const Dashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalTasks}</div>
               <p className="text-xs text-muted-foreground">Click to view all</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">From accepted quotes</p>
             </CardContent>
           </Card>
         </div>
@@ -377,6 +366,26 @@ const Dashboard = () => {
                 <Eye className="h-4 w-4 mr-2" />
                 Preview Widget
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* 5. Financial */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center">
+                <div className="p-2 bg-green-500/10 rounded-lg mr-3 shrink-0">
+                  <Building2 className="h-6 w-6 text-green-500" />
+                </div>
+                <div className="min-w-0">
+                  <CardTitle className="text-base md:text-lg">Financial</CardTitle>
+                  <CardDescription className="text-sm">Revenue from accepted quotes</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                ${stats.totalRevenue.toFixed(2)}
+              </div>
             </CardContent>
           </Card>
         </div>
