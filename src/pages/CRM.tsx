@@ -112,9 +112,13 @@ const CRM = () => {
     const tabParam = searchParams.get('tab');
     if (tabParam === 'tasks') {
       setActiveTab('tasks');
-    } else if (filterParam === 'unviewed') {
+    } else if (filterParam) {
       setActiveTab('quotes');
-      setQuoteStatusFilter('unviewed');
+      if (filterParam === 'unviewed') {
+        setQuoteStatusFilter('unviewed');
+      } else if (filterParam === 'accepted') {
+        setQuoteStatusFilter('accepted');
+      }
     }
     if (sortParam === 'recent') {
       setQuoteSortBy('newest');
