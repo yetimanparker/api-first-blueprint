@@ -106,10 +106,13 @@ const CRM = () => {
     fetchCustomers();
     fetchAllQuotes();
     fetchAllTasks();
-    // Check for URL filter and sort parameters
+    // Check for URL filter, sort, and tab parameters
     const filterParam = searchParams.get('filter');
     const sortParam = searchParams.get('sort');
-    if (filterParam === 'unviewed') {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'tasks') {
+      setActiveTab('tasks');
+    } else if (filterParam === 'unviewed') {
       setActiveTab('quotes');
       setQuoteStatusFilter('unviewed');
     }
