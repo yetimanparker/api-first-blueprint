@@ -956,9 +956,6 @@ export function ProductForm({ product, onSaved, onCancel }: ProductFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="" disabled className="text-muted-foreground">
-                      Select unit type
-                    </SelectItem>
                     {unitTypeOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
