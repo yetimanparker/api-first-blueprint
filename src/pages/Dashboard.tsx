@@ -22,6 +22,9 @@ const Dashboard = () => {
     totalRevenue: 0,
     totalQuotes: 0,
     totalTasks: 0,
+    pendingQuoteValue: 0,
+    averageQuoteAmount: 0,
+    quotesThisMonth: 0,
   });
   const [showQuickAddDialog, setShowQuickAddDialog] = useState(false);
   const navigate = useNavigate();
@@ -65,6 +68,30 @@ const Dashboard = () => {
         .eq('contractor_id', contractorId)
         .eq('status', 'accepted');
 
+      // Fetch pending quotes (draft or sent status)
+      const { data: pendingQuotes } = await supabase
+        .from('quotes')
+        .select('total_amount')
+        .eq('contractor_id', contractorId)
+        .in('status', ['draft', 'sent']);
+
+      // Fetch all quotes for average calculation
+      const { data: allQuotes } = await supabase
+        .from('quotes')
+        .select('total_amount')
+        .eq('contractor_id', contractorId);
+
+      // Fetch quotes this month
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      
+      const { count: quotesThisMonthCount } = await supabase
+        .from('quotes')
+        .select('*', { count: 'exact', head: true })
+        .eq('contractor_id', contractorId)
+        .gte('created_at', startOfMonth.toISOString());
+
       // Fetch total tasks count
       const { count: tasksCount } = await supabase
         .from('tasks')
@@ -72,6 +99,10 @@ const Dashboard = () => {
         .eq('contractor_id', contractorId);
 
       const totalRevenue = acceptedQuotes?.reduce((sum, quote) => sum + Number(quote.total_amount || 0), 0) || 0;
+      const pendingQuoteValue = pendingQuotes?.reduce((sum, quote) => sum + Number(quote.total_amount || 0), 0) || 0;
+      const averageQuoteAmount = allQuotes && allQuotes.length > 0 
+        ? allQuotes.reduce((sum, quote) => sum + Number(quote.total_amount || 0), 0) / allQuotes.length 
+        : 0;
 
       setStats({
         quotesNotViewed: unviewedQuotesCount || 0,
@@ -79,6 +110,9 @@ const Dashboard = () => {
         totalRevenue,
         totalQuotes: totalQuotesCount || 0,
         totalTasks: tasksCount || 0,
+        pendingQuoteValue,
+        averageQuoteAmount,
+        quotesThisMonth: quotesThisMonthCount || 0,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -370,7 +404,7 @@ const Dashboard = () => {
           </Card>
 
           {/* 5. Financial */}
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/crm?filter=accepted')}>
+          <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-center">
                 <div className="p-2 bg-green-500/10 rounded-lg mr-3 shrink-0">
@@ -382,19 +416,60 @@ const Dashboard = () => {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <Card className="bg-green-50/50 dark:bg-green-950/20 border-green-200/50 dark:border-green-800/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-                  <Building2 className="h-4 w-4 text-green-500" />
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    ${stats.totalRevenue.toFixed(2)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">From accepted quotes</p>
-                </CardContent>
-              </Card>
+            <CardContent onClick={(e) => e.stopPropagation()}>
+              <div className="grid grid-cols-2 gap-3">
+                <Card className="bg-green-50/50 dark:bg-green-950/20 border-green-200/50 dark:border-green-800/50 cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/crm?filter=accepted')}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-3">
+                    <CardTitle className="text-xs font-medium">Revenue</CardTitle>
+                    <Building2 className="h-3 w-3 text-green-500" />
+                  </CardHeader>
+                  <CardContent className="pt-0 px-3 pb-3">
+                    <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                      ${stats.totalRevenue.toFixed(2)}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">From accepted</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/50 cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/crm?filter=sent')}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-3">
+                    <CardTitle className="text-xs font-medium">Pending</CardTitle>
+                    <FileText className="h-3 w-3 text-amber-500" />
+                  </CardHeader>
+                  <CardContent className="pt-0 px-3 pb-3">
+                    <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                      ${stats.pendingQuoteValue.toFixed(2)}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Awaiting response</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/50">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-3">
+                    <CardTitle className="text-xs font-medium">Avg Quote</CardTitle>
+                    <FileText className="h-3 w-3 text-blue-500" />
+                  </CardHeader>
+                  <CardContent className="pt-0 px-3 pb-3">
+                    <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      ${stats.averageQuoteAmount.toFixed(2)}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">All quotes</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-purple-50/50 dark:bg-purple-950/20 border-purple-200/50 dark:border-purple-800/50">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-3">
+                    <CardTitle className="text-xs font-medium">This Month</CardTitle>
+                    <FileText className="h-3 w-3 text-purple-500" />
+                  </CardHeader>
+                  <CardContent className="pt-0 px-3 pb-3">
+                    <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                      {stats.quotesThisMonth}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Quotes created</p>
+                  </CardContent>
+                </Card>
+              </div>
             </CardContent>
           </Card>
         </div>
