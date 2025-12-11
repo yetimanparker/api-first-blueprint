@@ -118,6 +118,8 @@ const CRM = () => {
         setQuoteStatusFilter('unviewed');
       } else if (filterParam === 'accepted') {
         setQuoteStatusFilter('accepted');
+      } else if (filterParam === 'sent') {
+        setQuoteStatusFilter('sent');
       }
     }
     if (sortParam === 'recent') {
