@@ -2574,6 +2574,7 @@ const MeasurementTools = ({
                   Cancel
                 </Button>
                 <Button 
+                  variant="success"
                   onClick={handleManualSubmit}
                   disabled={!manualValue || parseFloat(manualValue) <= 0}
                   className="flex-1"
